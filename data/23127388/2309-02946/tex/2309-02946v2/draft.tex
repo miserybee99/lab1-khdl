@@ -1,0 +1,1203 @@
+%%%%%%%% type of document %%%%%
+\documentclass[11pt]{article}
+ 
+
+\input{newcommands.tex}
+
+ 
+%%%%%%% loading extra packages %%%%%%
+\usepackage[english]{babel}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{color,amssymb,color}
+\usepackage[bookmarks=true,bookmarksopen=true,colorlinks=true,breaklinks=true,linkcolor=blue,citecolor=blue]{hyperref}
+\usepackage{amsmath,amsfonts,amssymb,mathrsfs,amsthm}
+\usepackage[affil-it,max2]{authblk}
+\usepackage{enumerate}   
+\usepackage{cleveref}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage[export]{adjustbox}
+\usepackage{pifont}
+%---------------------------------
+
+
+%%%%%%%% setting up marging sizes %%%%%%%%%%%%%
+\usepackage[margin=2.7cm]{geometry}
+%---------------------------------
+
+% for ordering the citations
+\usepackage{cite}
+
+
+ 
+%%%%%%%%%%%%%% TITLE and AUTHOR %%%%%%%%%%%%%%%
+\title{Numerical Construction of initial data sets for inhomogeneous cosmological space-times with spatial topology of $\mathbb{T}^3$}
+
+
+
+
+
+
+
+\author[1]{Alejandro Estrada\footnote{email: alejandro.estrada.llesta@univie.ac.at}}
+\author[2]{Cristhian Duarte\footnote{email: cisthian.duarte@correounivalle.edu.co}}
+\author[3]{Leon Escobar-Diaz\footnote{email: leon.escobar@correounivalle.edu.co}}
+\affil[1]{Department of Mathematics, Universität Wien, Austria.}
+\affil[2]{Department of Physics, Universidad Del Valle, Colombia.}
+\affil[3]{Department of Mathematics, Universidad Del Valle, Colombia.}
+%----------------------------------------------
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%-------------begining document--------------
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+\maketitle
+
+
+
+\begin{abstract}
+In this work, we numerically construct initial data sets for cosmological spacetimes with a spatial topology of $\mathbb{T}^3$, which are generally inhomogeneous. 
+To do so, we implement a pseudo-spectral approach based on the discrete Fourier transform for numerically solving Einstein's constraint equations in an algebraic-hyperbolic form. 
+We explore the advantages and disadvantages of this method by comparing the numerical solutions with known analytical initial data sets. 
+Additionally, we perform an stability analysis of the system to gain deeper understanding of the problem. 
+Finally, we numerically obtain new families of initial data sets through manipulation of the original system by imposing restrictions in some of the variables.
+\end{abstract}
+
+% ~\\
+% \AC{Alejandro comment}\\
+% \AT{Alejandro provisional text}\\
+% \LC{Leon comment}\\
+% \LT{Leon provisional text}\\
+% \CC{Cristhian comment}\\
+% \CT{Cristhian provisional text}\\
+
+
+%  \LC{Creo que el titulo esta bien. Modifique la intro ligeramente para justificar los espacios de Gowdy y el perturbado. Creo que eso no estaba bien claro. La seccion 6 tiene varios interrogantes, donde se referencian algunas secciones o ecuaciones.
+%  - La seccion 2 no creo que debamos modificarla mas. 
+%  - La seccion 3 falta completarla: lo digo por los comments azules.
+%  - Veo que varias cosas estan en el apendice. Se acorto la sec 4? 
+%  - La sec 5 de cristian, creo que esta bien. Solo seria darle el mismo estilo que tiene el resto del documento. Es decir, darle la misma vos. 
+%  - La 6 esta igual que antes, si no me equivoco. Creo que no habria necesidad de cambiarla. 
+%  -Quite el ultimo parrafo de la discussion. Creo que ofrecia una valoracion del trabajo, y me parece prudente no hacerlo. Solo decir lo que re hizo y su potencial....lo cual se dice en los parrafos anteriores.
+%  }
+% \LC{Cual es el plan ahora?}
+
+% \AC{\\
+% - Abstract: \textcolor{orange}{\tbf{(?)}}\\
+% - La seccion 1: Salvo revision bibliografica  \textcolor{green}{\checkmark}\\
+% - La seccion 2, 3, 4, 5, 6 y 7: En mi opinion estan listas \textcolor{green}{\checkmark}\textcolor{green}{\checkmark}\textcolor{green}{\checkmark} \textcolor{green}{\checkmark}\textcolor{green}{\checkmark}\textcolor{green}{\checkmark}\\
+% }
+
+\section{Introduction}
+
+The evolution of cosmological space-time is modelled mathematically as an initial value problem in the framework of general relativity. Two sets of equations must be solved; namely, evolution and constraint equations.
+In particular, one of them, the constraint equations, determines the \textit{initial data} of the evolution problem. Solving the constraint equations to find analytical or numerical initial data is not a simple task, since, in general, they constitute a system of coupled nonlinear partial differential equations.\\
+ 
+One of the standard numerical approaches for solving this system is based on the Lichnerowicz-York conformal method, which involves a conformal transformation to reduce the equations to a set of coupled non-linear elliptic partial differential equations (for a detailed presentation of the subject, see \cite{alcubierre2008introduction,Baumgarte}). This method has proven to be highly effective in constructing initial data sets for various scenarios involving asymptotically flat space-times, such as binary black hole systems. Its success stems from the simplification of the elliptic system achieved by assuming that the initial data is conformally flat. 
+This is, in general, an approximation, except for spherically symmetric cases.
+However, applying this method in cosmological cases is not as straightforward due to the non-asymptotically flat nature of space-time, making it challenging to choose an appropriate conformal metric for the transformation of the equations. For an application of this method in a cosmological context refer to \cite{Garfinkle2020}.\\
+
+% \AC{Literature revision for more recent works (in case they exist)}\\
+In this work, we explore an alternative method for numerically solving the constraint equations introduced by Rácz in \cite{racz2014cauchy,racz2014bianchi,racz2015constraints}. Instead of reducing the constraints to a system of elliptic equations, this approach transforms the constraints into either a parabolic-hyperbolic system or an algebraic-hyperbolic system, requiring data only on a two-dimensional spatial surface. There are several works in the literature where this approach has been applied to obtain initial data sets for various asymptotically flat scenarios involving black hole space-times. See, for instance, \cite{beyer2017asymptotics, beyer2019numerical, beyer2020asymptotically,csukas2020} and more recently \cite{csukas2023}. However, to the best of our knowledge, this method has not yet been employed in cosmological scenarios.\\
+
+We investigate the Algebraic-Hyperbolic Formulation (AHF) of the constraint equations in cosmological scenarios. Specifically, we focus on the $\mathbb{T}^3$-Gowdy and perturbed FLRW metrics, assuming a spatial topology of $\mathbb{T}^3$ in both cases. These scenarios represent two physically and mathematically significant classes of inhomogeneous cosmological models, well-suited for both numerical and analytical studies of early-universe dynamics and gravitational wave phenomena.\\
+
+The first case, the $\mathbb{T}^3$-Gowdy spacetimes, comprises vacuum solutions to Einstein’s equations that exhibit inhomogeneities while retaining sufficient symmetry (two commuting Killing vectors) to allow for tractable analysis (see \cite{ringstrom2010cosmic}). These spacetimes provide a simplified yet insightful framework for exploring nonlinear gravitational wave interactions in closed universes and for examining spacetime behavior near cosmological singularities. Their compact spatial topology permits the use of periodic boundary conditions, which are ideal for numerical simulations and eliminate complications arising from spatial infinity. In contrast, perturbed FLRW models are central to understanding the formation of cosmic structures (\cite{Ma_Berts}). While the standard FLRW metric describes a homogeneous and isotropic universe consistent with the $\Lambda$CDM-model, perturbations introduce the necessary inhomogeneities to model cosmic microwave background anisotropies, matter clustering, and large-scale structure formation. Assuming a $\mathbb{T}^3$ topology facilitates numerical implementation by providing a globally defined, boundary-free computational domain.\\
+
+Based on the above, our numerical approach to solving the constraint equations for the mentioned scenarios is based on a pseudo-spectral method employing Fourier transforms, which allows us to efficiently solve the system of partial differential equations derived from the AHF. We successfully reproduce known analytical solutions for both models. Additionally, we construct novel initial data sets by introducing modifications to the original AHF system. Specifically, we explore three distinct strategies to relax the formulation’s constraints, thereby achieving numerically stable solutions.\\
+
+
+%Our objective is to explore the analytical features of the decomposition by establishing relationships between the geometric quantities and the Scalar-Vector-Tensor (SVT) decomposition of linear perturbation theory. 
+
+%viejo texto
+%To achieve this, we employ a pseudo-spectral method based on the Fourier transform to solve the system of partial differential equations (PDEs) obtained through the AHF. We successfully reproduce the analytical solutions for these two cases. In addition, we generate new sets of initial data by proposing modifications to the original AHF system. Specifically, we explore three different approaches to reduce the constraints of the Algebraic-Hyperbolic Formulation, enabling the attainment of stable numerical results.\\
+
+ 
+This work is organized as follows. In Section \ref{section:AHF_presentation}, we present the algebraic-hyperbolic formulation of the Einstein constraint equations for a Riemannian manifold with $\mathbb{T}^3$-topology. Later, in Section \ref{section:numerical_approach}, we provide a summary of the Fourier pseudo-spectral method for numerically solving these equations while setting our notation and conventions. In Section \ref{section:test_error}, we perform numerical experiments displaying advantages and disadvantages of this method by comparing the numerical solutions with known analytical initial data sets, such as Minkowski, $T^3$-Gowdy, and perturbed FLRW metrics.
+In Section \ref{sec:Stability}, we deepen in stability properties of the system and explain in which cases and why the numerical system is unstable.
+We continue with Section \ref{section:new_id}, here we present two ways in which the original system of equations can be modified to attain solutions of the constraint equations with topology $\mathbb{T}^3$. Finally, in Section \ref{section:discussion}, we summarize the main results of this work.
+
+
+\section{Algebraic-hyperbolic formulation of the constraints}\label{section:AHF_presentation}
+
+Let us consider a smooth $3-$dimensional manifold with the spatial topology of $\mathbb{T}^3$, which we identify by $\Sigma$, endowed with a Riemannian metric $\gamma_{ab}$, and second fundamental form $K_{ab}$ with respect to some Lorentzian smooth  $4$-dimensional manifold $M$; i.e., $\Sigma$ will be embedded in $M$. The tuple $(\gamma_{ab}, K_{ab}, \rho, J_a)$ represents an initial data for the evolution of Einstein equations   on the manifold $M$ if the following tensorial equations on $\Sigma$ are satisfied\footnote{We use Latin indices $a,b,c...$ to denote tensor components of $3d-$manifolds taking values of $1,2,3$. On the other hand, we use $i,j,k,...$, running for $1,2$ to denote tensor components of 2d-manifolds.}:  
+\begin{eqnarray}
+      \label{eq:HC_operator}
+    R  + K^2 - K_{ab}K^{ab} -16 \pi \rho &=& 0  ,\\
+  \label{eq:MC_operator}
+    \Cd_bK^b_{~a} - \Cd_a K -8 \pi J_a  &=& 0,
+\end{eqnarray}
+where $\gamma^{ab}$ is the inverse of $\gamma_{ab}$, $K := \gamma^{ab} K_{ab} $ is the mean curvature of $\Sigma$ with respect  to $M$, $R $ is the intrinsic curvature of $\Sigma$, and $\nabla_ a$  is the covariant derivative operator compatible with $\gamma_{ab}$. The quantities $\rho$ and $J_a$ are the energy and the current densities respectively. The tensor equations (\ref{eq:HC_operator}) and (\ref{eq:MC_operator})  are commonly referred to as the \textit{Hamiltonian} and \textit{Momentum} constraints equations respectively \cite{alcubierre2008introduction}.\\
+
+Following the $2+1$ decomposition of  Racz's work \cite{racz2015constraints,racz2014bianchi}, we can transform the above equations into an algebraic-hyperbolic system as follows. We assume that $\Sigma  \simeq \mathbb{T}^3= \mathbb{S}^1 \times \mathbb{T}^2$, and that it admits a complete foliation of surfaces $S_{r} \simeq \mathbb{T}^2$  parameterized by level surfaces of a smooth, positive and monotone increasing function $ r: \Sigma \to \mathbb{R}^+ $, i.e., we choose the foliation $S_{r}$ such that 
+
+\begin{equation*}  
+\Sigma = \bigcup\limits_{r=0}^{r_f}  S_r ,
+\end{equation*}
+with $S_{r_i} \cap S_{r_j} = \emptyset$ for $i \neq j$. 
+The vector $\hat n^a$ will represent the unitary  normal vector to the surfaces $S_r$. In analogy with the standard $3+1$ decomposition of the space-time (see \cite{Baumgarte}), we choose adopted to the foliation coordinates $(r,x^1, x^2)$ such that $r^{a}$ is the tangent vector to the curves generated by the parameter $r$ and that satisfies the relation $r^a \nabla_a r:= 1$. Further, we will assume that these coordinates cover $\Sigma$ completely. \\
+
+From the above, it follows that the unitary normal vector to each surface $S_r $ can be expressed as 
+\begin{equation*}\label{eqc:1}
+\hat n^{a} := \hat \alpha^{-1}  \left (r^{a} - \hat \beta^{a} \right),
+\end{equation*}
+where $\hat \alpha$ and $\hat \beta^a $ will be respectively called the ``\textit{lapse function}'' and  the ``\textit{shift vector}'' associated to the vector $ r^a $ respect to the surfaces $S_{r}$. From the general theory of hypersurfaces (see for instance \cite{do1992riemannian}), it is clear that the projector operator
+\begin{equation}\label{ec:proyector_equation}
+h^{a}_{\ b} := \delta^{a} _ {\ b} - \hat n^{a} \hat n_{b},
+\end{equation}
+with $\delta^{a} _ {\ b}$ being the standard Kronecker delta, induces a  metric on $S_r$ as (see \cite{Wald})
+\begin{equation}\label{eqc:2}
+h_{ab} = \gamma_{ab} -  \hat n_a   \hat n_b,
+\end{equation}
+and a covariant derivative $\cd_a$ compatible with the metric $h_{ab}$: 
+$$\cd_a := h_{a}^{\ b} \nabla_b.$$ 
+
+Next, we decompose the second fundamental form  $K_{ab}$  in terms of   $\hat \alpha $, $\hat \beta^a $ and $h_{ab} $ as follows
+\begin{equation}\label{ec:mean_curvature_decomposition}
+K_{ab} = Z \hat n_{a} \hat n_{b} + \hat n_{a}   Y_{b} +  \hat n_{b} Y_{a} + \left( \mathring{ k } _{ab} + \dfrac{1}{2} h_{ab} X \right),
+\end{equation}
+where
+\begin{equation*}\label{ecs:formulae_of_decomposition}
+Z := \hat n^{a} \hat n^{b} K_{ab}, \quad Y_{a} := h^{b}_{\ a } \hat n^{c} K_{bc}, \quad  
+\mathring{ k } _{ab} + \dfrac{1}{2} h_{ab} X := h^{c}_{\ a} h^{d}_{\ b} K_{cd}, 
+\end{equation*} 
+with $ h^{ab} \mathring{ k } _{ab}=0$. Replacing (\ref{ec:mean_curvature_decomposition}) into (\ref{eq:HC_operator}) and (\ref{eq:MC_operator}), and after some computations, we can express the constraint equations in terms of the geometric quantities $Z, X, Y_a$ in adapted coordinate frame $(\partial_r, \partial_{x^1}, \partial_{x^2})$  as  
+\begin{align}
+  \label{drXeq}
+  \pd{r}X & = \Ld{\shift}X + \lapse \left( \cd_jY^j - 2Y^j\ndot_j + (Z - \frac{1}{2}X)H_j^{~j} - H_{ji}\ko^{ji} - 8 \pi \JT \right),\\
+  \label{drYeq}
+  \pd{r}Y_i &= \Ld{\shift}Y_i + \lapse \left( \frac{1}{2}\cd_iX + \cd_iZ - Y_i H^j_{~j} - Z \ndot_i + \frac{1}{2}\ndot_iX + \ndot^j \ko_{ij} - \cd^j\ko_{ij} + 8 \pi \Jp_i \right),\\
+  \label{Zeq}
+  Z  &= \frac{1}{2X}\left( 2Y_iY^i -\frac{1}{2}X^2 + \ko_{ij} \ko^{ij} - R + 16 \pi \rho \right).
+\end{align}
+Here $i,j,=1,2$ are indices related to the coordinates $(x^1, x^2)$ on the surfaces $S_{r}$. From now on we will refer to this system simply as the \textit{hyperbolic constraints}. Note that since $Y_{a}$ is totally tangential to $S_{r}$, $Y_{r}=0$. In this equations we have defined $\JT   := \hat n^{a} J_{a}$, $\Jp_i := h^{a}_{\ i} J_{a}$, $\dot{n}_a := \hat n^b \cd_b \hat  n_a = - \cd_a (\text{ln} \hat \alpha)$,
+  $\mathscr{L}_{\bsym{\hat{\beta}}}$ denotes the Lie derivative along the shift vector $\hat{\beta}^i$, and 
+$H_{ij}$ is the second fundamental form of the $2-$dimensional surfaces $S_{r}$ with respect to $\Sigma$. This tensor and its trace are given in terms of $h_{ij}$ and $\hat{n}^{a}$ as, respectively, 
+\begin{equation*}\label{ec:segundaformaenspheres}
+H_{ij} =  \dfrac{1}{2 \hat\alpha} \left( \partial_r h_{ij} - 2 \cd_{(i} \hat n_{j)} \right),  \quad H:= h^{ij} H_{ij} .
+\end{equation*}
+Following \cite{racz2015constraints, racz2014bianchi}, it can be proved that given the fields $h_{ij}$, $\hat{\alpha}$, $\hat{\beta}i$, $\ko^{ij}$, $\rho$ and $J_i$ in $\Sigma$, the hyperbolic system comprises a first order hyperbolic system of PDEs in the variables $X$ and $ Y_{i}$ if the condition 
+\begin{equation}\label{ec:hyperboliccondition}
+   Z X < 0
+\end{equation}
+holds for all $r$ in some interval $[r_0,r)$. Thus, we can see the hyperbolic system as an "evolution" problem along the variable $r$, for which the local existence and uniqueness of the solution is guaranteed in $[r_0,r)$ for some initial data of $X$ and $ Y_{i}$ at $r_0$. \\
+
+Summarizing: First, we freely chose the fields $\gamma_{ij}$, $\ko_{ij}$, $\rho$ and $J_i$. Second, we use the $2+1$ decomposition to obtain $h_{ij}$, $\hat{\alpha}$ and $\hat{\beta}_i$. In particular, in the \tit{adapted-to-foliation} coordinated frame, the components of $\gamma_{ab}$ can can be written explicitly as
+\begin{equation}\label{gamma3d}
+  \gamma_{ab} =  \begin{pmatrix}
+  \hat \alpha + \hat \beta_{m} \hat \beta^{m} & \hat \beta_{i} \\ 
+  \hat \beta_{j} & h_{ij}
+\end{pmatrix}. 
+\end{equation}
+Third, we use these field for  solving  the hyperbolic constraints to obtain the field $X$ and $Y_{i}$ up to some value  $r_f$. For doing this, however, we have to  specify the initial conditions for $X$ and $Y_i$ at the initial value of $r_0$. This add another freedom to the solution of the system. 
+Finally, we reconstruct the extrinsic curvature $K_{ab}$ by means of  (\ref{eqc:2}) and (\ref{ec:mean_curvature_decomposition}), which, in adapted-to-foliation coordinates, we can write as 
+\begin{equation}\label{K3d}
+ K_{ab} = \begin{pmatrix}
+ \hat \beta^l \hat \beta^m k_{lm} + 2 \hat{\alpha} \hat \beta^l Y_l + \hat{\alpha}^2 Z &  \hat \beta^l k_{li} + \hat{\alpha} Y_i \\
+   \hat \beta^l k_{li} + \hat{\alpha} Y_i & k_{ij}
+\end{pmatrix}.
+\end{equation}\\
+
+As a result, we obtain the tensor components of $K_{ab}$ such that the initial data set $(\gamma_{ab},K_{ab},\rho,J_{a})$ satisfy the  Hamiltonian (\ref{eq:HC_operator}) and Momentum (\ref{eq:MC_operator}) constraints in the coordinated region of $[r_0,r_f) \times \mathbb{T}^{2}$.  Note that in principle $[r_0,r)$ does not necessarily cover all the domain $\mathbb{S}^1$, hence, it is not guaranteed that for any initial data of the field $X$ and $Y_i$ we can find solutions of the system for all $r\in\mathbb{S}^1$. In other words; the theorem only guarantees the local existence and uniqueness of the solutions, therefore, more study of this system is required in order to understand the necessary conditions for obtaining initial data sets in the all domain $\Sigma$. 
+With that aim, in this work, we conduct a numerical exploration of the hyperbolic constraints by considering different choices of the free fields $h_{ij}$, $\hat{\alpha}$, $\hat{\beta}i$, $\mathring{k}{ij}$, $\rho$, $J_i$ and some initial values for  $X$ and $Y_i$. In the next section, we will briefly introduce our numerical infrastructure for solving the hyperbolic constraints with the appropriate boundary conditions of $\Sigma \simeq \mathbb{S}^1 \times \mathbb{T}^{2}$. 
+
+
+\section{Numerical approach}
+\label{section:numerical_approach}
+
+We will make two assumptions based on the topology we want to describe: First, the adapted coordinates $(r,x_1,x_2)$ on $\Sigma \simeq \mathbb{S}^1 \times \mathbb{T}^2$ are global. Second, all fields $u:= u(r,x_1,x_2)$ on any $S_r$, for some fixed $r$, are periodic along the coordinates $(x_1,x_2)$. 
+For simplicity, from now on we will refer to $(x_1,x_2)$ as the \textit{angular coordinates}, and $r$ as the \textit{radial} coordinate. Under these two assumptions, we can implement the pseudo-spectral Fourier method to solve the system of PDE equations (\ref{drXeq})-(\ref{Zeq}), as we will briefly describe in the rest of the section. 
+Additionally, as we will display in Sec.\ref{sec:ErrorFunctions}, the $3$-dimensional constraint equations, equations \eqref{eq:HC_operator} and \eqref{eq:MC_operator}, will be used as solution error measurement. Since these evaluations requires the computation of radial derivatives,  
+we will assume that the fields $u(r,x_1,x_2)$ are also periodic along the $r$ variable so we can use Fourier differentiation to compute $\partial_ru$. 
+
+
+\subsection{Angular discretization and derivatives} 
+\label{sec:FourierDifferentiation}
+
+Let us start by defining the angular grid. We will assume that the domain for the coordinates $x_1$ and $x_2$ is some closed region given by $[-L,L] \times [-L,L]$, which we denote as $[-L,L]^2$. Thus, all fields defined at $S_r$ are $2L$-periodic along each angular coordinate. Next, we define a grid on $[-L,L]^2$ as the set of tuples $\{(x_{1i},x_{2j})\}_{i,j=0}^{N_{x_1},N_{x_2}}$, where $N_{x_1}$ and $N_{x_2}$ are fixed positive integers. Assuming that the nodes $x_{1\,i}$ and $x_{2\,j}$ are equally spaced, we can explicitly write them as $x_{1\,i} = -L + ih_{1}$ and $x_{2\,j} = -L + jh_{2}$, where $h_{1} = 2L/N_{x_1}$ and $h_{2} = 2L/N_{x_2}$ are the step sizes in the directions of the variables $x_{1}$ and $x_{2}$ respectively.\\
+
+We will denote the values of the fields $u$ on the angular grid as $u(r)_{ij} := u(r,x_{1\,i},x_{2\,j})$, assuming $r$ fixed, as  
+ \begin{align}\label{eq:2d_fields}
+u(r)_{ij} &:= \frac{1}{(2L)^2}\sum_{ k_1 = -N_{x_1}/2+1  }^{N_{x_1}/2} \left( \sum_{k_2 = -N_{x_2}/2+1}^{N_{x_2}/2}   \tilde{u}(r)_{k_1k_2} \ b_{k_1,k_2}(x_{1},x_{2})  \right) \Bigg|_{x_1 = x_{1i},~ x_2 = x_{2i}} ,
+\end{align}
+where we have used $b_{k_1,k_2}(x_{1},x_{2})$ to denote the $2$-dimensional Fourier basis
+\begin{equation*}
+b_{k_1,k_2}(x_{1},x_{2}) := e^{\mathrm{i} \frac{\pi}{L}(k_1 x_{1} + k_2 x_{2} ) },
+\end{equation*}
+with $\mathrm{i}$ being the imaginary unit and  
+$\tilde{u}(r)_{k_1k_2}$ the Fourier spectral coefficients associated with $u(r)_{ij}$ (which can be obtained using the discrete Fourier transform \cite{Canuto}). Thus, the derivative of $u(r)_{ij}$ with respect the angular coordinates $\{x_s\}_{s=1,\,2} = \{x_1,x_2\}$ (hereon \textit{angular derivatives}) can be easily obtained by differentiating eq. \eqref{eq:2d_fields} before evaluation
+\begin{align*}
+\label{eq:FourierDifferentiation}
+\partial_{x_s} u(r)_{ij}  = \frac{1}{(2L)^2}\sum_{ k_1 = -N_{x_1}/2+1  }^{N_{x_1}/2} \left( \sum_{k_2 = -N_{x_2}/2+1}^{N_{x_2}/2}  \mathrm{i}\frac{\pi}{L} k_n \ \tilde{u}(r)_{k_1k_2} \ b_{k_1,k_2}(x_{1},x_{2}) \right)\Bigg|_{x_1 = x_{1i},~ x_2 = x_{2i}}.
+\end{align*}
+This process is known as Fourier differentiation. See \cite{Kopriva} for a detailed discussion of this subject.
+ 
+\subsection{Radial discretization}\label{sec:evolutionscheme}
+
+The derivatives along the $r-$coordinate during the solution process will be computed using a standard initial value problem ODE methods. 
+For the implementation tests on \secref{section:test_error}, we use $4$th order Runge-Kutta method (RK4). However, as we will observe, this method presents convergence issues which are the main motivation for the stability analysis of \secref{sec:Stability}.
+Although we use explicit methods for the evolution of the non-linear system \eqref{drXeq}-\eqref{Zeq}, we also consider the relevance of implicit ODE schemes on the stability analysis of the method.
+Here, we describe the general setup for single-step methods that we will work with.
+\\
+
+Let $\bsym{U}(r,x_1,x_2)=\left(X(r,x_1,x_2),Y_1(r,x_1,x_2),Y_2(r,x_1,x_2)\right)$ be the solution vector for the system (\ref{drXeq})-(\ref{Zeq}). 
+We denote by
+\begin{equation*}
+   \bsym{U}^{(n)}_{ij}:= \left(X(r_n,x_{1i},x_{2j}),Y_1(r_n,x_{1i},x_{2j}),Y_2(r_n,x_{1i},x_{2j})\right) ,
+\end{equation*}
+the numerical approximation of the solution vector at $(x_{1i},x_{2j})\in S_{r_n}$ and we use 
+\begin{equation}\label{eq:SchematicODESystem}
+  \partial_r\bsym{U}_{ij} = \bsym{F }\left( r, \bsym{U}_{ij} , \partial \bsym{U}_{ij} \right),
+\end{equation}
+as schematic representation of the system (\ref{drXeq})-(\ref{Zeq}) when the angular discretization has already being carried out. 
+In this sense, the symbol $\partial$ in eq. \eqref{eq:SchematicODESystem} represents the Fourier differentiation described in \secref{sec:FourierDifferentiation} applied to each component of $\bsym{U}$.\\
+
+Then, we can compute the vector solution at   $(x_{1i},x_{2j})\in S_{r_{n+1}}$ by
+\begin{equation}\label{eq:DiscreteODESystem}
+  \bsym{U}^{ (n+1) }_{ij} = \bsym{f}\left( r_{n}, \bsym{U}^{(n)}_{ij} , \partial \bsym{U}^{(n)}_{ij}; r_{n+1}, \bsym{U}^{(n+1)}_{ij} , \partial \bsym{U}^{(n+1)}_{ij}; h \right),
+\end{equation}
+where $h$ is the step size of the method, $\partial \bsym{U}^{(n)}_{ij}$ are the spatial derivatives of $\bsym{U}^{(n)}_{ij}$ at $r = r_n$, and $\bsym{f}$ encodes the system of equations (\ref{drXeq})-(\ref{Zeq}) and the chosen ODE method. 
+In the general, $\bsym{f}$ might depend on $\bsym{U}^{(n+1)}_{ij}$ as expressed in eq. \eqref{eq:DiscreteODESystem}. In such a case, eq. \eqref{eq:DiscreteODESystem} is said to be an implicit method.
+Solving this equation for implicit methods result in a increase in the computational cost mainly for non-linear systems. 
+For this reason we employ 4th order Runge-Kutta method for the numerical integration of the non-linear system of equations (\ref{drXeq})-(\ref{Zeq}). 
+\\
+
+% \AC{INTRODUCE IN PARRAGRAPH BELOW IF NEEDED: However, unlike standard evolution problems where the temporal variable can evolve indefinitely, our independent variable $r$ can only take values from $r_0$ to some $r_f$ in order to cover the entire manifold $\mathbb{S}^1$. Therefore, and in order to preserve the periodicity of the  of the solutions $X$ of $Y_i$ along $\mathbb{S}^1$, we will employ a ``forward-backward" solution that we explain as follows.}
+At this point, it is important to remember that our solution vector $\bsym{U}$ take values int he $3$ dimensional torus $\mathbb{T}^3$. 
+This means that $\bsym{U}$ must be periodic along each coordinate $r$, $x_1$ and $x_2$. 
+This periodicity is already enforced in the angular dimensions ($x_1$ and $x_2$) by the Fourier differentiation process which is only valid for periodic functions and preserves the periodicity. 
+However, standard ODE schemes do not preserve periodicity along the integration variable (in our case $r$) and it has to arise \tit{naturally} from the dynamic of the system.
+In order to enforce the periodicity of the solution vector along the radial coordinate $r$, we employ a \tit{forward-backward} strategy to compute the solutions. \\
+
+The \tit{forward-backward} strategy consists on splitting the solution of the system \eqref{eq:SchematicODESystem} in two parts: first using the ODE scheme to evolve from $r = r_0$ to $r = (r_0+r_f)/2$ in a \tit{forward} direction of $r$ (increasing $r$ or positive step size), while the second part is computed from $r = r_f$ to $r = (r_0+r_f)/2$ in a \tit{backward} direction. If the vector solution is periodic and well-behaved in $r$, the two solutions must match at the middle point $r=(r_0+r_f)/2$ (decreasing $r$ or negative step size). 
+This approach intent to avoid divergent numerical solutions due to numerical instabilities. However, as we shall see in \secref{section:test_error}, it will not be enough to achieve solutions in all situations. This behaviour that will be clarified in \secref{sec:Stability}.\\
+
+Finally, for the evaluation of the \tit{goodness} of the solution we must verify if the $3$ dimensional constraint equations \eqref{eq:HC_operator} and \eqref{eq:MC_operator} are satisfied. 
+Therefore, after evolution, the $3-$dimensional quantities must be recovered to construct the full $3-$dimensional extrinsic curvature $K_{ab}$.
+And, in particular, for the evaluation of the Momentum constraint, we need to evaluate derivatives of $K_{ab}$.
+To do so, as explained in \secref{sec:ErrorFunctions}, we will use $3$ dimensional Fourier differentiation. 
+Since an accurate evolution needs considerably more points than an accurate Fourier partial derivative evaluation, we define the number of radial-evolution steps in terms of the number of radial-derivative nodes in such a way that the radial-evolution step size $\Delta r$ is defined as
+\begin{equation*}
+\Delta r = \frac{2(r_f-r_0)}{F~N_r}.   
+\end{equation*} 
+Here, $N_r$ is the number of nodes used to evaluate partial derivatives, and $F$ is the quotient between the number of radial-evolution steps and the number of partial derivative nodes. $F$ will be also refereed as $Factor$ along this work. 
+This allows to extract the values fo be used during differentiation from the list of evolution results just by taking the steps $\bsym{U}^{(n)}$ with $n/F \in \mathbb{Z}$. \\ 
+
+\subsection{Error functions}
+\label{sec:ErrorFunctions} % former sec:error
+
+
+We finish this section by specifying the error or discrepancy functions that  we use to measure the error of the numerically obtained initial data. 
+Let us assume that we have  a numerical approximation of a solution of the hyperbolic system (\ref{drXeq})-(\ref{Zeq}) denoted by $\{ \bsym{U}(r_n,x_1,x_2)\}^{n=N_r}_{n=0}$. Additionally, assume we have chosen the radial coordinate in $r\in(-L,L)$, which allows us to have a 3D-dimensional grid on the cube $[-L,L]^3:=[-L,L]\times[-L,L]\times[-L,L]$ where our approximation is defined.\\
+
+We want to measure \tit{how far} this approximations is from satisfying the constraint equations (eqs. (\ref{eq:HC_operator}) and (\ref{eq:MC_operator})). To do so, we will take advantage of the periodicity of the fields and we will use an approach based on the 3D-Fourier transform as follows.
+First, we will denote $x_0=r$. Thus, we can denote the evaluations of the  fields $u$ on the grid as $u_{lij} := u(x_{0l},x_{1i},x_{2j})$. 
+In analogy to (\ref{eq:2d_fields}) for 2D-fields, we can write the 3D samples of the 3D-fields as
+\begin{align*}
+u_{lij} &:= \frac{1}{(2L)^3}
+\sum_{k_0 = -N_{x_0}/2+1}^{N_{x_0}/2} 
+\sum_{ k_1 = -N_{x_1}/2+1  }^{N_{x_1}/2} \sum_{k_2 = -N_{x_2}/2+1}^{N_{x_2}/2} 
+\tilde{u}_{k_0k_1k_2} \ b_{k_0,k_1,k_2}(x_0,x_{1},x_{2}) \Bigg|_{(x_0,x_1,x_2)=(x_{0\,l},x_{1\,i},x_{2\,j})},
+\end{align*}
+where $\tilde{u}_{k_0k_1k_2}$ are the spectral coefficients and the $b_{k_0,k1,k2}(x_{0},x_{1},x_{2})$ are the 3-D Fourier basis
+\begin{equation*}
+b_{k_0 k_1,k_2}(x_{0},x_{1},x_{2}) := e^{\mathrm{i} \frac{\pi}{L}( k_0 x_{0} + k_1 x_{1} + k_2 x_{2} ) }.
+\end{equation*}
+Using this approach, we can compute all the spatial derivatives of the  $\{ \bsym{U}(r_n,x_1,x_2)\}^{n=N_r}_{n=0}$ on the grid points of $\Sigma$.  
+Second, by means of eqs. (\ref{gamma3d}) and, (\ref{K3d}), we can reconstruct the components of the 3D-tensor $\gamma_{ab}$ and $K_{ab}$. Thus, if define
+\begin{eqnarray}   
+   \mcal{H}(\gamma_{ab},K_{ab}) &:=& R  + K^2 - K_{ab}K^{ab} -16 \pi \rho,\label{hamiltonian_error}\\
+  \mcal{M}_a(\gamma_{ab},K_{ab}) &:=& \Cd_bK^b_{~a} - \Cd_a K -8 \pi J_a,\label{momentun_error}
+\end{eqnarray}
+we can use the Fourier differentiation of 3D fields to obtain evaluations of these functions $\mcal{H}(\gamma_{ab},K_{ab})_{lij}$ $\mcal{M}_c(\gamma_{ab},K_{ab})_{lij}$ at each the 3D-dimensional grid point. Therefore, we define the Hamiltonian and momentum error, respectively;
+\begin{eqnarray*}    
+\text{Hamiltonian error} &=& ||  H( h_{ab},K_{ab})_{lij}||, \\
+\text{Momentun error} &=&||\mcal{M}_c(h_{ab},K_{ab})_{lij} || , \ c = 1,2,3, 
+\end{eqnarray*}
+where $|| \cdot ||$ denotes the norm of the maximum
+\begin{equation}
+\label{eq:max_norm_def}
+||f|| = \max_{ l,i,j }\{|f_{lij}|\}
+\end{equation}
+for all the values $f_{lij}$ of the function $f$ on the 3D grid.  
+
+\section{Testing the numerical approach}
+\label{section:test_error}
+
+In this section, we will explore the feasibility of the numerical approach presented in \secref{section:numerical_approach} to solve the hyperbolic constraint equations (\ref{drXeq})-(\ref{Zeq}). For this purpose, we will numerically reproduce some known analytical solutions of the constraint equations and investigate the convergence of the method. 
+Additionally, some comments about the aliasing error in the numerical solutions and its control with filter strategies can be found in Appendix \secref{appendix:aliasing_and_filter}.
+
+\subsection{Some exact solutions}\label{sec:exact_solutions}
+ In this work  we will consider the following known space-times metrics that we will use as test beds for our numerical approach.   
+
+\begin{enumerate}
+  \item \tbf{The Gowdy space-time:} The Gowdy $\mbb{T}^3$ space-times are solutions of the vacuum Einstein equations that describes an expanding universe with gravitational radiation information (see for instance \cite{ringstrom2010cosmic} for a review of this space-time). This metric is used by M. Alcubierre \tit{et. al.} in \cite{Alcubierre_Testbeds} as a test for numerical relativity codes in a strong field context. In global-periodic coordinates $(r,x_1,x_2)$ in $\mbb{T}^3$, this metric can be written as
+  \begin{equation}
+    \label{Gowdy_Metric}
+    g_{\mu\nu} =  \left(
+                  \begin{matrix}
+                    -\frac{e^{\frac{1}{2}Q(t,r)}}{\sqrt{t}} & 0 & 0 & 0 \\
+                    0 & \frac{e^{\frac{1}{2}Q(t,r)}}{\sqrt{t}}  & 0 & 0 \\
+                    0 & 0 & t e^{-P(t,r)} & 0 \\
+                    0 & 0 & 0 & t e^{P(t,r)} \\
+                  \end{matrix}
+                  \right).
+  \end{equation}
+
+As well as in \cite{Alcubierre_Testbeds}, we choose $P$ and $Q$ as
+\begin{equation}
+       \label{PandQ_Gowdy}
+       \begin{split}
+         P(t,r) &= J_0( 2 \pi t) \cos(2 \pi r) \text{ and }\\
+          Q(t,r) &= -2 \pi t J_0(2\pi t) J_1(2\pi t) \cos(2 \pi r)^2 +2 \pi^2 t^2 (J_0(2\pi t)^2 +\\
+           &+ J_1(2\pi t)^2) - \frac{1}{2} ((2 \pi)^2 (J_0(2\pi)^2 + J_1(2\pi)^2 ) - 2 \pi J_0(2\pi) J_1(2\pi)),\\
+       \end{split}
+     \end{equation}
+where $J_0(\cdot)$ and $J_1(\cdot)$ are the first kind Bessel functions and the radial coordinate $r$ corresponds to the $z$ coordinate in \cite{Alcubierre_Testbeds}. 
+
+\item \tbf{The Minkowski gauge-wave metric (MXY):} Even tough this spacetime does not have a global $\mbb{T}^3$ spatial topology, we can assume that it is composed by an infinite union of copies of a cube with $\mbb{T}^3$ spatial topology globally parameterized by periodic-coordinates $(r,x_1,x_2)$. Thus, following \cite{Alcubierre_Testbeds}, we apply a coordinate transformation so the resulting metric is not trivial. 
+Let us denote by $\{t',r',x_1',x_2'\}$ the usual Cartesian coordinates such that the Minkowski metric takes its usual form $g_{\mu\nu}' = \eta_{\mu\nu} = \text{Diag}(-1,1,1,1)$\footnote{The prime in $g_{\mu\nu}'$ indicates that it is the metric computed in the primed coordinates $\{t',r',x_1',x_2'\}$}.
+Now, we define a new set of coordinates $\{\hat{t},\hat{r},\hat{x}_1,\hat{x}_2\}$ related to the prime coordinates by 
+\begin{align*}
+    \{\hat{t},\hat{r},\hat{x}_1,\hat{x}_2\} &\leftarrow \{t'+\frac{Ad}{2\pi}\cos\left(\frac{2\pi}{d}(r'-t')\right),r'-\frac{Ad}{2\pi}\cos\left(\frac{2\pi}{d}(r'-t')\right),x_1',x_2'\}, 
+\end{align*}
+where $A$ and $d$ are free parameters of the transformation.
+
+If $\hat{J}$ represents the Jacobian of this transformation, the metric in the new coordinates $\hat{g}_{\mu\nu}$ can be computed as 
+$$\hat{g}_{\mu\nu} = (\hat{J}^T\,g'\,\hat{J})_{\mu\nu}.$$
+
+Additionally, we take a second coordinate transformation given by 
+\begin{align*}
+    \{t,r,x_1,x_2\} &\leftarrow \{\hat{t},\frac{1}{\sqrt{2}}(\hat{r}-\hat{x}_1),\frac{1}{\sqrt{2}}(\hat{r}+\hat{x}_1),\hat{x}_2\}, 
+\end{align*}
+which, if $J$ denotes its Jacobian, 
+leads the Minkowski metric to the following form 
+\begin{equation}
+\label{MXY_Metric}
+g_{\mu\nu} = (J^T\,\hat{J}^T\,\eta\,\hat{J}\,J)_{\mu\nu} = 
+\begin{pmatrix}
+  -(1-M) & 0 & 0 & 0\\
+   0 & 1-\frac{1}{2}M & \frac{1}{2}M & 0\\
+   0 & \frac{1}{2}M & 1-\frac{1}{2}M & 0\\
+   0 & 0 & 0 & 1\\
+\end{pmatrix},
+\end{equation}
+where $M = M(t,r,x_1) = A\sin\left(\frac{\pi(2t + \sqrt{2}(x_1-r))}{d}\right)$.  
+
+\item \tbf{Gowdy gauge wave (GRX):} Since the Gowdy metric in standard coordinates depends only on one spatial variable, it does not offer a good test case for our numerical implementation. Therefore, in analogy to the previous metric, we modify it through the following coordinate transformation. 
+Denoting by $\{t',r',x_1',x_2'\}$ the usual Cartesian coordinates that give place to the metric $g_{\mu\nu}'$ as written in eq. \eqref{Gowdy_Metric}, we define the coordinate transformation
+
+\begin{equation*}
+\label{Gowdy_Rotation}
+\{t,r,x_1, x_2\} \leftarrow \{t',\frac{1}{\sqrt{2}}(r'-x'_1),\frac{1}{\sqrt{2}}(r'+x'_1),x'_2\}. 
+\end{equation*}
+
+Note that this coordinate transformation might be interpreted as a rotation around $x_2$ axis by an angle $\theta = \dfrac{\pi}{4}$.
+
+In these new coordinates, the Gowdy $\mbb{T}^3$ metric takes the following form 
+\begin{equation}
+\label{GRX_Metric}
+g_{\mu\nu} =  \left(
+              \begin{matrix}
+                -\frac{e^{\frac{1}{2}Q}}{\sqrt{t}} & 0 & 0 & 0 \\
+                0 & \frac{1}{2}\left(te^{-P} + A^2\right)  & \frac{1}{2}\left(te^{-P} - A^2\right) & 0 \\
+                0 & \frac{1}{2}\left(te^{-P} - A^2\right) & \frac{1}{2}\left(te^{-P} + A^2\right) & 0 \\
+                0 & 0 & 0 & t e^{P(t,r)} 
+              \end{matrix}
+              \right),
+\end{equation}  
+where  $A(t,r) = \left(\frac{e^{Q}}{t}\right)^{1/4}$. The functions $P$ and $Q$ are chosen as in the original Gowdy case, eq. (\ref{PandQ_Gowdy}), with the adequate variable substitution given by the coordinate transformation.
+
+
+\item\tbf{The Perturbed Friedman Robertson Walker space-time (PFLRW):} This case, as well as the Minkowski metric, does not have $\mbb{T}^3$ topology. However, it is expected that, at large scales, different portions of the space-time behave similarly in order to display cosmological homogeneity and isotropy. This approach is widely used in cosmology \cite{Peebles,Ma_Berts,Dodelson_2ed,DurrerCMB} where the Fourier transform is used to move the linear perturbation equations from the physical-coordinate space to the Fourier-wave-number space. In particular, we will work with the scalar PFLRW metric as given in \cite{Ma_Berts} or \cite{Australians2017,Australians2019}, in the Newtonian or longitudinal gauge, conformal time and periodic coordinates $(r,x_1,x_2)$ as follows
+\begin{equation}
+\label{SPFRW_Metric}
+g_{\mu\nu} = a(\eta)^2
+              \begin{pmatrix}
+                -(1+2\psi) & 0 & 0 & 0 \\
+                0 & 1 - 2\phi & 0 & 0 \\
+                0 & 0 & 1 - 2\phi & 0 \\
+                0 & 0 & 0 & 1 - 2\phi \\
+              \end{pmatrix}.
+\end{equation}
+
+The potentials $\psi$ and $\phi$ are, in general, functions of the conformal time $\eta$ and the coordinates $(r,x_1,x_2)$.
+Following \cite{Australians2017}, we will consider a simple form of the potentials
+$\psi = \phi = \phi_0\sum_a\sin( \pi x_a/L), \text{ with } \{x_a\}_{a = 0}^3 = \{r,x_1,x_2\}$ ($x_0 := r$). The parameter $\phi_0$ will determine the amplitude of the potentials and will be set as $10^{-8}$.\\
+
+Since eq. (\ref{SPFRW_Metric}) is a non-vacuum solution of Einstein equations, we need to set the sources $\rho\text{ and } J_i$. During the experiments of the successive sections, unless other thing stated, the sources $(\rho,J_i)$ will be compute from the constraint equations (\ref{eq:HC_operator})-(\ref{eq:MC_operator}). Once the $4-$dimensional metric is chosen, $\gamma_{ab}$ and $K_{ab}$ can be computed through the $3+1$ decomposition and used to solve the constraint equations for $\rho \text{ and } J_i$. Therefore, we obtain expressions for the sources in terms of the metric functions. In this case, for instance, $\rho \text{ and } J_i$ will be functions of the potential $\phi$. This procedure gives us analytical expressions for the source functions and allows us to close the system of eqs. (\ref{drXeq}-\ref{Zeq}) in order to numerically reproduce the analytical solutions.
+Finally, throughout the whole document, with the aim of fully numerically evaluate eq. (\ref{SPFRW_Metric}), we set the value of the scale factor and its derivative as  $a(\eta)=a'(\eta) = 1$. 
+Unfortunately, evaluation of the impact of these values on the initial data is outside the scope of this work.\\
+
+\end{enumerate}
+
+\subsection{Checking Constraint equations: Implementation test}\label{sec:Constriant_Checker}
+
+With our test cases stated in the previous subsection, we can use the $3+1$ decomposition to compute the spatial metric $\gamma_{ab}$ and the extrinsic curvature $K_{ab}$ in order to evaluate the constraint equations (\ref{hamiltonian_error}) and (\ref{momentun_error}). This will allow us to achieve two important goals: (1) gaining intuition about the number of nodes to be used in each case, and (2) developing the main test that the numerical obtained solutions must pass (the fulfillment of the constraint equations). 
+Every numerical experiment in this section will be performed in a square grid, meaning $N_x = N_y = N$.
+Unless other thing stated, the parameter $t$ for Gowdy and GRX metric take the values $t = 0.1$ and $t=0.5$ respectively; the parameters $t$, $A$ and $d$ for MXY are $0.1$, $0.25$ and $\sqrt{2}$ respectively, and $\phi_0=10^{-8}$ for the PFRW.\\
+
+\begin{figure}[ht]      
+\centering 
+  \includegraphics[width=0.55\textwidth,center]{figures/HamiltonianError.pdf}
+  \caption{Hamiltonian constraint evaluation depending on the number of nodes considered in a squared grid.
+Gowdy eq. (\ref{Gowdy_Metric}), Minkowsky (MXY) eq. (\ref{MXY_Metric}), Gowdy gauge wave (GRX) eq. (\ref{GRX_Metric}) and PFRW eq. (\ref{SPFRW_Metric}).
+  }
+  \label{fig:HamiltonianError_Checker}  
+\end{figure}
+
+\begin{figure}[h!]
+ \begin{subfigure}{0.5 \textwidth}
+     \includegraphics[width=1.05\textwidth,left]{figures/Momentum1Error.pdf}
+     \caption{$M_1$}
+     \label{fig:ErrorM1}
+ \end{subfigure}
+ \hfill
+ \begin{subfigure}{0.5 \textwidth}
+     \includegraphics[width=1.05\textwidth,right]{figures/Momentum2Error.pdf}
+     \caption{$M_2$}
+     \label{fig:ErrorM2}
+ \end{subfigure}
+\caption{First (left) and second (right) components of the Momentum constraint evaluation depending on the number of nodes of the grid.
+Gowdy eq. (\ref{Gowdy_Metric}), Minkowsky (MXY) eq. (\ref{MXY_Metric}), Gowdy gauge wave (GRX) eq. (\ref{GRX_Metric}) and PFRW eq. (\ref{SPFRW_Metric}).}
+\label{fig:MomentumError_Checker}
+\end{figure}  
+
+In \figref{fig:HamiltonianError_Checker} we can see how the error of the evaluation of (\ref{hamiltonian_error}) changes with the number of grid nodes. Here we  observe that the difference between the behaviour of the two Gowdy cases compared with Minkowski and PFRW metrics is quite remarkable. The best error for MXY and PFRW is obtained with the lower $N$ value. 
+In contrast to the above, when it comes to consider the Gowdy cases, this number of nodes is insufficient to achieve an adequate evaluation. To understand this difference, we notice that during the evaluation of the Hamiltonian constraint, the Fourier differentiation is only used to compute the Ricci scalar $R$. Thus, this contrast is due to the complexity of the functions involved in the metrics. On the one hand, the Minkowski and PFRW metrics depend linearly on $sine$ and $cosine$ functions, which are well resolved in small grids. On the other hand, the Gowdy metrics involve exponential functions. These functions require more nodes in order to achieve a ``fair'' representation. 
+In particular, for $N_{r}\geq32$ the behavior of the four cases is qualitatively the same with violations of the Hamiltonian constraint around $10^{-11}$.
+The Momentum constraint, plotted in \figref{fig:MomentumError_Checker}, behaves similarly but with even smaller violations once the number of nodes is enough to resolve the derivatives of $K_{ab}$.
+
+\subsection{Radial evolution: convergence tests and errors} \label{sec:convergence_test}
+
+Here we test the evolution scheme we have implemented to solve the Hyperbolic Constraint equations, eqs. (\ref{drXeq}) and (\ref{drYeq}). 
+These tests will consists on the evaluation of three different error metrics: (1) the comparison with analytical solutions (obtained from metrics on Sec. \ref{sec:exact_solutions}), (2) evaluations of the $3-$dimensional constraint equations (as presented in Sec. \ref{sec:Constriant_Checker}), and (3) convergence evaluation of the radial integration method.  \\
+
+In order to evaluate the Hyperbolic Constraints, eqs. (\ref{drXeq}) and (\ref{drYeq}), we need to set all the free fields that are present in these equations ($\lapse$, $\shift_i$, $H_{ij}$, etc.). 
+The explicit expressions for each of these functions can be obtained by applying the $2+1$ decomposition to the spatial metric $\gamma_{ab}$ and to the extrinsic curvature $K_{ab}$ (see Sec. \ref{section:AHF_presentation}). %\footnote{Although the expressions for these functions and tensors is not always too complex, since there are more than ten functions to display for each metric, it is not worth to write them here.}.
+Additionally, this decomposition of a known $4-$dimensional metric into its $3+1$ and $2+1$ quantities allows us to obtain analytical solutions for $X$ and $Y_i$ that we can use to compare with our numerical solutions. 
+To this end, we define the error of any $2-$dimensional quantity $u(r)$ that take values from $S_r$ as
+\begin{equation*}
+    E_u(r) = ||u^{(teo)}(r) - u^{(num)}(r)|| \ ,
+\end{equation*}    
+for each radial step, where $u^{(teo)}(r)$ is the analytical solution obtained from the decomposition of the $4-$dimensional metric, $u^{(num)}(r)$ is the numerical approximation to $u(r)$ and $||\cdot|| $ is the $2-$dimensional version of the norm of the maximum defined in eq. (\ref{eq:max_norm_def}).\\
+
+Once we have closed the system by setting all the free fields, we can proceed to find numerical approximations. As exposed in Sec. \ref{section:numerical_approach}, the Fourier differentiation method allows us to transform the PDE system formed by eqs. (\ref{drXeq}) and (\ref{drYeq}) into an ODE system that can be solved by using any numerical integration method. To evaluate if this method is converging, we perform convergence tests following chapter $9$ of \cite{alcubierre2008introduction}. 
+This process consist on repeatedly solve the system varying the radial step size and compare the obtained solutions in the way we describe in the following paragraph.\\
+
+For a square angular grids, we define a resolution $\Xi = \{\Delta r, N\}$ as the object that contains the information of the radial and angular grids. The numerical solution obtained by using the resolution $\Xi$ will be denoted by
+\begin{equation*}
+U_{\Xi}(r,x_1,x_2):=\left(X_{\Xi}(r,x_1,x_2),Y_{1,\,\Xi}(r,x_1,x_2),Y_{2,\,\Xi}(r,x_1,x_2)\right). 
+\end{equation*}
+We can also define a collection of resolutions $\{\Xi_i = \{\Delta r_i, N\}\}_{i}$ for a fixed number of angular nodes $N$. If $\Delta r_{i+1} = \Delta r_{i}/2$, the theory of one-step numerical methods for ODEs (see \cite{Stoer_Bulirsch}) says that, for solutions attained using, for example, a 4th order Runge-Kutta method, follow
+\begin{equation}
+\label{Di_eq}
+ D_i(r) - D_{i+1}(r) = \log_2\left(\frac{||U_{\Xi_i} - U_{\Xi_{i+1}}||}{||U_{\Xi_{i+1}} - U_{\Xi_{i+2}}||}\right) = 4, 
+\end{equation}
+where $D_i(r) = \log_2(||U_{\Xi_i} - U_{\Xi_{i+1}}||)$. 
+This means that by increasing the resolution by a factor of $2$ in the radial direction ($2$ times more radial steps), a numerical solution must approach to the next one at the rate of $2^4$.
+With the aim of making more clear the differences on eq. \eqref{Di_eq}, we can also define the quantities $C_i(r) = D_i(r) - D_{i+1}$ which, in the RK4 convergence regime, must fulfill $C_i \approx 4.$\\
+
+For the convergence tests of this section we have used the time steps $\Delta r_i = \{2^iN\}_{i=3}^7$ where $N$ is the number of nodes per dimension in the angular grid.
+
+\begin{enumerate} 
+
+\item\tbf{Test for the Gowdy metric:} In this case, the functions depends only on the radial variable. Therefore, if there are no modifications in the free data, the Hyperbolic Constraints Formulation becomes a system of ODEs. 
+In this case the numerical method is convergent, we display this in \figref{fig:GowdyTest}\textbf{(a)} for $N=32$.\footnote{ $N = 16$ or $N=64$ are not shown because they behave the same.} 
+Additionally, the error $E_X(r)$ depends only on the radial discretization. However, the number of nodes become relevant at the evaluation of constraint equations, see \figref{fig:GowdyTest} \tbf{(b)}.
+Good results cannot be achieved if $N<32$. These observations agree with those from \figref{fig:HamiltonianError_Checker} and \figref{fig:MomentumError_Checker}.
+\begin{figure}[h!]
+  \begin{subfigure}{0.52\textwidth}
+    \includegraphics[width=1.05\textwidth ,right]{figures/Gowdy_N32.png}
+  \end{subfigure}
+\hfill
+  \begin{subfigure}{0.52\textwidth}
+    \includegraphics[width=1.05\textwidth,right]{figures/Gowdy_FiltNone.png}
+  \end{subfigure}
+  \caption{Convergence test for Gowdy metric. (\tit{left}) Convergence test for $N = 32$. (\tit{right}) Constraint violation of the solution reconstructed from the evolution process as a function of the number of nodes and number of evolution radial steps $N_{r, evol} = Factor\, N$.}
+  \label{fig:GowdyTest}
+\end{figure} 
+
+\item\tbf{Test for the Gowdy gauge wave metric:} In \figref{fig:GowdyRXTest} we display the results for the convergence test and the constraint violation for the Gowdy gauge wave metric of eq. \eqref{GRX_Metric}.
+Despite the convergent behavior displayed in \figref{fig:GowdyRXTest}\tbf{(a)}, we observe in \textbf{(b)} that the Momentum constraint is never satisfied and that for $N=64$ not any value of $Factor$ warranties a good Hamiltonian constraint violation.
+This result make us wonder about the nature of this error.
+Since it is passing the convergence test, the RK4 method is converging but not to a solution of the constraint equations because their violation.
+Among the causes of this behavior is the aliasing error. We dealt with it by limiting the band-width of the functions, this is, by applying a filter that set to zero all Fourier modes beyond certain $k_{max}$, we call this \tit{filtering strategy} and explore it in Appendix (\ref{appendix:aliasing_and_filter}). For this and PFLRW case we show results for the $(1/2)-$filter.
+However, this result cannot be fully understood as aliasing error but also as a symptom of the unstable features of this method and PDE system. We will deepen into this topic in \secref{sec:Stability}.
+\begin{figure}[ht]
+    \begin{subfigure}{0.52\textwidth}
+        \includegraphics[width=1.05\textwidth,right]{figures/Corr_GowdyRX_N32_Filt12.png}
+        \caption{}
+    \end{subfigure}
+    \begin{subfigure}{0.52\textwidth}
+        \includegraphics[width=1.05\textwidth,right]{figures/Corr_GowdyRX_Filt12.png}
+        \caption{~}
+    \end{subfigure}
+    \caption{Convergence test for GowdyRX metric of eq. \eqref{GRX_Metric} (\tit{left}) Convergence test for $N = 32$. (\tit{right}) Constraint violation of the solution reconstructed from the evolution process as a function of the number of nodes and number of evolution radial steps $N_{r, evol} = Factor\, N$.}
+    \label{fig:GowdyRXTest}
+\end{figure}
+
+\item\tbf{Test for the PFRLW metric:} Here we reproduce the analytic solutions for the perturbed PFRLW metric. This is one of the main goals of this work due to its relevance in cosmology. 
+In contraposition to the GRX case, we can see in \figref{fig:PFLRWTest}\tbf{(a)}, the RK4 method does not display a convergent behavior. Although controlling the aliasing error (see Appendix (\ref{appendix:Aliasing})) do not affect the convergence test; it is crucial to obtain adequate error and constraint violation values.
+\begin{figure}[h!]
+    \begin{subfigure}{0.52\textwidth}
+      \includegraphics[width=1.05\textwidth,right]{figures/PFRW_N32_Filt12.png}
+      \caption{~}
+    \end{subfigure}
+    \begin{subfigure}{0.52\textwidth}
+      \includegraphics[width=1.05\textwidth ,right]{figures/PFRW_Filt12.png}
+      \caption{~}
+    \end{subfigure}
+      \caption{Convergence test for PFLRW metric of eq. \eqref{SPFRW_Metric} (\tit{left}) Convergence test for $N = 32$. (\tit{right}) Constraint violation of the solution reconstructed from the evolution process as a function of the number of nodes and number of evolution radial steps $N_{r, evol} = Factor\, N$.}
+      \label{fig:PFLRWTest}
+    \end{figure}
+     This unsatisfactory result will be explained in \secref{sec:Stability}.
+\end{enumerate}
+
+It is worth noticing that the \tit{triangle-like} shapes of convergence test plots \figref{fig:GowdyRXTest}\tbf{(a)} and \figref{fig:PFLRWTest}\tbf{(a)} are due to the \tit{forward-backward} scheme that we have implemented. During the \tit{forward} (or \tit{backward}) evolution the error accumulates and grows further, this makes the solutions achieved with only one integration direction to present a considerably worse error.\\
+
+Under the light shed by \figref{fig:GowdyRXTest} and \figref{fig:PFLRWTest}, we can conclude that this approach do no allows us to obtain solutions of the constraint equations for GRX and PFLRW cases. 
+In the next section, we address the underlying reasons for this method and approach not to work and which are the options to obtain stable solutions without modify the system.
+
+\section{Stability analysis}\label{sec:Stability}
+
+As shown in the previous section, the presented pseudospectral, also called pseudospectral method of lines, leads to rapid error accumulation during radial integration for PFLRW and Gowdy gauge wave metrics. In this section, we will analyze the linearized numerical stability of the corresponding systems to explain the error's ill behavior.\\
+
+The PDE system (\ref{drXeq}-\ref{Zeq}) of the algebraic hyperbolic formulation of the constraints is nonlinear and generally has variable coefficients that depend on the coordinates $(r,x_{1},x_{2})$.  As explained in  \cite{higham1993stiffness}, the standard approach to studying the stability of a nonlinear differential equation near an exact solution involves linearizing the system and freezing the coefficients to obtain a linear differential equation with constant coefficients. \\
+
+Let us suppose that $(X^{(A)}, Y_{i}^{(A)})$ is an analytical solution of the 2+1 equations. We aim to find solutions in its vicinity by considering perturbations $(X^{(A)} + \delta X, Y_{i}^{(A)} + \delta{Y_{i}})$. To do so, we fix the freely specifiable variables derived from the 4-dimensional metric associated with the analytical solution and substitute the new solution in the equations (\ref{drXeq}-\ref{Zeq}). Disregarding non linear terms on the variables $( \delta X,\delta{Y_{i}})$ we obtain the following system:
+\begin{align}
+    \partial_{r} \delta X&= \mathcal{L}_{\widehat{\beta}}\delta X + \widehat{\alpha}\left( D_{j} \delta Y^{j} -2\delta Y^{j} \,\widehat{a}_{j} + (\delta Z-\frac{1}{2}\delta X)H^{j}_{\,j} \right) \label{eqdeltaX},\\
+    \partial_{r}\delta Y_{i}&= \mathcal{L}_{\widehat{\beta}}\delta Y_{i} + \widehat{\alpha}\left( \frac{1}{2} D_{i} \delta X + D_{i}\delta Z - \delta Y_{i} H^{j}_{\,j} -\delta Z\,\widehat{a}_{i} + \frac{1}{2} \delta X\,\widehat{a}_{i} \right), \label{eqdeltaY}\\
+    \delta Z&= -\left(\frac{Z^{(A)}}{X^{(A)}} + \frac{1}{2}\right)\delta X + \frac{1}{2X^{(A)}}\left(4\delta Y_{i}Y^{i \ (A)}  \right).\label{eqdeltaZ}
+\end{align}
+Where $Z^{(A)}$ is the original algebraic relation evaluated at the analytical solution $Z(X^{(A)},Y_{i}^{(A)})$. \\
+
+
+For simplicity, we assume that the perturbations depend only on a single angular coordinate, $x_{1}$, which we denote as $x$. By defining the 1-dimensional angular grid $\{i\Delta x\}_{i=1}^{N}$ in the interval $[0,2L]$, with spacing $\Delta x = 2L/N$ and approximating all angular derivatives using the Fourier collocation method described in Section \ref{section:numerical_approach}, the previous system can be written as a coupled system of ordinary differential equations,
+
+\begin{equation}
+    \partial_{r}\boldsymbol{U}= \boldsymbol{L}U,
+    \label{semidiscretizedeq}
+\end{equation}
+where,
+\begin{equation}
+    \boldsymbol{U}^{T}= (\delta X(r,x_{1}) ,\ldots, \delta X(r,x_{N}), \delta Y_{1}(r,x_{1}), \ldots, \delta Y_{1}(r,x_{N}), \delta Y_{2}(r,x_{1}), \ldots \delta Y_{2}(r,x_{N})),
+\end{equation}
+and $\boldsymbol{L}$ is the $3N \times 3N$ semi-discretization matrix, that couples the grid values. The matrix entries will be fixed because of the freezing coefficients process.\\
+
+The previous system can be integrated in the radial direction using either explicit schemes like RK4 or implicit schemes like implicit Euler or Crank-Nicholson methods. Following the radial discretization and solving for $\bsym{U}^{n+1}$ if necessary, equation \ref{semidiscretizedeq}, becomes
+
+\begin{equation}
+    \bsym{U}^{n+1}= \boldsymbol{A_{\Delta r}}\bsym{U}^{n},
+    \label{discretizedapproxeq}
+\end{equation}
+where $\boldsymbol{U}^{n}=\boldsymbol{U}(r_{n})$ and we call $\boldsymbol{A_{\Delta r}}$ the \tit{full discretization matrix}.
+
+
+\subsection{Stability and eigenvalue criteria} 
+
+A discretized approximation to a PDE, as the one presented in equation \ref{semidiscretizedeq}, is stable if the full discretization matrix satisfies the following condition: (see Chapter 7 of \cite{trefethen2005spectra} for a formal treatment of the subject)
+
+\begin{align}
+    \| (\bsym{A}_{\Delta_{r}})^{n}\|\leq C(n\Delta r),
+\end{align}
+
+for a fixed function $C(r)$, for all $n$ and $\Delta r, \Delta x \rightarrow 0$. 
+Here $\|\cdot\|$ denotes any operator norm induced by a vector norm, for the remainder of this section, it will specifically refer to the matrix norm induced by the $L^{2}$ norm.\\ %Also need to discuss which norm is chosen for the discussion
+
+For practical purposes, it is possible to determine the stability of a scheme based on the method of lines, for a fixed mesh size, by analyzing the spectrum of the spatial discretization matrix of equation \ref{semidiscretizedeq}. The \textit{eigenvalue criteria for stability} assess that the method is stable if the eigenvalues of the discretized spatial operator $\bsym{L}$, scaled by $\Delta r$, fall within the stability region of the time-discretization method (See \cite{Trefethen} for the definition of stability regions in ODE methods).\\
+
+However, as discussed in \cite{trefethen2005spectra, mortonlax,reddy1992stability}, this criterion is necessary but insufficient to ensure stability for cases where the spatial discretization matrix of the scheme is \tit{highly non normal}\footnote{A matrix $A$ is normal if it commutes with its conjugated transpose $A^*$, this is, $AA^*=A^*A$.}.  For such cases, an alternative criterion, introduced by Reddy and Trefethen in \cite{reddy1992stability}, to validate the stability of the method of lines, consists of working with the $\epsilon-$pseudospectrum of the semi-discretization matrix defined as the region
+
+\begin{equation}
+    \Lambda_{\epsilon}(\bsym{L})= \{ z \in \mathbb{C} : \| (zI - \bsym{L})^{-1} \|_{2} >\epsilon \}.
+\end{equation}
+
+In particular, if the distance between the $\epsilon-$pseudospectrum of the semi-discretization matrix lies within a distance $O(\epsilon)+O(\Delta r)$ of the stability region as $\epsilon \rightarrow 0$ for sufficiently small $\Delta r$, then the method of lines scheme is stable.
+
+
+        % Lax stability def 
+
+        % Lax equivalence Theoreom 
+        % Eigenvalue stability 
+        % ODE scheme stability region
+        % Normality condition of iteration matrices
+\subsection{FLRW and PFLRW space-times stability}
+
+To elucidate the stability issues of the MOL for the PFRLW metric, we initially focus on the unperturbed case. Since FLRW AHF system has constant coefficients, we can analytically find the eigenvalues of the spatial discretization matrix. We assume for the analysis that the perturbations around the analytical solution do not depend on the angular variable $x_{2}$. \\
+
+Writing down the explicit form of the AHF system for the FLRW metric, we obtain,
+\begin{alignat}{2}
+\label{RWahfEquations}
+    \partial_{r} \delta X &= \frac{1}{a(\eta)} \partial_{x} \delta Y_{1}, \quad &&x\in [0,2L], \quad r \in [0,2L];\\
+    \partial_{r} \delta Y_{1} &= -\frac{a(\eta)}{2} \partial_{x}\delta X, \quad 
+    &&x\in [0,2L], \quad r \in [0,2L]; \\
+    \partial_{r} \delta Y_{2} &= 0, \quad &&x\in [0,2L], \quad r \in [0,2L] . 
+    \label{FLRW2+1}
+\end{alignat}
+
+After the semi-discretization process, the system can be written in the form of the equation \ref{semidiscretizedeq}. Where the semi-discretization matrix is given by
+\begin{align}
+ \mathbf{L} &= \left(\begin{array}{ c | c | c }
+   0 & \frac{1}{a(\eta)} D& 0\\
+    \hline
+    -\frac{a(\eta)}{2} D  & 0 & 0 \\
+    \hline
+    0 & 0 & 0
+  \end{array}\right). \label{eq:FLRWsemidismatrix}
+\end{align}
+Here $D$ denotes the Fourier first-order differentiation matrix of size $N \times N$. The corresponding non-trivial eigenvalues of the previous matrix are given by
+\begin{align}
+    \lambda= \pm \frac{\pi}{\sqrt{2}L} \qquad k = -\frac{N}{2}+1, \ldots, \frac{N}{2}-1.
+\end{align}
+
+ \begin{figure}[h!]
+    \centering
+    \subfloat[\centering]
+    {{\includegraphics[width=6.5cm]{figures/FRW_CN.png} }}%
+    \subfloat[\centering]
+    {{\includegraphics[width=6.5cm]{figures/FRW_IE.png} }}%
+    \caption{Eigenvalues of $\Delta r$ times the Matrix $\bsym{L}$,  for $L=0.5$, superimposed on the stability region of (from left to right) Crank Nicholson and Implicit Euler. The eigenvalues were scaled by a factor $\theta=10^{2}$ for visualization purposes.}
+    \label{fig:StabilityFLRW}
+\end{figure}
+
+As illustrated in figure \ref{fig:StabilityFLRW}, half of the scaled eigenvalues of $\bsym{L}$ lie outside the stability region of all the integration schemes considered in this work. Consequently, since the eigenvalue criterion is a necessary condition for stability, regardless of the radial step $\Delta r$, we conclude that the method of lines is not stable for this system.\\
+
+In the context of the PFLRW system, the stability analysis is more complicated than in FLRW due to the metric tensor depending on both angular and radial variables. This results in a more complicated structure for the spatial discretization operator that is not tractable analytically.\\
+
+Nonetheless, since we are working with a potential with amplitude of order $10^{-8}$, the spectrum of the semi-discretization matrix can be expected to resemble the FLRW case. To verify this claim, we perform a numerical exploration of the spectrum of the discretization matrix rather than an analytical computation like the one presented for the non-perturbed metric. For the following analysis, we assume a potential of the form $\phi= \phi_{0}(( \sin(\pi r/L)  + \sin(\pi x/L))$.\\
+
+To compute the eigenvalues of the discretization matrix, we rewrite the linearized AHF system (\ref{eqdeltaX}-\ref{eqdeltaZ}) in a schematic
+form that allows us to identify the blocks of $\bsym{L}$ as with the previous system,
+\begin{align}
+    \partial_{r} U_{i}= h_{i}(x,r) \partial_{x}U_{i} + b_{~i}^{j}(x,r) \partial_{x} U_{j} +
+c_{i}(x,r) U_{i} + m_{~i}^{j}(x,r)U_{j} \qquad i,j=1,2,3. \label{eq:GeneralForm}
+\end{align}
+Here, $U = (X,Y_{1},Y_{2})$ and the domain of definition of each component function is the region $[0,1]\times [0,1]$.\\
+
+To perform the same spectrum analysis as before, we need the system to be independent of the coordinate variables $r$ and $x_{1}$. Since the PDE for the PFLRW metric does not fulfill this condition, we employ the strategy of frozen coefficients. 
+This strategy involves fixing the values of the system coefficients on the 2-dimensional mesh $\{j\Delta r, i\Delta x\}_{i,j=1}^{N}$. In this work, we consider two different methods for freezing the coefficients: the first method uses their average value over the mesh, and the second uses their maximum absolute value within the mesh.\\
+
+The semi-discretization matrix for the system with frozen coefficients is given by
+\begin{align}
+ \bsym{L} &= \left(\begin{array}{ c | c | c }
+   h_{1} D +c_{1} I & b_{1}^{1}D + m_{1}^{1} I& b_{1}^{2}D + m_{1}^{2}I\\
+    \hline
+    h_{2} D +c_{2} I & b_{2}^{1}D + m_{2}^{1}I & b_{2}^{2}D + m_{2}^{2}I\\
+    \hline
+    h_{3} D +c_{3} I & b_{3}^{1}D + m_{3}^{1}I & b_{3}^{2}D + m_{3}^{2}I
+  \end{array}\right). \label{eq:semidiscretematrix}
+\end{align}
+
+Figure \ref{fig:StabilityPFLRW} show the distribution of the eigenvalues of the angular discretization operator when the coefficients in equation \ref{eq:GeneralForm} are frozen using the two different methods mentioned above, for $\Delta r= 10^{-2} N^{-1}$. In both cases, the numerically calculated eigenvalues fall outside the stability region, regardless of the chosen radial step, just as in the unperturbed case. This result indicates that, similar to the FLRW system, the behavior of the spectrum of the angular discretization matrix is dominated by the spectrum of the Fourier differentiation matrix.\\
+
+ \begin{figure}[ht]
+    \centering
+    \subfloat[\centering]
+    {{\includegraphics[width=6.5cm]{figures/MaximumSpectrum.png} }}%
+    \subfloat[\centering]
+    {{\includegraphics[width=6.5cm]{figures/AverageSpectrum.png} }}%
+    \caption{Left: Eigenvalues of $\Delta r$ times the matrix $\bsym{L}$ with coefficients frozen by taking their maximum in the mesh. Right: Eigenvalues of $\Delta r$ times the matrix $\bsym{L}$ with coefficients frozen by taking their average in the mesh. In both cases, the spectrum is superimposed on the stability region of CN}
+    \label{fig:StabilityPFLRW}
+\end{figure}
+
+To visualize the previous results, in figure \ref{fig:WaterfallsPFRW}, we present  both components of the numerical solution of the linearized AHF equations for an initial condition for $(\delta X, \delta Y_{1}, \delta Y_{2})$ of the form
+\begin{align}
+    \delta X(0,x) &= a +a \sin( 2\pi x), \quad a=10^{-8}. \\
+    \delta Y_{1}(0,x)&= \delta Y_{2}(0,x)=0
+    \label{eq:InitialCondition}
+\end{align}
+ As expected from the stability analysis of the linearized equations, the system is numerically unstable, this instability is reflected by the rapidly growing oscillations that appear as the radial variable increases in  figure \ref{fig:WaterfallsPFRW}.
+
+\begin{figure}[ht]
+    \centering
+    \subfloat[\centering]
+    {{\includegraphics[width=6.5cm]{figures/3DplotPFRW_X.png} }}%
+    \subfloat[\centering]
+    {{\includegraphics[width=6.5cm]{figures/3DplotPFRW_Y.png} }}%
+    \caption{Behaviour of the numerical solution of the linearized AHF equations using CN for PFLRW spacetime under initial condition modifications of the first component, for N=32 nodes and $\Delta r= 10^{-2}/N$. \textbf{(a)} Solution for the first component $\delta X(r,x)$. \textbf{(b)} Solution for the second component $\delta Y_{1}(r,x)$.}
+    \label{fig:WaterfallsPFRW}%
+\end{figure}
+
+
+
+\subsection{Gowdy space-time stability}
+For this metric, the explicit form of the linearized AHF PDE system is given by:
+\begin{alignat}{2}
+\partial_{r} \delta X &= \left(\frac{\hat{\alpha}e^{P}}{t}\right) \ \partial_{x} \delta Y_{1}, \quad &&x\in [0,1], \quad r \in [0,1], \label{eq:deltaXGowdy}\\
+    \partial_{r} \delta Y_{1} &= - \left(\frac{\hat{\alpha} Z^{(A)}}{X^{(A)}}\right) \ \partial_{x}\delta X, \quad 
+    &&x\in [0,1], \quad r \in [0,1], \label{eq:deltaY1Gowdy}\\
+    \partial_{r} \delta Y_{2} &= 0, \quad &&x\in [0,1], \quad r \in [0,1] \label{eq:deltaY2Gowdy}.
+\end{alignat}
+Where, $Z^{(A)}$, $X^{(A)}$ are defined in the same way as in equations (\ref{eqdeltaX}-\ref{eqdeltaZ}) and $\hat{\alpha}$ is the two-dimensional lapse function given by $\hat{\alpha}=\left(\frac{e^{Q}}{t} \right)^{\frac{1}{4}}$.\\
+The spatial discretization matrix for this system is given by
+
+\begin{align}
+  \bsym{L}(r) &= \left(\begin{array}{ c | c | c }
+   0 & \left(\frac{\hat{\alpha}e^{P}}{t}\right) D& 0\\
+    \hline
+    -\left(\frac{\hat{\alpha} Z^{(A)}}{X^{(A)}}\right) D  & 0 & 0 \\
+    \hline
+    0 & 0 & 0
+  \end{array}\right) \label{eq:Gowdymatrix}.
+\end{align}
+
+Similarly to the FLRW case, we can compute the eigenvalue analytically
+
+\begin{align}
+\lambda_{k}(r,t) = \pm \hat{\alpha} \left(\frac{e^{P}}{t}\frac{Z^{(A)}}{X^{(A)}}\right)^{\frac{1}{2}} \frac{\pi k}{L}, \qquad  k = -\frac{N}{2}+1, \ldots, \frac{N}{2}-1 . \label{eq:eigenvaluesGowdy}
+\end{align}
+
+Note that these eigenvalues and their distribution in the complex plane will depend on both the time parameter and the radial variable. Since $\frac{e^{P}}{t} > 0$, the eigenvalues are either pure imaginary or real numbers depending on the sign of the quotient $\frac{Z^{(A)}}{X^{(A)}}$. Alternatively, because the sign of the quotient is the same as the sign of the product $X^{(A)}Z^{(A)}$, we can focus on the latter. By doing this, we can relate the numerical stability of the scheme to the hyperbolicity condition in \ref{ec:hyperboliccondition}.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[scale=0.7]{figures/StabilityGowdy.jpg}
+    \caption{Graph of the inequality $XZ$ in the domain $[0,1] \times [0,1]$. 
+    The blue region indicates where the hyperbolicity condition is satisfied ($XZ<0$). 
+The horizontal lines illustrate the three possibilities for the parameter t: the white line at $t = 0.2$ represents a value of t for which the hyperbolicity condition is always satisfied in all the radial domain $[0, 1]$.
+Whereas the green line at $t = 0.4$ represents a value for which the condition is satisfied depending on the value of the variable $r$, and the red line at $t = 0.75$ represents a value for which the condition is never satisfied.
+}
+    \label{fig:stabilityGowdy}
+\end{figure}
+
+Figure \ref{fig:stabilityGowdy} illustrates the behavior of the product $X^{(A)}Z^{(A)}$ in the domain $[0,1]^{2}$. In this domain, there are three possibilities for the sign of the product depending on the parameter $t$. This product can be positive or negative for all values of $r$ in the interval $[0,1]$, or its sign can change with $r$. For the cases where the sign does not change in the interval $[0,1]$, it is possible to derive some conclusions about the stability of the AHF system.
+
+\subsubsection{Not stable case:}
+If the product $X^{(A)}Z^{(A)}$ is always positive, the eigenvalues described by eq. \ref{eq:eigenvaluesGowdy} will be real and symmetrically distributed with respect to the $y-$axis regardless of the value of $r$. Consequently, some of the eigenvalues will lie in the right half plane, outside the stability regions of the three integration schemes, throughout the evolution process. Furthermore, since the stability of a numerical ODE is a local property, the system will be unstable around each $r$. Figure \ref{fig:stabilityregionsgowdyunstable} shows the eigenvalues of the discretization matrix $\bsym{L}$ obtained after freezing the coefficients by taking their average over the 2-dimensional mesh across the region $[0,1]^{2}$.  
+
+\begin{figure}[h!]
+    \centering
+    \subfloat[\centering]
+    {{\includegraphics[width=6cm]{figures/Gowdy0.7CN.png} }}%
+    \subfloat[\centering]
+    {{\includegraphics[width=6cm]{figures/Gowdy0.7IE.png} }}%
+    \caption{ On the left, Eigenvalues of $\Delta r$ times the Matrix $\bsym{L}$, with coefficients frozen by taking their average in the mesh, superimposed on the stability region of Crank Nicholson. On the right, the eigenvalues are superimposed on the stability region of the Implicit Euler method. The eigenvalues were scaled by a factor $\theta=10^{2}$ for visualization purposes.}%
+    \label{fig:stabilityregionsgowdyunstable}%
+\end{figure}
+
+
+\begin{figure}[h!]
+    \centering
+    \subfloat[\centering]
+    {{\includegraphics[width=6.5cm]{figures/64nodesGowdyX3dplot_0.7.png} }}%
+    \subfloat[\centering]
+    {{\includegraphics[width=6.5cm]{figures/64nodesGowdyY3Dplot_0.7.png} }}%
+    \caption{Behaviour of the numerical solution of the AHF equations with CN for Gowdy spacetime under initial condition modifications of the first component, for $N=64$ nodes, $\Delta r= 10^{-2}/N$ and $t=0.7$ \textbf{(a)} Solution for the first component $\delta X(r,x)$. \textbf{(b)} Solution for the second component $\delta Y_{1}(r,x)$.}
+    \label{fig:Waterfallsgowdyunstable}%
+\end{figure}
+
+ Figure \ref{fig:Waterfallsgowdyunstable}, shows both components of the numerical solution of the linearized AHF equations for an initial condition for $(\delta X, \delta Y_{1}, \delta Y_{2})$ of the form of equation \ref{eq:InitialCondition}. The numerical solution obtained is unstable, and strong oscillations appear as the radial variable increases.
+
+ 
+\subsubsection{Stable case:}
+If the product $X^{(A)}Z^{(A)}$ is negative for all $r$, the eigenvalues in equation \ref{eq:eigenvaluesGowdy} lie on the y-axis and stay within the stability region of both Crank-Nicholson and Implicit Euler, independent of the number of nodes in the angular axis $N$. Figure  \ref{fig:GowdyEigenvaluesStable} shows the eigenvalues of the semi-discretization matrix with coefficients frozen by taking their average over the 2-dimensional mesh for $N=64$ nodes.\\
+
+As indicated previously, this is not a sufficient condition to ensure the stability of the numerical scheme, since the semi-discretization matrix $\bsym{L}$ is not normal. To obtain more decisive conclusions regarding the stability of the discretization, we analyze the distance between the $\epsilon$ pseudospectrum of the frozen coefficient semi-discretization matrix \ref{eq:Gowdymatrix}, obtained by taking the average value of the coefficients over the mesh, and the stability region of the Crank-Nicholson method.
+
+\begin{figure}[h!]
+    \centering
+    \subfloat[\centering]
+    {{\includegraphics[width=6cm]{figures/Gowdy0.2_RK4.png} }}%
+    \subfloat[\centering]
+    {{\includegraphics[width=6cm]{figures/Gowdy0.2_IE.png} }}%
+    \caption{ On the left, eigenvalues of $\Delta r$ times the matrix $\bsym{L}$,  for $L=0.5$ and $t=0.2$, superimposed on the stability region of Crank-Nicholson and on the right superimposed on the stability region of Implicit Euler. The eigenvalues were scaled by a factor $\theta=10^{2}$ for visualization purposes.}%
+\label{fig:GowdyEigenvaluesStable}
+\end{figure}
+
+Figure \ref{fig:10} provides two different visualizations of the pseudospectrum of the frozen coefficient matrix for a mesh of $32 \times 32$ nodes. In particular, the image on the right shows the contour lines of the pseudospectrum in the complex plane, while the image on the left shows an approximate picture of the pseudospectrum of $\boldsymbol{L}$, obtained by perturbing the semi-discretization matrix by random matrices $\boldsymbol{E}$ with norm $\|E\|= \epsilon.$ For these results, the entries $e_{ij}$ of the perturbation matrices were samples from a normal complex distribution with mean $\langle e_{ij} \rangle=0$ and variance $\sigma^{2}=1$.\\
+
+\begin{figure}[h!]
+    \centering
+    \subfloat[\centering]
+    {{\includegraphics[width=7.2cm]{figures/PseudospectraPerturbations.png} }}%
+    \qquad
+    \subfloat[\centering]
+    {{\includegraphics[width=7.2cm]{figures/PseudospectrumContours.png} }}%
+    \caption{On the right, eigenvalues of random perturbations $\mathbf{L}+E$, $\|E\|_{2}= \epsilon = 1, 10^{-1}$, for $t=0.5$ and $N=32$. On the left, $\epsilon-$pseudospectra of the discretization matrix $\mathbf{L}$ via contour lines, for $t=0.5$ and $N=32$. }
+    \label{fig:10}%
+\end{figure}
+
+To approximate the distance between $\Lambda_{\epsilon}$ and the stability region of the method $S$ as a function of $\epsilon$ for different grid sizes, we proceed with the following steps.
+$(1)$ we compute the pseudospectrum of $\boldsymbol{L}$ by the same procedure we used to obtain \figref{fig:10} (a). 
+$(2)$ we compute the distance $d(\Lambda_{\epsilon},S):=\max\{d(\mu_{\epsilon},x)\}$ where $\mu_{\epsilon}$ is an element of the set of eigenvalues of the perturbed matrices $\Lambda_{\epsilon}$, and $\max\{\cdot\}$ is taken over all the pairs $(\mu_{\epsilon},x)$ in $\Lambda_{\epsilon} \times S$.\\
+
+Figure \ref{fig:5.13} shows that, for a fixed values of $N$ and $\Delta r$, the distance between the $\epsilon-$pseudospectrum and the stability region is a linear function of $\epsilon$, this is confirmed by the results of table \ref{Tab:Tcr2}. Moreover, we can see that the slope of the linear regression line depends on the grid size: bigger the angular resolution, smaller the slope. Notably, these results depend upon the number of random matrices considered and the method used for their generation. 
+This results indicate that for the frozen coefficient case, the system is stable, although this analysis is not sufficient to establish the global stability of the method, it provides insight into the overall behavior of the spectrum during the evolution.\\
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=7.2cm]{figures/PseudoDistanceEpsilon.png}
+    \caption{Distance of $\epsilon-$pseudospectrum to the Crank-Nicholson stability region as a function of $\epsilon$ for different grid sizes. Filled circles indicate measured distances, and the dashed line indicates the linear regression line. }
+    \label{fig:5.13}
+\end{figure}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|cccc|}
+\hline
+\textbf{N} & \textbf{Slope}        & \textbf{Intercept}     & \textbf{R-value} \\ \hline
+16         & $0.21987 \pm 0.00055$ & $0.0003 \pm 0.0003$    & 0.9999           \\ \hline
+32         & $0.14757 \pm 0.00050$ & $0.0003 \pm 0.0003$    & 0.9998           \\ \hline
+64         & $0.10014 \pm 0.00015$ & $-1.42e-6 \pm 0.00011$ & 0.9999           \\ \hline
+128        & $0.06670 \pm 0.00007$ & $ 9.17e-5 \pm 5.46e-5$ & 0.9999           \\ \hline
+256        & $0.04631 \pm 0.00006$ & $8.96e-5 \pm 4.60e-4$  & 0.9999           \\ \hline
+\end{tabular}
+ \caption{Best-fit parameters for the Linear Regressions for figure \ref{fig:5.13}}
+\label{Tab:Tcr2}
+\end{table}
+
+ Figure \ref{fig:Waterfallsgowdystable} shows both components of the numerical solution of the linearized AHF equations for an initial condition of the form of equation \ref{eq:InitialCondition}. We observe that contrary to the previous cases, in this case, no unstable oscillations appear as $r$ grows. In this case, the Hamiltonian and momentum constraints errors for the complete solution $(X+\delta X, Y_{1} + \delta Y_{1}, Y_{2} + \Delta Y_{2})$, are respectively,  $\|\mathcal{H} \| \approx 10^{-15}$ and $\|\mathcal{M} \| \approx 10^{-4}$, which still exceed the set tolerance levels. Nevertheless, in this case, it must be considered that the main source of error is caused by using a Fourier method for the constraints evaluation since it can be observed in figure \ref{fig:Waterfallsgowdystable} that the computed solution for the linearized AHF system $(\delta X, \delta Y_{1},\delta Y_{2})$ is not periodic with respect to the radial variable.
+
+\begin{figure}[h!]
+    \centering
+    \subfloat[\centering]
+    {{\includegraphics[width=6.5cm]{figures/64nodesX3dplotGowdy0.2_CN.png} }}%
+    \subfloat[\centering]
+    {{\includegraphics[width=6.5cm]{figures/64nodesY3dplotGowdy0.2_CN.png} }}%
+    \caption{Behavior of the numerical solution of the AHF equations with CN for Gowdy spacetime under initial condition modifications of the first component, for $N=64$ nodes, $\Delta r= 10^{-2}/N$ and $t=0.2$ \textbf{(a)} Solution for the first component $\delta X(r,x)$. \textbf{(b)} Solution for the second component $\delta Y_{1}(r,x)$.}
+    \label{fig:Waterfallsgowdystable}%
+\end{figure}
+
+\section{Construction of new initial data sets}
+\label{section:new_id}
+
+Despite the limitations of the AHF displayed during Secs. (\ref{section:test_error}) and (\ref{sec:Stability}), it is possible to use it to find new initial data sets in cosmological space-times. In this section we will introduce some modifications of the hyperbolic system that will allow us to obtain numerical solutions for some particular cases. From the previous experiments we can note that $Y_i$ strongly affects the stability when it deviates from zero. Then, the key idea of these restrictions consists on removing the field $Y_i$ of the AHF system. We will introduce two approaches sets that can be used to construct initial data sets.
+This section do not intent to provide proof of the stability of the new systems but numerical insight of their applicability.
+We hope to address their stability properties in future works.
+
+\subsection{Initial data sets of type 1}
+Let us assume that the initial $Y_i$ vanishes at $r=0$, since we are looking for periodic solutions, it also vanishes at $r = L$. Then, from eq. (\ref{drYeq}), it is clear that in order to ensure that $Y_i$ remains zero throughout the entire domain, we must satisfy the equation
+\begin{equation}
+\label{Y0_Eq}
+0 = \lapse \left( \frac{1}{2}\cd_iX + \cd_iZ - Z \ndot_i + \frac{1}{2}\ndot_iX + \ndot^j \ko_{ij} - \cd^j\ko_{ij} + 8 \pi \Jp_i \right).
+\end{equation}
+This can be used to determine some of the free fields in the hyperbolic system. For simplicity, we choose $J_i^{(||)}$ because it can be algebraically computed from \cref{Y0_Eq}. If the lapse function $\lapse$ is nonzero for each radial step, then $J_i^{(||)}$ can be computed from
+\begin{equation*}
+\Jp_i =  \frac{-1}{8\pi}\left( \frac{1}{2}\cd_iX + \cd_iZ - Z \ndot_i + \frac{1}{2}\ndot_iX + \ndot^j \ko_{ij} - \cd^j\ko_{ij}\right).
+\end{equation*}
+
+As a result, the hyperbolic system becomes
+\begin{align}
+\label{drXeq_Y0}
+\pd{r}X & = \Ld{\shift}X + \lapse \left((Z - \frac{1}{2}X)H_j^{~j} - H_{ji}\ko^{ji} - 8 \pi \JT \right),\\
+\label{Jp_Eq_Y0}
+\Jp_i &=  \frac{-1}{8\pi}\left( \frac{1}{2}\cd_iX + \cd_iZ - Z \ndot_i + \frac{1}{2}\ndot_iX + \ndot^j \ko_{ij} - \cd^j\ko_{ij}\right),\\
+\label{Zeq_Y0}
+Z  &= \frac{1}{2X}\left( -\frac{1}{2}X^2 + \ko_{ij} \ko^{ij} - R + 16 \pi \rho \right).
+\end{align}
+This leads to a system consisting of one differential equation and three algebraic equations. It's clear that this is not an ideal case, as the standard way of constructing initial data sets is to leave the sources completely free. However, we point out that we are only dropping two of the four degrees of freedom in the energy sources. In particular, the energy density $\rho$ and the normal projection of the conserved current $\JT$ onto the hypersurfaces $S_{r}$ remain free for choice. This still leaves us with a certain degree of freedom in the energy sources of the initial data set. \\
+
+To illustrate the advantages of the above system of equations, let us consider as a \tit{play ground} the PFLRW metric (\ref{SPFRW_Metric}) and the following initial condition for the field $X$
+\begin{equation*}
+  %\label{XIC_parametrization_Jpar}
+  X^{(0)} = \bar{X}^{(0)} + \delta X_a,
+\end{equation*}
+where $\bar{X}^{(0)}$ is the analytic value corresponding to the PFLRW metric and  $\delta X_a$ for $a=1,2,3$, are some \tit{perturbations} that we chose as
+\begin{align}
+\label{deltaX1}
+\delta X_1 &= \phi_0 \left(\sin(\frac{\pi}{L}x_1) + \sin(\frac{\pi}{L}x_1) \right),\\
+\label{deltaX2}
+\delta X_2 &= \phi_0 \left( \cos\left(\frac{\pi}{L}x_1\right)\sin\left(\frac{\pi}{L}x_1\right) + \cos\left(\frac{\pi}{L}x_2\right)\sin\left(\frac{\pi}{L}x_2\right) \right),\\
+\label{deltaX3}
+\delta X_3 &= \phi_0 \left(\cos^2(\frac{\pi}{L}x_1) + \cos^2(\frac{\pi}{L}x_2) \right),
+\end{align}
+with $\phi_0 = 10^{-8}$.\\
+
+We compute the sources by evaluating the original constraint equations, eqs. (\ref{eq:HC_operator}) and (\ref{eq:MC_operator}) and solving for $\rho$ and $J_i$. When the PFLRW metric (eq. \ref{SPFRW_Metric}) is used, the energy density $\rho$ and the three-dimensional current $J_i$ become functions of $\phi(r,x_1,x_2)$. Applying the $2+1$ decomposition to $J_i$, we obtain $J^{(\perp)}$, which, along $\rho$, are used to close the system. $J^{(||)}_i$ is discarded and recomputed from eq. (\ref{Jp_Eq_Y0}) at each radial step.\\
+
+
+In figure \ref{RHC_ICVariation_PFRW}, we display some contour plots of the numerical solutions obtained from the different initial conditions eqs. (\ref{deltaX1}-\ref{deltaX3}). By evaluating the constraint equations (eqs. (\ref{eq:HC_operator}) and (\ref{eq:MC_operator})) from these numerical solutions, we obtain a constraint violation value around $10^{-13}$ with $N = 16$ and $Factor = 16$, indicating that we are indeed obtaining solutions to the constraint equations. It is worth noticing that the errors do not significantly improve by increasing the grid, the number of radial steps, or changing the filter. \\
+
+
+\begin{figure}[ht] 
+\includegraphics[width = 0.8\textwidth,center]{figures/ICVariation_PFRW.png}
+\caption{Solution of $X$ at some values of $r=r_k = -L + k\Delta r$ for different initial conditions. The first row show stages of the solutions for the original initial condition, \ie, without modification. The other three rows show the solution for the modifications of the initial conditions presented in \cref{deltaX1,deltaX2,deltaX3}. The color bar represents the values of $X$ in the scale of $X - X_{background}$ where $X_{background}$ is the unperturbed solution. These results where achieved for $N = 16$, $Factor = 16$, and no filter was used.}
+\label{RHC_ICVariation_PFRW}
+\end{figure}
+
+This experiment allows us to conclude that it is possible to obtain new initial data sets with this approach at least at the perturbation regime. Further study is needed to determine the implications of the assumption $Y_i=0$ and how physic is the constraint $\Jp_i$. 
+Additionally, in this experiment $\bsym{\shift}$ is zero, in consequence, \eqref{drXeq_Y0} becomes an ODE. The derivatives of $X$ are only present in the construction of $\Jp_i$ making this a very simplified test case. 
+
+
+\subsection{Initial data sets of type 2}
+
+We conclude this section by exploring a different way to solve \cref{Y0_Eq} without losing generality in the degrees of freedom of the sources, that is, keeping $J_i^{(||)}$ as a free function. The idea for this approach arises from the following observation: if we assume $\beta_i=0$, we eliminate the spatial derivatives in the equation \cref{drXeq_Y0} for the field $X$. Thus, by assuming $H^i_{~i}=0$, indicating that we are foliating $\Sigma$ with minimal surfaces, the equation \cref{drXeq_Y0} becomes independent of $X$. Therefore, it can be solved through integration along the radial coordinate by
+\begin{equation}\label{Xsol}
+X(r,x_1,x_2) = \int_{r_0}^{r}\lapse(H_{ji}\ko^{ji} - 8 \pi \JT) dr + F(x_1,x_2),
+\end{equation}
+with $F(x_1,x_2)$ being an arbitrary function that depends only on the angular variables. 
+Since $H_{ji}$, $\kappa^{ji}$, and $\JT$ are all known functions, the integral term in eq. (\ref{Xsol}) can be computed analytically or numerically using conventional methods. Therefore, to determine $X$, we have to provide a way to compute the function $F(x_1,x_2)$ on the initial surface $S_{r_{0}}$. To achieve this, we solve eq. (\ref{Y0_Eq}) for $\cd_iX$, leading to
+\begin{equation*}
+\cd_iX = \frac{-1}{\frac{1}{4} + \frac{Z_0}{2X}} \left( - \frac{\cd_iZ_0}{2X} - Z \ndot_i + \frac{1}{2}\ndot_iX + \ndot^j \ko_{ij} - \cd^j\ko_{ij} + 8 \pi \Jp_i \right).
+\end{equation*}  
+Then, substituting $X = I + F$, where $I$ is the integral term of \cref{Xsol}, we obtain 
+\begin{equation}
+\label{eq:Y0_F_equation}
+  \cd_i F  = \hat{G}_i(X) - \cd_i I = G_i(F;r,x_1,x_2), 
+\end{equation}
+with
+\begin{equation*}
+    \hat{G}_i(X)  := \frac{-1}{\frac{1}{4} + \frac{Z_0}{2X}} \left( - \frac{\cd_iZ_0}{2X} - Z \ndot_i + \frac{1}{2}\ndot_iX + \ndot^j \ko_{ij} - \cd^j\ko_{ij} + 8 \pi \Jp_i \right).
+\end{equation*}
+Finally, applying covariant derivatives on both sides of the equation and contracting with the angular metric $h_{ab}$, we obtain the following second order PDE for $F$
+\begin{equation}
+\label{EllipticFEq}
+\Delta F = \cd^i\cd_i F = \cd^iG_i = g\left(F,\pd{}F;r,x_1,x_2\right).
+\end{equation}
+ 
+Because  the principal operator of this equation is the Laplacian on $S_{r}$ for some fixed value of $r$, it can be solved by standard numerical methods for elliptic PDEs, such as the fixed point or Newton algorithms. However, these methods require a further analytical analysis in order to guarantee convergences of the solution. Furthermore, since the discrete Laplacian obtained through Fourier differentiation does not lead to an invertible matrix in the angular grid (see for instance \cite{Trefethen} or \cite{Kopriva}), the application of these methods is not a trivial task. Therefore, to avoid such complications, we simply transform the elliptic problem \cref{EllipticFEq} into the following parabolic initial value problem
+\begin{align} \label{ParabolicFEq}
+\pd{t}F   &= \Delta F - g\left(F,\pd{}F;r,x_1,x_2\right),\\
+F|_{t_{0}}&= F_0 \,
+\end{align}
+where $t$ is a free parameter and $F_0$ is a known function on $S_{r}$. Local existence and uniqueness of solutions for this kind of parabolic equations are well established. See, for instance, \cite{TaylorPDEIII}, ch. 15. In particular, it is known that given initial condition of $F$ belonging to $C^1(M)$, the solution of \cref{ParabolicFEq} should exists and is unique on $(t,\vec{x})\in[0,T]\times M$ for some $T>0$, where $M$ is a Riemannian manifold.\\
+
+At this point, it is worth discussing the type of initial data that we can obtain from this approach. We recall that in addition to imposing the condition $Y_i=0$, we also assume $\beta_i=0$ and $H^i_{~i}=0$, which are restrictions on the foliations $S_r$ along the coordinate $r$. The first condition simply means that the normal vector to the surfaces $S_r$ is aligned with the coordinate $r$, and the second condition requires that the surfaces $S_r$ are minimal for any fixed value of $r$. One way to easily achieve this condition is by demanding that the components of the spatial metric $\gamma_{ab}$ are independent of $r$, which implies that the metric is $\mathbb{S}^1$ symmetric. However, this does not necessarily mean that the resulting initial data set $(\gamma_{ab},K_{ab},\rho,J_{a})$ will be $\mathbb{S}^1$ symmetric, as the components of the extrinsic curvature can still depend on the $r$-coordinates through eq. (\ref{Xsol}).\\
+
+It is important to note that eq. (\ref{eq:Y0_F_equation}) is equivalent to the original $Y_i$ equation eq. (\ref{drYeq}) under the conditions $Y_i = \shift_i = 0$ and $H^{i}_{~i}=0$. Therefore, the quantity
+\begin{equation}
+\label{eq:Parabolic_Residual}
+R = ||\cd{i}F + \cd{i}I - \hat{G}_i(X)||,
+\end{equation}
+can be used as a measure of the \textit{fulfillment} of the hyperbolic constraint equations obtained through the solution of eq. (\ref{ParabolicFEq}). Therefore, we can state two stopping criteria: $(1)$ Since the solutions of eq. (\ref{ParabolicFEq}) must reach a steady state, if $X_n$ and $X_{n-1}$ are solutions obtained with successive $t$ steps $t_n$ and $t_{n-1}$, we expect $||X_n - X_{n+1}||$ to converge to zero. Then, when $||X_n - X_{n+1}||$ gets under a certain tolerance, we can stop the evolution. $(2)$ Since eq. (\ref{eq:Parabolic_Residual}) tells us if the equation for $Y_i$ is being fulfilled, when $R$ gets under a certain tolerance, we can stop the evolution. The difference between these two stopping criteria is displayed below for a particular test case.\\ 
+
+With the above in mind, as in the previous sections, we need to close the system by setting the free fields. To do so we will consider the following $4-$dimensional metric
+\begin{equation}
+\label{Met_ParabExample}
+  g_{\mu\nu} = \begin{pmatrix}
+                -f(t,x_1) & 0        & 0        & 0        \\
+                0         & g(t,x_1) & 0        & 0        \\
+                0         & 0        & g(t,x_1) & 0        \\
+                0         & 0        & 0        & g(t,x_1) \\
+              \end{pmatrix},
+\end
+{equation}
+with
+\begin{equation*}
+     f(t,x_1) = g(t,x_1) = t^2\left(1-\frac{1}{4}\cos\left(\frac{\pi}{L}x_1\right)\right).\\
+\end{equation*}  
+
+By $3+1$ decomposition we can compute $\gamma_{ab}$ and the analytical $K_{ab}$. Then through the $2+1$ decomposition, we can obtain the geometrical free fields, finding that $H_{ij}=\mathring{k}_{ij}=0$. Additionally, by evaluating the constraint equations, eqs. (\ref{eq:HC_operator}) and (\ref{eq:MC_operator}), we can compute the sources $\rho$ and $J_i$ as functions of $g(t,x_1)$, obtaining $\JT=0$ and $\Jp\neq0$.
+Therefore, with the conditions $H_{ij}=\mathring{k}_{ij}=0$ and $\JT=0$, we can drop the integral in (\ref{Xsol}) to obtain $X=F$.\\
+
+\begin{figure}[h!]
+\begin{subfigure}{0.51\textwidth}
+  \includegraphics[width = 1.05\textwidth,left]{figures/PrbExample_Nsteps_ICmod.png}
+  \caption{}
+\end{subfigure}
+\begin{subfigure}{0.51\textwidth}
+  \includegraphics[width = 1.05\textwidth,right]{figures/PrbExample_X_ICmod.png}
+  \caption{}
+\end{subfigure}
+\caption{Plots achieved in a grid of $32$ nodes, RK4 as the integrator and a \tit{temporal} size-step of $10^{-4}$. \tbf{(a)} Parabolic relaxation of the solution.  \tbf{(b)} Plot of the resulting $X$ once $R<10^{-11}$ for different initial conditions.
+The parameters $a,~b$ and $c$ correspond to an initial condition parametrization of $F$ as in \cref{FIC_parametrization}.} 
+\label{ParabExample_ICmod}
+\end{figure}
+
+\begin{figure}[h!]
+\begin{subfigure}{0.51\textwidth}
+  \includegraphics[width = 1.05\textwidth,left]{figures/PrbExample_Nsteps_SourceMod.png}
+  \caption{}
+\end{subfigure}
+\begin{subfigure}{0.51\textwidth}
+  \includegraphics[width = 1.05\textwidth,right]{figures/PrbExample_X_SourceMod.png}
+  \caption{}
+\end{subfigure}
+\caption{Plots were achieved in a grid of $32$ nodes, RK4 as the integrator and a \tit{temporal} step-size of $10^{-4}$. \tbf{(a)} Both, the difference of consecutive steps and the residual $R$ evaluated at these steps converge to zero. \tbf{(b)} Plot of the resulting $X$, once $R<10^{-11}$, when the sources are modified by multiplying them by $1-\varepsilon$ with $\varepsilon = 0.001$.}
+\label{ParabExample_SourceMod}
+\end{figure} 
+
+To illustrate the behavior of this approach, we perform two kinds of experiments: initial condition and source modifications. The initial condition modifications take the form 
+\begin{equation}
+    \label{FIC_parametrization}
+    F^{(0)} = \bar{F}^{(0)} + a  + b\sin\left(\frac{\pi}{L}x_1\right) +c\cos\left(\frac{\pi}{L}x_1\right).
+\end{equation}
+applied to $F$ where $\bar{F}^{(0)}$ is computed from the analytical expression obtained from the $3+1$ and $2+1$ decompositions of eq. (\ref{Met_ParabExample}). 
+In \figref{ParabExample_ICmod}\tbf{(a)}), we can see how the difference between consecutive RK4 steps and the residual $R$ evaluated at these steps converge to zero. This behavior displays the convergence to a \tit{steady state} of the solutions of \cref{ParabolicFEq}.
+It is interesting to note that different choices of the initial condition for \cref{ParabolicFEq} produce different solutions (see \figref{ParabExample_ICmod}\tbf{(b)}). The constraint violation associated to these solutions is in the order of $10^{-12}$; therefore, we are producing new initial data sets from the different initial conditions.\\
+
+For the sources modifications, we multiply the source function by a factor $1-\varepsilon$ to alter the amplitude of the source affecting the whole behavior of the solution. 
+This simple source modification produces solutions with a constraint violation around $10^{-12}$ (see \figref{ParabExample_SourceMod}). By these experiments, the parabolic relaxation method has probed to be a promising tool to find solutions for the AHF under the condition $Y_i=0$. However, we have noticed that more drastic modifications can produce solutions that do not fulfill the constraint equations. Thus, more investigation into this approach is needed to evaluate the origin of these limitations. 
+
+
+
+\section{Discussion}\label{section:discussion}
+
+In this work, we have tackle numerical construction of initial data sets for cosmological space-times with $\mathbb{T}^3$ spatial topology. To tackle this problem, we have employed a pseudo-spectral approach based on the discrete Fourier transform, taking advantage of the periodic boundary conditions induced by the geometry of $\mathbb{T}^2$. This approach allowed us to numerically solve Einstein's constraint equations, which are formulated in an algebraic-hyperbolic form. By implementing this method, we have explored the advantages and disadvantages of this approach by comparing our numerical solutions to known analytical initial data sets. Through this comparison process, we assessed the accuracy of this method and identify its limitations.\\
+
+Regarding these limitations, we have observed that in cases where the field $Y_i$ is non-zero, the hyperbolic constraints become numerically unstable, significantly affecting the accuracy of the solutions and therefore the initial data $(\gamma_{ab},K_{ab})$. 
+To better understand this behavior, we performed a stability analysis of the system for Gowdy and PFLRW metrics, in which we studied the spectrum and pseudospectrum of the corresponding semi-discretization matrices to determine if they lie within the stability region of the corresponding integration method. This analysis showed that one of the reasons for the ill-behavior of the perturbed solutions is the violation of the eigenvalue stability condition, which can be related to the failure of these systems to satisfy the hyperbolicity condition. \\
+
+Despite these restrictions, we have successfully obtained new families of initial data sets by modifying the original system of equations. These modifications of the AHF have allowed us to investigate various geometric scenarios and expand our understanding of the behavior and properties of in-homogeneous cosmological space-times. Although more research is needed, these results show the potential and flexibility of this formulation to address the initial data problem in cosmology.
+
+
+%In summary, this work contributes to the numerical construction of initial data sets for cosmological space-times with a spatial topology of $\mathbb{T}^3$. It provides insights into the in-homogeneous nature of these space-times and expands the range of available initial data configurations for future investigations in the field.
+
+
+\section*{Acknowledgments}
+%This work was supported by Patrimonio Autonomo-Fondo Nacional de Financiamiento para la Ciencia, la Tecnología y la Innovación Francisco José de Caldas (MIN-CIENCIAS-COLOMBIA) Grant No. 110685269447 RC-80740-465-2020, and the Vicerectoria de Investigaciones of the Universidad del Valle in the project 71254: Dark universe and Large Scale Structure. 
+
+This work was supported by Patrimonio Autónomo - Fondo Nacional de Financiamiento para la Ciencia, la Tecnología y la Innovación Francisco José de Caldas (MINCIENCIAS - COLOMBIA) Grant No. 110685269447 RC-80740-465-202, projects 69723 and 69553.
+
+
+\bibliographystyle{abbrv}
+\bibliography{references}
+
+\newpage
+\appendix
+
+\section{Aliasing error and filtering strategy}
+\label{appendix:aliasing_and_filter}
+
+Aliasing error emerges from the non-linearities of the PDE and is due to the finiteness of the grid  (see \cite{Kopriva,Canuto}). Since our equations (eqs. (\ref{drXeq}) to (\ref{Zeq})) are non-linear, determine the relevance of this error is important to obtain accurate numerical results.\\
+
+To illustrate this phenomena let us consider a $1-$dimensional region $[-L,L]$ and a $N$ nodes regular grid $x_i = -L + i h$ with $h = 2L/N$. Now, assume that we want to compute the product of two periodic fields  $u$ and $v$  in $[-L,L]$. Since they are periodic functions, the values of the fields $u_i$ and $v_j$ at the node $x_i$ can be decomposed in truncate Fourier series as
+  \begin{align*}
+    u_i  = \frac{1}{2L}\sum_{k = -N/2+1}^{N/2} \tilde{u}_k\, b_k(x_i), \quad  
+    v_i  = \frac{1}{2L}\sum_{l = -N/2+1}^{N/2} \tilde{v}_l\, b_l(x_i),
+  \end{align*}
+where $b_k(x)$ is the Fourier basis in $1$-dimension and the numbers $\tilde{u}_k$ and $\tilde{v}_l$ are the spectral coefficients of $u_i$ and $v_i$ respectively. The numbers $k$ and $l$ are known as the \textit{wave numbers} or \tit{frequencies}. 
+The product between these two fields at the node $x_i$ is given by
+  \begin{equation*}
+    \label{uv_Product}
+    \begin{split}
+      u_iv_i &=  \frac{1}{(2L)^2}\sum_{k,l= -N/2+1}^{N/2}b_{k+l}(x_i)\tilde{u}_k\tilde{v}_l,
+    \end{split}
+  \end{equation*}
+which contains terms with frequencies $k+l$ that exceed the range $[-N/2+1,N/2]$, leading to the so-called \textit{aliased frequencies}. Since these frequencies cannot be represented in the frequency grid, due to the $k$ periodicity of the basis functions $b_k(x)$, the spectral coefficients associated to them are absorbed by their periodic \tit{equivalents} inside the grid. As a result, the computed product $u_i v_i$ may deviate significantly from the true product at the node $x_i$. This is what is known as the aliasing error, and it can be quickly accumulated during the evolution of the system (\ref{drXeq})-(\ref{Zeq}) due to non-linear terms in the equations.\\
+
+To control this error, we can modify the Fourier series of the fields by truncating them up to some frequency $k_M$. The idea is that for any $k,l \in [-k_M,k_M]$ we have that the frequencies $k+l\in [-N/2+1,N/2]$, avoiding the aliased frequencies. For instance, it can be easily proved that (see \cite{Kopriva}) by demanding  
+ \begin{equation*}
+ %\label{eq:23_Filter}
+  k_M \leq \frac{2}{3}(N/2),
+\end{equation*}
+the aliasing due to products of pairs of functions is removed. This is known as the \tit{$(2/3)-$filter} and is the easier way of controlling the aliasing error. Equivalently, it is easy to see that with 
+\begin{equation*}
+ %\label{eq:12_Filter}
+    k_M \leq \frac{1}{2}(N/2),    
+\end{equation*}
+we can remove the aliasing due to products of triplets of functions, we call this the \tit{$(1/2)-$filter}.\\
+
+In general, a filter can be defined as a modification of the truncated Fourier series as (see \cite{Canuto})
+ \begin{align*}%\label{eq:1d_fields_filter}
+  u_i  = \frac{1}{2L}\sum_{k = -N/2+1}^{N/2} \sigma_k\tilde{u}_k \ b_k(x_i),
+\end{align*}
+where $\sigma_k$ is called the filter function. For the \tit{$(2/3)-$} and \tit{$(1/2)-$filters} $\sigma_k$ takes the form of the step function
+\begin{equation*}
+    \sigma_k = 
+    \begin{cases}
+        1 ~~ \text{ if } ~ |k|\leq k_M \\
+        0 ~~ \text{ otherwise }
+    \end{cases}.
+\end{equation*}\\
+
+This is why we refer to these filters as \tit{step filters}. There are many other filtering strategies in the literature. See \cite{Canuto} for a deep discussion about this topic. In particular, in this work we will be interested on the exponential filter where the filter function is given by
+  \begin{equation}
+    \label{ExpFilt_Function}
+    \sigma_k := \sigma(\theta_k := \frac{2 \pi k}{N}) = e^{-\alpha \theta_k^p}, ~~~ \alpha>0 \text{ and } p\in2\mbb{N}.
+  \end{equation}
+
+It is possible to choose combinations of the parameters $\alpha$ and $p$ that produce approximations of the step filters. To establish these combinations, notice that the first derivative of $\sigma(k)$, denoted by $\sigma'$, is zero in $k = 0$ and tends to zero when $k$ tends to infinity. This means that $\sigma'$ reaches its maximum at some $k$ in $(0,N/2]$. In the case of the step filters, the derivative is zero everywhere except at $k = q (N/2)$ (with $q = 1/2 \text{ and } q = 2/3$ we recover the \tit{$(1/2)-$filter} and the \tit{$(2/3)-$filter} respectively) where it diverges.
+By identifying the exponential filter derivative's maximum with $k = q (N/2)$, a $q-$dependent relation between $\alpha$ and $p$ emerges. Therefore, we can approximate the step filters and, in a certain way, generalize them. In \figref{Filter_q_plots} we can see which combinations of parameters are related with each value of $q$.
+
+\begin{figure}[ht]
+\begin{subfigure}[b]{0.5\textwidth}
+    \includegraphics[width=.9\textwidth,left]{figures/LnalphaVSp.pdf}
+    \caption{~}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.5\textwidth}
+    \includegraphics[width=0.9\textwidth,left]{figures/ExpApproximation23Filt.pdf}
+    \caption{~}
+\end{subfigure}
+\caption{\tbf{(a)} Values of the parameters $p$ and $\alpha$ that satisfies that the maximum of the derivative of $\sigma(k)$ is at $k = q(N/2)$. For each $q$ there is not only a point in the parameter space that satisfies this condition, but a curve in the plane $p-\ln\alpha$. \tbf{(b)} Results for $q = 2/3$ compared with the $(2/3)-$filter. Increase the value of $p$ results in a higher value of the derivative of $\sigma(k)$ producing a faster screening of the spectral coefficients beyond $k = q(N/2)$.}
+\label{Filter_q_plots}
+\end{figure}
+
+Values of $p$ between $p=2$ and $p = 100$ can provide good approximations to step filters. From \figref{Filter_q_plots}, we see that values of $\ln\alpha \in [-100,100]$ are enough to reproduce step filters from $q = 1$ to $q=1/10$.
+However, to allow more drastic filters, even those close to $q = 0$, we consider $\ln\alpha \in [-100,350]$. By exploring the space of parameters $\ln \alpha-p$, we can find the combination of $\alpha$ and $p$ that allows us the best aliasing error reduction during the radial evolution.
+
+
+\subsection{Exploration of the aliasing error}\label{appendix:Aliasing}
+
+The exponential filter, defined in eq. (\ref{ExpFilt_Function}), can be used as a generalization of the step filters. It provides us control on the screening of the spectral coefficients by varying the parameters $\alpha \text{ and } p$. 
+By exploring the parameter space $\ln{\alpha}-p$ we can obtain couples of values of $\alpha$ and $p$ such that the aliasing error is almost eliminated. We call this \tit{parameter filter exploration}.
+When this process is applied to the PFLRW metric (see \figref{FilterSPE_PFRW}), it allows us to obtain better constraint violations for \tit{big} grids that the obtained with the step filters (see fig. \ref{fig:PFLRWTest}\tbf{(b)}).
+However, applying any of this filters do not make the method convergent.
+In contrast, this tool do not produce a considerable betterment for GRX case (see \figref{GRX_SPE}), which suggest that the error ill-behavior of this case is not aliasing-driven.\\
+
+\begin{figure}[h] 
+\begin{subfigure}[b]{0.52\textwidth}
+     \includegraphics[width=1.1\textwidth,center]{figures/PFRW_Filt_N32.png}
+     \caption{$N=32$}
+\end{subfigure}
+\begin{subfigure}[b]{0.52\textwidth}
+    \includegraphics[width=1.1\textwidth,center]{figures/PFRW_Filt_N64.png}
+    \caption{$N=64$}
+\end{subfigure}
+\caption{Result of the filtering parameter exploration for the PFLRW metric in square grids with $Factor = 32$. The color bar represents the maximum constraint joint (Hamiltonian and Momentum) constraint violation in a $\log_{10}$ scale.}
+\label{FilterSPE_PFRW}
+\end{figure}
+
+\begin{figure}[h] 
+\begin{subfigure}{0.52\textwidth}
+  \includegraphics[width = 1.1\textwidth,center]{figures/GRX_Filt_N32_F64.png}
+  \caption{$N=32$}
+\end{subfigure}
+\begin{subfigure}{0.52\textwidth}
+  \includegraphics[width = 1.1\textwidth,center]{figures/GRX_Filt_N64_F64.png}
+  \caption{$N=64$}
+\end{subfigure}
+\caption{Result of the filter parameter exploration applied to the Gowdy gauge wave metric for $Factor = 64$. The color bar represents the maximum joint (Hamiltonian and Momentum) constraint violation in a $\log_{10}$ scale.}
+\label{GRX_SPE}
+\end{figure}
+
+% As another application of the parameter filter exploration, we must remind the initial condition problem and its possible causes.
+% Turning our attention to possible analytical problems, we should recall the hyperbolicity condition.
+% The PFLRW space-time does not fulfil the hyperbolicity condition because the product $XZ$ is always positive. Since both $X$ and $Z$ are unknowns of the problem, we cannot know \tit{a priori} the value of the product $XZ$ on all $\Sigma$. We only can set the initial conditions of $X$ and $Y_i$ such that $XZ<0$ at $r=r_0$.
+% Since the initial condition of $X$ is parameterized by $\{a,b,c\}$ (see \cref{XIC_parametrization}), the product $XZ$ at $r = r_0$ is also parameterized by $\{a,b,c\}$. Therefore, it is possible to find regions in this space of parameters such that $XZ<0$ for all $x_1$ and $x_2$. \\
+
+% At this point, we can assign two characteristics to the modifications of the initial conditions: $(1)$ they satisfy the hyperbolicity condition, and $(2)$ they are angular dependent.  With these two features, all the ICs that can be constructed with \cref{XIC_parametrization} can be classified in four classes as \tabref{ICclassification} shows.
+% Following this classification, we choose values of $a$ and $b$ such that the hyperbolicity condition and the angular dependence could be fulfilled or not depending on the category. Then, we perform a filter parameter exploration to determine if by removing the aliasing error the fulfillment of the hyperbolicity condition solves the IC problem. \\
+
+% \begin{table}
+% \centering
+% \begin{tabular}{@{}c|cc@{}}         
+%   \multicolumn{1}{l}{} & HC      & AD     \\  
+%   \tit{vv}             & \checkmark  & \checkmark \\
+%   \tit{vx}             & \checkmark & \xmark \\
+%   \tit{xv}             & \xmark  & \checkmark \\
+%   \tit{xx}             & \xmark  & \xmark \\ 
+% \end{tabular}
+% \caption{Categories in which the modified initial conditions can be split depending on the fulfillment of the Hyperbolicity Condition (HC) and the Angular Dependence (AD). The \tit{xx} case, in which none of the conditions is met, has been already explored in the PFLRW space-time for the non-modified initial condition.}
+% \label{ICclassification}
+% \end{table}
+
+% \begin{figure}[htb!] 
+% \begin{subfigure}{0.52\textwidth}
+%   \includegraphics[width = 1.15\textwidth,center]{figures/PFRW_N16_F32_SPE_vv.png}
+%   \caption{\tit{vv} case}
+% \end{subfigure}
+% \begin{subfigure}{0.52\textwidth}
+%   \includegraphics[width = 1.15\textwidth,,center]{figures/PFRW_N16_F32_SPE_vx.png}
+%   \caption{\tit{vx} case}
+% \end{subfigure}
+% \caption{SPE results for the \tit{vv} case \tbf{(a)}, and the \tit{vx} case \tbf{(b)}. The \tit{xv} case is not showed because all the sampled points have a constraints violation value of $10$ or bigger. Notice how, for the \tit{vv} case, highly restrictive filters are needed; despite this, good results cannot be achieved. The \tit{vx} case, which does no introduce angular dependent modifications to the initial condition, produces better results; nevertheless, the filter search does not make a considerable difference, indicating that the aliasing is not so relevant here.}
+% \label{SPE_IC_HyperbCond}
+% \end{figure}
+
+% In \figref{SPE_IC_HyperbCond}, we can see the result of the parameter exploration for the cases \tit{vv}, and \tit{vx}. The case \tit{xv} is not shown because, for any combination of the filter parameters, the constraint violation is $\geq 10$.
+% From \figref{SPE_IC_HyperbCond}, we can see that good errors cannot be achieved, even in the cases that satisfy the hyperbolicity condition. However, the angular dependence of the IC modification plays a main role in the stability. The errors reached in the \tit{vx} case are five orders of magnitude smaller than in the \tit{vv} case. It is important to note that the constant IC modifications do not induce angular variations in $Y_i$, which has been the main source of error growth in our experiments. In conclusion, the bad error behavior presented in the IC problem cannot be solved by controlling the aliasing error or by fulfilling the hyperbolicity condition.
+
+
+
+
+
+
+     
+\end{document}

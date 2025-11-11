@@ -1,0 +1,48 @@
+\section{More Preliminaries}\label{appendix:more_preliminary}
+
+In this section, we introduce more preliminaries and notations used when proving \cref{theorem:spectral_of_accumulated}.
+
+Recall from \cref{sec:preliminary} that $\norm{\cdot}_p$ for matrices is Schatten norms, or $L_p$ norm conducted on singular values. 
+Additionally, let $\norm{\cdot} \defeq \norm{\cdot}_\infty$ indicate the spectral norm, i.e. $L_\infty$ norm or the maximum magnitude of singular values. 
+One major difference with the main text is that complex matrices are involved (although most vectors are still real vectors). So conjugate transposition is substituted for transposition in traces' connection to Schatten 2-norms and elementwise $L_2$ norms. 
+More properties of traces are involved, for example, \cref{lemma:abs_trace_and_schatten_1} is used to introduce Schatten 1-norm to bound approximation errors.
+
+\begin{lemma}[Absolute Trace and Schatten 1-norm]\label{lemma:abs_trace_and_schatten_1}
+    For real or complex $n \times n$ matrix $A \in \complexes^{n \times n}$,
+    \begin{align}
+        \abs{\trace{A}}  \le \sum_{i} \abs{\lambda_i(A)} \le \sum_{i} \abs{\sigma_i(A)} \defto \norm{A}_1,
+    \end{align}
+    where $\sigma_i(A)$ indicates singular values of $A$ and equals to the absolute value of the $i$-th eigenvalue in normal matrices.
+\end{lemma}
+\begin{proof}
+    This proof is from \citet{sum_eigenvalue_and_singular_value}.
+    By Schur decomposition, there exists unitary $S$ and upper triangular matrix $T$ such that $A = S T S^{-1}$. Note that $T$ shares the same eigenvalues, which are its diagonal entries, as $A$. There exists $d_i$ such that $\lambda_i(A) = \abs{\lambda_i(A)} d_i$ and $\abs{d_i}=1$. Let $D \defeq \diag{d_i}$ and note that $D$ is unitary. As a result, there exist unitary matrices $D^* S^*$ and $S$ such that
+    \begin{align}
+        \trace{D^* S^* A S} = \sum_{i=1}^n \abs{\lambda_i(A)}.
+    \end{align}
+
+    On the other hand, the sum of singular values is also
+    \begin{align}
+        \sum_{i} \sigma_i(A) = \max_{X, Y \in U_n} \abs{\trace{X A Y}} \label{eq:another_expression_of_singular_sum},
+    \end{align}
+    where $U_n$ is the set of all unitary matrices in $\complexes^{n \times n}$. 
+    To see this, first notice that the singular value decomposition $A = U \Sigma V^*$ naturally provides a pair of $X, Y$ that achieve $\sum_{i} \sigma_i(A)$. For other unitary matrices, $\trace{X A Y} = \trace{V^* Y X U \Sigma} = \sum_{i} \left(V^* Y X U\right)_{i, i} \sigma_i$ and
+    \begin{align}
+        \abs{\trace{X A Y}} = \abs{\sum_i \left(V^* Y X U\right)_{i, i} \sigma_i} \le \sum_i \abs{\left(V^* Y X U\right)_{i, i}} \sigma_i.
+    \end{align}
+    Note that $V^* Y X U$ is also unitary, whose entries' magnitudes are no greater than $1$, which implies $\abs{\trace{X A Y}} \le \sum_{i} \sigma_i$ and \cref{eq:another_expression_of_singular_sum} is proved.
+
+    With $D^* S^*$ and $S$ also unitary, the lemma directly follows.
+\end{proof}
+
+Schatten 1-norms are usually not direct from assumptions and conditions, so we apply Hölder's inequality on Schatten norms to produce
+\begin{align}
+    \norm{X Y}_{1} \le \norm{X}_{1} \norm{Y}_{\infty},
+\end{align}
+where $\frac{1}{p} + \frac{1}{q} = \frac{1}{1} + \frac{1}{\infty} = 1$. 
+If $X$ is real symmetric positive semi-definite then $\norm{X}_1 = \sum_{i} \abs{\lambda_i} = \sum_{i} \lambda_i = \trace{X}$. If $X$ is further an outer product of real vectors, then $\norm{X}_1 = \trace{X}$ can be bounded by upperbounds on vector norms. One can also prove
+\begin{align}
+    \norm{x}_1 \le \sqrt{\dim x} \norm{x}_2
+\end{align}
+to relate $L_1$ and $L_2$ norms, and thus Schatten 1-norms and 2-norms by seeing them as $L_p$ norms conducted on singular values.
+The bound on $\norm{Y}_{\infty} = \norm{Y}$ is often provided by \cref{lemma:3.1_from_mp_quadratic_form} introduced later.

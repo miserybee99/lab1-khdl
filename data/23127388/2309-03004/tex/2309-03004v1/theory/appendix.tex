@@ -1,0 +1,46 @@
+\section{Proof of Lemmas}
+
+\begin{proof}[Proof of \cref{lemma:flatness_and_grad_norm}]\label{proof:flatness_and_grad_norm}
+    Expanding definitions and simple rearrangement give
+    \begin{align}
+        \hessian
+        =&  \nabla_{\theta}^2 \ex[(X, Y) \sim \dataset]{\ce(f_\theta, (X, Y))} 
+        = -\ex[(X, Y) \sim \dataset]{\nabla_\theta^2 \log f(Y \mid \theta, X)}. \label{step:expanded_hessian_definition}
+    \end{align}
+    We first deal with the Hessian within the expectation, i.e., for any $(y, x)$ there is
+    \begin{align}
+        \nabla_\theta^2 \log f(y \mid \theta, x)
+        =&  J_\theta \left( \frac{\nabla_\theta f(y \mid \theta, x)}{f(y \mid \theta, x)} \right)\\
+        =&  \frac{\left(\nabla_\theta^2 f(y \mid \theta, x)\right) f(y \mid \theta, x) - \left(\nabla_\theta f(y \mid \theta, x)\right)\left(\nabla_\theta f(y \mid \theta, x)\right)^\transpose}{f(y \mid \theta, x) f(y \mid \theta, x)}\\
+        =&  \frac{\nabla_\theta^2 f(y \mid \theta, x)}{f(y \mid \theta, x)} - \left(\frac{\nabla_\theta f(y \mid \theta, x)}{f(y \mid \theta, x)}\right)\left(\frac{\nabla_\theta f(y \mid \theta, x)}{f(y \mid \theta, x)}\right)^\transpose\\
+        =&  \frac{\nabla_\theta^2 f(y \mid \theta, x)}{f(y \mid \theta, x)} - \left(\nabla_\theta \log f(y \mid \theta, x)\right)\left(\nabla_\theta \log f(y \mid \theta, x)\right)^\transpose.
+    \end{align}
+    Plugging this equality back to \cref{step:expanded_hessian_definition} gives
+    \begin{align}
+        \hessian
+        =&  -\ex[(X, Y) \sim \dataset]{\frac{\nabla_\theta^2 f(Y \mid \theta, X)}{f(Y \mid \theta, X)} - \left(\nabla_\theta \log f(Y \mid \theta, X)\right)\left(\nabla_\theta \log f(Y \mid \theta, X)\right)^\transpose}\\
+        =&  \ex[(X, Y) \sim \dataset]{\left(\nabla_\theta \log f(Y \mid \theta, X)\right)\left(\nabla_\theta \log f(Y \mid \theta, X)\right)^\transpose}
+             -\ex[(X, Y) \sim \dataset]{\frac{\nabla_\theta^2 f(Y \mid \theta, X)}{f(Y \mid \theta, X)}}, 
+    \end{align}
+    the trace of which is
+    \begin{align}
+        \trace{\hessian}
+        =&  \ex[(X, Y) \sim \dataset]{\trace{\left(\nabla_\theta \log f(Y \mid \theta, X)\right)\left(\nabla_\theta \log f(Y \mid \theta, X)\right)^\transpose}}
+         \\&- \ex[\dataset(X)]{\trace{\ex[\dataset(Y \mid X)]{\frac{\nabla_\theta^2 f(Y \mid \theta, X)}{f(Y \mid \theta, X)}}}}\\
+        =&  \ex[(X, Y) \sim \dataset]{\trace{\left(\nabla_\theta \log f(Y \mid \theta, X)\right)^\transpose \left(\nabla_\theta \log f(Y \mid \theta, X)\right)}}
+         \\&- \ex[\dataset(X)]{\trace{\ex[\dataset(Y \mid X)]{\frac{\nabla_\theta^2 f(Y \mid \theta, X)}{f(Y \mid \theta, X)}}}}\\
+        =&  \ex[(X, Y) \sim \dataset]{\norm{\nabla_\theta \log f(Y \mid \theta, X)}_2^2} 
+            - \ex[\dataset(X)]{\trace{\ex[\dataset(Y \mid X)]{\frac{\nabla_\theta^2 f(Y \mid \theta, X)}{f(Y \mid \theta, X)}}}}.
+    \end{align}
+    For well learned model, there is $f(Y \mid \theta, X) \approx \dataset(Y \mid X)$, so given the finiteness of label space there is
+    \begin{align}
+        \ex[\dataset(Y \mid X)]{\frac{\nabla_\theta^2 f(Y \mid \theta, X)}{f(Y \mid \theta, X)}}
+        =&  \sum_{y} \dataset(y \mid X) \cdot \frac{\nabla_\theta^2 f(y \mid \theta, X)}{f(y \mid \theta, X)}\\
+        \approx&    \sum_{y} \nabla_\theta^2 f(y \mid \theta, X) = \nabla_\theta^2 \sum_y f(y \mid \theta, X) \\
+        =& \nabla_\theta^2 1 = \mathbf{0}, \label{step:sum_probabilities}
+    \end{align}
+    where \cref{step:sum_probabilities} follows the assumption that $f$ outputs a distribution over label space that sums to $1$.
+\end{proof}
+
+\input{theory/more-preliminary.tex}
+\input{theory/ext-mp.tex}

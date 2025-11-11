@@ -1,0 +1,79 @@
+% This is samplepaper.tex, a sample chapter demonstrating the
+% LLNCS macro package for Springer Computer Science proceedings;
+% Version 2.21 of 2022/01/12
+%
+\documentclass[runningheads]{llncs}
+%
+\usepackage[T1]{fontenc}
+% T1 fonts will be used to generate the final print and online PDFs,
+% so please use T1 fonts in your manuscript whenever possible.
+% Other font encondings may result in incorrect characters.
+%
+\usepackage{graphicx}
+
+% My packages
+\usepackage{multirow}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{wrapfig}
+\usepackage{numprint}
+\usepackage{url}
+
+% Used for displaying a sample figure. If possible, figure files should
+% be included in EPS format.
+%
+% If you use the hyperref package, please uncomment the following two lines
+% to display URLs in blue roman font according to Springer's eBook style:
+%\usepackage{color}
+%\renewcommand\UrlFont{\color{blue}\rmfamily}
+%
+\begin{document}
+
+\npdecimalsign{.}
+\nprounddigits{3}
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=.5\linewidth]{Images/NCA_Update.png}
+  \caption{Simplified example of the update of a single cell in a 2D grid using NCAs.}
+  \label{fig:simplNCA}
+\end{figure}
+
+\begin{table}[!htbp]
+\centering
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+\multirow{2}{*}{\textbf{Model}} & \multicolumn{2}{c|}{\textbf{Hippocampus}} & \multicolumn{2}{c|}{\textbf{Prostate}} \\
+ & \textbf{Dice} $\uparrow$ & \textbf{\# Parameters} $\downarrow$ & \textbf{Dice} $\uparrow$ & \textbf{\# Parameters} $\downarrow$ \\
+\hline
+%1 & 1 & 1 & 1 & 1 \\
+nnUNet 2D & $\numprint{0.8993015525252978}\pm\numprint{0.030995057965490264}$ & 1928032 & $\mathbf{\numprint{0.8919956473122801}\pm\numprint{0.01633238697485009}}$ & 29966112 \\
+nnUNet 3D & $\mathbf{\numprint{0.9109540658429306}\pm\numprint{0.02779603167969324}}$ & 5602720 & $\numprint{0.8723066758714417}\pm\numprint{0.03922772838392659}$ & 5471648 \\
+\hline
+MobileNetV2 & $\numprint{0.759842961627844}\pm\numprint{0.05551850082047271}$ & 6628369 & $\numprint{0.6598262389500936}\pm\numprint{0.08683071013822083}$ & 6628369 \\
+EfficientNet & $\numprint{0.6758332404039674}\pm\numprint{0.04093023995919301}$ & 6250893 & $\numprint{0.6448938912815518}\pm\numprint{0.09308752357877809}$ & 6250893\\
+ResNet18 & $\numprint{0.733060663029299}\pm\numprint{0.046226724441606616}$ & 14321937 & $\numprint{0.6628889044125875}\pm\numprint{0.17784321638298703}$ & 14321937\\
+VGG11 & $\numprint{0.8487855226306592}\pm\numprint{0.036007825930041745}$ & 18252881 & $\numprint{0.7816272113058302}\pm\numprint{0.1307224044184063}$ & 18252881\\
+\hline
+UNet 3D & $\numprint{0.8834458023814832}\pm\numprint{0.022140445258470212}$ & 4584769 & $\numprint{0.8077938093079461}\pm\numprint{0.052470459465187656}$ & 19071297 \\ %$\numprint{0}\pm\numprint{0}$
+UNet 2D & $\numprint{0.8623192471972967}\pm\numprint{0.030953540741727}$ & 36950273 & $\numprint{0.6940711935361227}\pm\numprint{0.085685931421014}$ & 36950273 \\
+Seg-NCA & $\numprint{0.8507985745446157}\pm\numprint{0.04455198220948615}$ & 39472 & $\numprint{0.7024800247616239}\pm\numprint{0.1259253604424353}$ & 39472 \\ %($64 \times 64$) 
+Med-NCA & $\numprint{0.8811472866494777}\pm\numprint{0.02700984083121783}$ & 70016 & $\numprint{0.8184222380320231}\pm\numprint{0.06924227997981384}$ & 70016 \\
+M3D-NCA & $\mathbf{\numprint{0.9053496273897462}\pm\numprint{0.0244843732685336}}$ & \textbf{8768} & $\mathbf{\numprint{0.8291528158717685}\pm\numprint{0.0507199596148773}}$ & \textbf{12480} \\
+\hline
+\end{tabular}
+\newline
+\caption{Comparison of our proposed M3D-NCA with state-of-the-art NCA and UNet segmentation models.}
+\label{Tab:QuantHP}
+\end{table}
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=.91\linewidth]{Images/NQM_Dice_Pairs.png}
+  \caption{Comparison between the prediction of M3D-NCA, the variance between predictions, the calculated NQM score and the Dice on the prostate dataset.}
+  \label{fig:CompNQMDice}
+\end{figure}
+
+
+
+
+\end{document}

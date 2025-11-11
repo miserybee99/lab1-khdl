@@ -1,0 +1,24 @@
+\section{Discussion}
+\label{sec:discuss}
+
+\vspace {3pt}\noindent\textbf{Response from developers.} We have reported all vulnerabilities to the framework maintainers and app developers. After multiple rounds of communication, we have received acknowledgments and bug bounty from several developers or vendors and have summarized the current attitudes of developers toward these vulnerabilities within the LLM ecosystem. 
+
+There are 8 out of 11 vulnerable frameworks (\eg PandasAI) that promptly respond to the issues we raise on GitHub ($\approx$1-2 days). After confirming the vulnerabilities, 
+although developers pledge to address vulnerabilities promptly, the patching cycle often proves to be long. This underscores developers' attention to RCE vulnerabilities while highlighting the inherent complexity in achieving comprehensive resolutions for these issues.
+Therefore, it can be anticipated that this type of RCE vulnerability may continue to persist in the short-term future.
+In contrast, the response of app developers is relatively slow considering the number of participants and activity. Seven vulnerability reports we submitted have not received response yet.
+Regarding the vulnerability reports with responses, the average response time is within two to three days. It is worth mentioning that some app developers responded and implemented mitigation measures within two hours.
+
+After our disclosure, these kind of RCE vulnerabilities receive sufficient attention from LLM framework developers. Some frameworks (e.g., LangChain, LlamaIndex) and app deployment platforms (e.g., Streamlit) have raised alarms for users being cautious to use these code execution APIs.
+
+\vspace {3pt}\noindent\textbf{Potential mitigation.} Based on the analysis results, we propose three measures to mitigate the risks.
+\X1 Permission Management. Framework and app developers should follow the \emph{principle of least privilege}~\cite{saltzer1975protection}, setting users' privileges to the lowest possible level. For example, disable the permission to read and write the app and its system files or partitions. The execution of privileged programs with SUID and other sensitive commands should also be disabled.
+\X2 Environment Isolation. 
+Developers can put appropriate limitations on the processes executing LLM code by using tools like ``seccomp'' and ``setrlimit'' for process isolation and resource isolation. Alternatively, they can utilize secure-enhanced versions of Python interpreters like Pypy and IronPython, which provide process-level sandboxing capabilities. Meanwhile, following the exposure of such RCE vulnerabilities, some LLM ecosystem-specific cloud sandboxes (\eg, e2b~\cite{e2b}) have also been developed. These sandboxes host the code execution functionality in a cloud environment, thereby preventing malicious code directly affect the server. Finally, as mentioned previously, app developers can utilize tools like Pyodide to embed the code execution into browsers, allowing the code execution to run on the client-side rather than the server-side. \X3 Prompt Analysis. Some research has also attempted possible defenses at the prompt level. For example, Liu et al.~\cite{liu2023prompt} introduced detection-based defenses to check if the original functionality of prompts has been compromised. Other work proposed methods to inspect the intention of prompts, aiming to filter out malicious prompts~\cite{zeng2024autodefense}. 
+Regardless of the mitigation, developers have to balance usability, efficiency, and security to choose the most suitable solution.
+Thus, ensuring security without compromising functionality integrity remains a challenge.
+
+\vspace {3pt}\noindent\textbf{Future work.}
+\X1 Multiple language support. Currently, \tool{} is only available for detecting RCE vulnerabilities within LLM-integrated frameworks written in Python. However, there are some open-source frameworks built in other languages, such as Chidori~\cite{Chidori} in Rust and Axflow~\cite{Axflow} in TypeScript. In the future, we intend to make \tool{} cover more languages, revealing more vulnerabilities within multi-language LLM-integrated frameworks.
+\X2 Multiple vulnerability type support. Currently, \tool{} is only built to detect RCE vulnerabilities within LLM-integrated frameworks, and explore the hazards caused by RCE. 
+In the future, we are interested in expanding our detection capabilities to cover a broader range of vulnerability types and to test in real-world scenarios.

@@ -1,0 +1,132 @@
+\section{Challenges}
+We now discuss several challenges associated with situated dashboards. Most of them are based on the interviews, and others are based on our own internal discussions. Note that some challenges apply to the broader subject of situated visualization and analytics.
+
+\subsection{C1: (Situated) Authoring of Situated Dashboards}
+Despite it not being a common discussion topic in our interviews, we believe that the authoring process of situated dashboards is an obvious next step and research challenge.
+
+An important consideration is the level of expertise expected of the end-user. At present, a small number of situated analytics toolkits exist---most notably, RagRug \cite{fleckRagRugToolkitSituated2022}. When talking about their typical workflow for implementing situated visualization with RagRug, \fleck{} stated that it was easy to use while \aimee{} firmly stated it was not. This disagreement between our own participants suggests the need for situated analytic toolkits that are easier for novices to use.
+
+We believe this need is exacerbated when considering the potential end-users of such a toolkit. While most related work has considered situated analytics in some specific domain (e.g., building maintenance~\cite{prouzeauCorsicanTwinAuthoring2020}, sports~\cite{linUnderstandingSituatedAR2021}), we speculate that situated dashboards could be used in any context that involves data. Rather than devising a ``one size fits all'' application, end-users with limited expertise may want or need to customize and/or personalize their situated dashboards to suit their goals, data sources, and physical environments. Consider a restaurant manager who wants to have an AR situated dashboard to keep track of stock levels. Instead of hiring an expert to create the dashboard, the manager wants to do it by themself to properly tailor it to their own preferences and needs. The toolkit therefore needs to be simple enough for even laypersons to use, but be expressive enough to have utility in a wide range of scenarios.
+
+The best authoring paradigm however is unclear. In broader immersive analytics, authoring systems range from text-based specifications (e.g.,~\cite{DXR2019,butcherVRIAWebBasedFramework2021}) to GUIs (e.g.,~\cite{cordeilIATKImmersiveAnalytics2019}) to fully embodied interactions (e.g.,~\cite{cordeilImAxesImmersiveAxes2017}). The latter approach would likely involve ``building blocks'', as \beck{} suggested, to allow end-users to easily build situated dashboards without complex grammars or code. Other researchers have also suggested this approach \cite{leeDeimosGrammarDynamic2023}, but it can limit expressiveness if not enough presets and templates are provided.
+That said, if situated dashboards were instead used as interaction panels as per \aimee{} and \sr{}, then complex visualization toolkits may not even be needed.
+
+\sr{} and \aimee{} had expressed frustrations in creating AR visualizations. At present, deployment requires a switch between development and situated contexts, incurring a high temporal and cognitive cost. Tools like Corsican Twin~\cite{prouzeauCorsicanTwinAuthoring2020} circumvent this by allowing authoring of situated visualizations immediately in the physical environment itself. This form of situated authoring would likely be ideal for creating situated dashboards in the future.
+Situated authoring may also serve to explicitly connect and link the data of referents to the dashboard's visualizations. Ivy by Ens et al.~\cite{ensIvyExploringSpatially2017} demonstrates this idea by using 3D visual links to connect data nodes in a 3D environment together. While certainly straightforward, such direct linking might not be practical when referents are either too far away, too high in number, or are not spatially registered. RagRug~\cite{fleckRagRugToolkitSituated2022} provides a more standardized solution to link data sources to visualizations via MQTT, but this approach may be too technical for laypeople. Thus, finding an appropriate solution for this would be paramount for situated dashboards (and visualization as a whole).
+
+The concept of context-awareness came up numerous times in our interviews. The dashboard may change and adapt depending on contextual factors, such as changing views based on the user's spatial proximity to referents. The challenge here is not only ensuring the system itself is context-aware \cite{baldaufSurveyContextawareSystems2007}, but also to investigate how the end-user might best define dashboard adaptations based on their chosen contextual factors.
+
+% - Participant's didn't talk much about this, but we believe it is an important challenge
+% - Who is the end-user?
+%     - Expert engineers like in RagRug
+%     - Visualisation experts who would use tools like D3, R, IATK
+%     - Complete novices
+% - Situated dashboard authoring is, at first glance, not too unlike that of regular immersive visualisation authoring
+%     - However, the end-user of situated dashboards 
+% - The type of end-user obviously affects the authoring paradigm which should be used
+%     - Immersive environments are highly embodied and "natural", therefore it can be argued we should follow a similar path
+%         - The expressiveness of the authoring tool might be limited as a result
+%         - No coding, limited to what is in the "toolbox"
+%         - Authoring by demonstration (Anika's UIST paper for example) could get around this issue
+%         - Building blocks
+%     - More complex tools would allow for custom visualisations, interactions, etc.
+%         - More expressive but harder to use
+%         - Community to share models, situations, scenarios, and support issues
+% - Context switching between situated mode and authoring mode (Sebastian)
+%     - When deploying, how to rapidly test and develop this?
+%     - SITUATED AUTHORING
+% - How to interconnect data sources to the dashboard
+%     - Graphically through some GUI?
+%     - Through an embodied manner using visual links?
+%         - See: https://www.researchgate.net/publication/316974042_Ivy_Exploring_Spatially_Situated_Visual_Programming_for_Authoring_and_Understanding_Intelligent_Environments
+%     - Through IDs via MQTT or some such?
+% - How a non-expert user would interact with the tool
+%     - Visualizations predefined and recommendations regarding closer devices (via signal intensity)
+%     - Users would create and test their designs in 1-person (or maybe also in 3-person)
+%     - Conventional workflow of authoring tools for non-experts: design mode, test mode, and export. 
+% - Enabling context awareness
+%     - How do we accurately capture and define context?
+%     - Associating spatial regions with data?
+%     - Aligning goals and aims with data?
+
+
+\subsection{C2: Dashboard Layout \& Scalability}
+The choice of dashboard layout may be challenging as this influences its effectiveness.
+The standard approach would be to use 2D dashboards as floating panels. Their similarity to conventional dashboards may prove to be their strength, and all participants only considered 2D visualizations in our interviews.
+In contrast, no participants mentioned using 3D visualizations at all, which is unsurprising given their perception issues and propensity to occlude. \kadek{}, however raised an interesting point in that a 3D proxy comprised of multiple referents may function as a dashboard (i.e., proxsituated visualization \cite{proxSituated2023}). While the proxy would look like a 3D world-in-miniature, its purpose would serve mostly as a 3D overview of the full environment rather than for navigation or manipulation \cite{danylukDesignSpaceExploration2021}. It may be that while a 2D dashboard provides a familiar overview of the data, a 3D dashboard may perform better when understanding the spatial layout of the data and referent is paramount.
+
+The question of scalability also arose in our interviews. \fleck{} suggested that having too many visualizations on a dashboard would necessitate some form of filtering. This filtering may be automatic based on context or be performed manually by the end-user. Alternate representations of data may also need to be employed. Rather than one visualization per referent, all referents could be aggregated into a single one. The trade-off however is that it may unintentionally hide important information. A third approach may be to embrace the large number of visualizations. As immersive devices are oftentimes touted by their ability for large workspaces, dashboards could be infinitely scaled to present large amounts of data. While this may obscure the surrounding environment in an AR context, a cross-virtuality setup could be employed to transition the end-user into VR, resulting in a ``focused'' mode to analyse the dashboard's data. How best to handle this scalability issue remains unclear. 
+
+% - 2D vs 3D dashboards (dimensionality)
+%     - Only comprised of 2D visualisations
+%         - Similar to a regular dashboard
+%         - Familiar and recognisable setup
+%     - Only comprised of 3D visualisations
+%         - A compelling example is a form of a WiM proxy of the physical referent
+%         - Imagine a smaller scale model of a factory with labels on different parts of the factory
+%     - Comprised of both 2D and 3D
+%         - Layout might be a concern
+%         - Position vertically vs flat horizontally, but 3D vis might occlude other vis
+%         - How to coordinate multiple visualizations within the dashboard?.
+% - How does a dashboard accommodate lots of referents (scalability)?
+%     - Filtering would likely be needed
+%         - Filtering based on spatial position, context, time, manual filtering
+%     - Even higher level aggregation of data
+%         - But this might hide away some important information
+%     - Embrace the chaos, take advantage of the large space around the user
+%         - Can obscure the surrounding environment
+%         - But fully immerse the user in the data
+%         - Could be beneficial in a cross-reality setup, i.e. transition to VR for a "focused" mode of analysing the dashboard
+
+\subsection{C3: Placement and Interaction of Dashboards}
+From our interviews, the placement of situated dashboards depends on the data and the end-user's intention to interact with it. While it might be imperative to place the dashboards in places where it provides actionable information to users (i.e., nearby the referent), many participants preferred the dashboard to be at arm's reach to make interaction easier. Even so, arm's reach may require the dashboard to float in mid-air, or be overlaid against a wall or table to enable touch-like input. This demonstrates a challenge in balancing between proper situatedness of the dashboard, and ease of interaction regardless of the end-users physical proximity to the referent.
+
+Interestingly however, no participants talked about how a situated dashboard might move with the end-user throughout the physical environment, even though proximity to referents was the main example given for context-aware dashboards. It is safe to assume that dashboards could be moved manually, but automatic solutions may also be employed (e.g., \cite{evangelistabeloAUITAdaptiveUser2022}). However, dashboards can vary greatly in terms of their size, content, and appearance. It might even be imperative that a specific dashboard be placed next to its referents, acting as a hard requirement for its placement. Future work may consider these factors and determine how best to address them.
+
+% - This is basically view management
+% - How to place the dashboard?
+%     - Offer automatic solutions (e.g. AUIT)
+%     - Offer fixed solutions (body fixed, world fixed, surround fixed)
+%     - Attached to physical objects (but risk occlusion)
+%     - Responsiveness
+% - How to place it to facilitate interaction?
+%     - Requiring the user to walk vs having it in arms reach
+%     - Moving the dashboard vs moving the person
+%     - Minimize/maximize
+% - How to share, save, export dashboards (collaboration)
+
+\subsection{C4: Navigation between Dashboard and Referent}
+\ap{} briefly described how visualizations on a situated dashboard could be associated with referents. This can be considered as an overview first, zoom and filter interaction \cite{shneidermanEyesHaveIt1996}. The end-user identifies a referent on the dashboard, then navigates to its physical location which may contain other situated or embedded visualization(s). This may require a form of visual guidance by the system. If the referent is in close proximity, simple attention guidance like a visual link is enough (e.g., \cite{prouzeauVisualLinkRouting2019}). If further away, a more complete navigation technique might need to be employed instead (e.g., \cite{reitmayrCollaborativeAugmentedReality2004,mulloniHandheldAugmentedReality2011})).
+Willett et al.~\cite{willettEmbeddedDataRepresentations2017} suggested that visualizations could transition from non-situated to situated to embedded. Thus, an interesting consideration is whether a transition occurs between the dashboard and any situated/embedded visualizations on the referent. If both dashboard and referent visualizations use the same idiom, then this is trivial: use the same visualization. But if they use different idioms, then designing a suitable transition may prove challenging.
+
+% - How do we link between visualisation and referent?
+%     - If in close proximity, something like a visual link is enough
+%     - If further away, a more complete navigation technique might be required
+%     - To avoid navigation, standard data from the referent, must be represented by common visualizations. (Virtual Proxy?)
+% - Are links even necessary?
+%     - A proxy of the referent is technically enough to understand its physical context
+%     - However, it obviously means that you cannot interact with the actual physical context
+% - How does the transition move between dashboard and visualisation when in spatial proximity?
+%     - Implicit overview + zoom can filter the dashboard to the data on the nearby referent
+%     - But what if the design pattern used for both are incompatible (e.g. scatterplot on dashboard, but decals on the referent?). This is a challenge
+
+
+\subsection{C5: Moving in/out/between Situated Environments}
+While our interviews discussed what makes a situated dashboard ``situated'', an interesting consideration is what happens when the user moves in, out, or between configured situated environments. Consider someone walking into a store. Does a dashboard of store prices suddenly appear in front of them, or is it fixed near the store's entrance? Now consider the same person moving to another store, with it also having its own situated dashboard application. Does the same dashboard change content, does a new dashboard appear and replace the other, or do multiple dashboards appear simultaneously?
+These questions relate to the broader societal context surrounding each situated environment. If situated dashboards become ubiquitous and are loaded on-the-fly as we move about the physical world, how does the system manage each situated environment? Who decides who ``owns'' a particular spatial region in which a dashboard or visualizations appears in? For situated analytics to become commonplace, these questions likely need to be addressed.
+
+% - The dashboard moving away from its physical context:
+%     - Is it no longer considered as situated, and is this a problem?
+%     - Does it disappear or does it remain?
+%     - Should situated-dependent functions like overview + zoom or remote interaction still function when the dashboard is no longer considered situated?
+% - The user physically moving from one environment that has a configured situated dashboard to another:
+%     - Do they see multiple dashboards at a time?
+%     - When multiple situated dashboard creators overlap in their spatial regions, who gets ownership or priority?
+
+
+\subsection{C6: Collaborative and Remote Situated Evironments}
+
+Given that AR allows users to interact with real scenarios and permits direct communication, collaborative and remote approaches must be studied~\cite{grandChallenges2021}. Our proposal about situated dashboards is not limited to collaborative and remote tasks of conventional authoring tools. We go beyond proxsituated visualizations~\cite{proxSituated2023} and envision remote authoring situated dashboards. Although tangible interaction performs helpful in some scenarios, the collaborative work would get huge benefits by sharing non-accessible non-reproducible referents.
+
+
+    

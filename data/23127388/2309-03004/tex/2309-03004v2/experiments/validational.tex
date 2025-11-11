@@ -1,0 +1,77 @@
+\section{Experiments for Verification}\label{sec:v_experiments}
+
+The experiments for verification are designed to rule out other possible explanations and show that gradient sparsity is the main cause of activation sparsity, at least in $\dbmlp$.
+
+Although comprehensively demonstrated by \citet{observation}, the sparsity emerging in MLP blocks has still a lot of confusion. 
+This is because a lot of coincidences exist in $\relu$. For example, $\relu$ and its derivatives share the same zero-valued intervals, and they are both monotonically increasing.
+Previous works \citep{observation,sharpness_aware} consider that it is the value or norm of activations that are reduced to produce sparsity. There are more possible explanations, such as the absolute value of activations as well as all similar explanations based on pre-activations.
+We show none of them is the essential source of observed activation sparsity but the gradient sparsity, by designing weird activation functions, using which activations or pre-activations are not consistently decreased, increased or moved towards zero, but the norm of derivatives is.
+
+\NewDocumentCommand{\weird}{}{\operatorname{Weird-J-SquaredReLU}}
+\NewDocumentCommand{\halfwidth}{}{w_{\textrm{half}}}
+Our construction includes an activation function $\weird$ and 4 shifting operations. $\weird$ is defined as
+\begin{align}
+    \weird(x) \defeq \begin{cases}
+        -\frac{1}{2} ((x + \halfwidth - 1)^2 - 1)  & x \le -\halfwidth,\\
+        0 & -\halfwidth < x < \halfwidth,\\
+        \frac{1}{2} ((x - \halfwidth + 1)^2 - 1)  & x \ge \halfwidth,
+    \end{cases}
+\end{align}
+where $\halfwidth > 0$ is a hyperparameter.
+\arxivonly{$\weird$ and its derivatives are illustrated in \cref{fig:weird}.}
+We shift it around along $x$- or $y$-direction, i.e., use $\weird(\cdot - \Delta x) + \Delta y$ in MLP layers, to decorrelate between activations and pre-activations, values and absolute values or norms. 
+If gradient sparsity is indeed essential, then the activations and pre-activations will concentrate around the flat area instead of zero point or any half-planes and will follow it well if it is shifted in another way.
+To have enough space for all pre-activations, we choose $\halfwidth=1.5$, i.e., the width of the flat area is $3$, which is approximately the width of majority pre-activations in Fig. B.2(c) of \citet{observation}'s experimental observations.
+To exclude flat area from zero point, we shift $\weird$ horizontally and vertically by $(\Delta x, \Delta y) \in \set{+1.6, -1.6} \times \set{+1.6, -1.6}$. This family of shifted $\weird$ is illustrated in \cref{fig:shifted_weird0-}-\cref{fig:shifted_weird-0}. From theory, we expect that most pre-activations and activations will fall around $[\Delta x - \halfwidth, \Delta x + \halfwidth] \times \set{\Delta y}$.
+\arxivonly{\begin{figure}
+    \centering
+    \resetHeight{}
+    \begin{subfigure}[h]{0.3\textwidth}
+        \centering
+        \myincludegraphics[width=\textwidth]{pic/activation/wired_jsrelu.jpg}
+        \caption{\scriptsize Base $\weird$.}\label{fig:weird}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.65\textwidth}
+        \centering
+        \foreach \i in {,-}{
+        \foreach \j in {-,}{
+            \begin{subfigure}[t]{0.48\textwidth}
+                \centering
+                \myincludegraphics[width=\textwidth]{pic/activation/shifted_wired_jsrelu_\j1.6_\i1.6.jpg}
+                \caption{\scriptsize $\Delta x = \j1.6, \Delta y = \i1.6$}\label{fig:shifted_weird\i0\j}
+            \end{subfigure}
+        }}
+    \end{subfigure} 
+    \caption{The illustration of shifted $\weird$ and their derivatives, indicated by blue lines and red dashed lines, respectively.} 
+\end{figure}}
+\jmlronly{\begin{figure}
+    \centering
+    \resetHeight{}
+    \centering
+    \foreach \i in {,-}{
+    \foreach \j in {-,}{
+        \begin{subfigure}{0.22\textwidth}
+            \centering
+            \myincludegraphics[width=\textwidth]{pic/activation/shifted_wired_jsrelu_\j1.6_\i1.6.jpg}
+            \captionsetup{font=tiny}
+            \caption{$\Delta x = \j1.6, \Delta y = \i1.6$}\label{fig:shifted_weird\i0\j}
+        \end{subfigure}
+    }}
+    \caption{The illustration of shifted $\weird$ and their derivatives, indicated by blue lines and red dashed lines, respectively.} 
+\end{figure}}
+
+We train ViT-Base with $\dbmlp$ and $\weird$ on CIFAR-10 \citep{cifar10} for 100 epochs. Training details are listed in \cref{appendix:experimental_details}. The gradient sparsity during training, measured simply by the percentage \citep{observation} of activations not falling in $[\Delta x - \halfwidth, \Delta x + \halfwidth] \times [\Delta y - 10^{-6}, \Delta y + 10^{-6}]$, is illustrated in \cref{fig:validation_full}. 
+\begin{figure}
+    \resetHeight{}
+    \centering
+    \foreach \i in {+,-}{
+    \foreach \j in {-,+}{
+        \begin{subfigure}[lt]{0.22\textwidth}
+            \centering
+            \myincludegraphics[width=\textwidth]{pic/results/dumps/validations/dx=\j1.6,dy=\i1.6/training.jpg}
+            \caption{\tiny $\Delta x = \j1.6, \Delta y = \i1.6$}\label{fig:validational_full\i0\j}
+        \end{subfigure}
+    }}
+    \caption{Gradient sparsity during training of ViT-Base with $\dbmlp$ and differently shifted $\weird$ on CIFAR-10.}\label{fig:validation_full}
+\end{figure}
+In \cref{fig:validation_full}, most layers have at least 70\% activations concentrating at the flat area as expected, which not only indicates that activation is currently not sparse, but also is a strong evidence that gradient sparsity dominates the sparsity among other potential factors. \cref{fig:validation_full} rules out the dominance of other potential activation or pre-activation explanations, because in \cref{fig:validational_full+0+}, \cref{fig:validational_full+0-} and \cref{fig:validational_full-0+} activation or pre-activation are not decreased, in \cref{fig:validational_full-0-}, \cref{fig:validational_full-0+} and \cref{fig:validational_full+0-} activations or pre-activations are not increased, while in all of them activations or pre-activations' norms are not optimized toward zero. Furthermore, in \cref{fig:validation_full}, where the spurious correlation between activation and gradient sparsity is broken, activation sparsity is gone while gradient sparsity survives and follows the expected area well, indicating that gradient sparsity is more stable and can be more essential than the activation one and thus deserves more research attention.

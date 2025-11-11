@@ -1,0 +1,78 @@
+\section*{Appendix}\label{sec:appendix}
+\renewcommand{\thesubsection}{\Alph{subsection}}
+
+\subsection{LLM Hallucination in the Real World}
+During our testing of this app, we discovered a hallucination issue as shown in Figure~\ref{fig:hallucination}. We can observe that when we requested the app to output lines 5-10 from ``test.py'', the output was very peculiar, which raised our alertness. Further communication with the developer and code review confirmed that the issue was indeed caused by hallucination. The app hallucinated when we asked it to perform code execution, generating seemingly correct outputs without actually having the ability to execute code.
+\begin{figure}[ht]
+	\centering
+	%\setlength{\abovecaptionskip}{0pt}
+	\setlength{\belowcaptionskip}{0pt}
+	\includegraphics[width=1.0\columnwidth]{figures/hallucination.png}
+	\caption{LLM hallucination in a real-world app.} 
+	\label{fig:hallucination}
+	\vspace{-3mm}
+\end{figure}
+
+
+\subsection{Practical Real-World Attacks Against Other App Users}
+
+% asdfasdlfjasdlfja \ref{fig:new_attack1}
+% \lipsum[1-5]
+Figure~\ref{fig:new_attack1} illustrates an instance of output hijacking in an real-world scenario. The attacker initiates by tampering with the application's source code, compelling the application to generate a specific output. This manipulation disrupts the normal experience of benign users, causing interference and potential harm.
+\begin{figure}[ht]
+	\centering
+	%\setlength{\abovecaptionskip}{0pt}
+	\setlength{\belowcaptionskip}{0pt}
+	\includegraphics[width=1.0\linewidth]{figures/new_attack1.pdf}
+	\caption{Output hijacking attack} 
+	\label{fig:new_attack1}
+	\vspace{-3mm}
+\end{figure}
+
+Figure~\ref{fig:new_attack2} illustrates an instance of OpenAI API Key stealing attack in an real-world scenario. 
+The attacker first modifies the app's source code to enable automatic recording of users' OpenAI API keys after they input their keys. When an app user enters their OpenAI API key while using the app, the key is captured by the attacker without the victim being aware of the attack. This poses a significant threat. Additionally, the attacker can also steal other user information such as uploaded files and user prompts.
+\begin{figure}[ht]
+	\centering
+	%\setlength{\abovecaptionskip}{0pt}
+	\setlength{\belowcaptionskip}{0pt}
+	\includegraphics[width=1.0\columnwidth]{figures/new_attack2.pdf}
+	\caption{API key stealing attack} 
+	\label{fig:new_attack2}
+	\vspace{-3mm}
+\end{figure}
+
+Figure~\ref{fig:phishing_attack} illustrates an instance of phishing attack in an real-world scenario. For example, the attacker wants to trick the user to download and open its malware, it modifies the code first. Now here comes an app user, the modified app says every user should enter a secret token first to start using this app. and the secret token can be obtained by downloading the provided files (and actually the file is attacker’s malware). If the user trust the app, he will download the file and try to open it. Thus, the attacker tricks the user into opening its malware.
+\begin{figure}[H]
+	\centering
+	\setlength{\belowcaptionskip}{0pt}
+	\includegraphics[width=1.0\columnwidth]{figures/phishing2.pdf}
+	\caption{Phishing attack} 
+	\label{fig:phishing_attack}
+	\vspace{-3mm}
+\end{figure}
+
+
+\subsection{App Search Details}
+\label{sec:appendix:C}
+\textbf{Vulnerable APIs used in app searching.} 
+\begin{itemize}
+    \item LangChain: \texttt{create\_csv\_agent, create\_pandas\_dataframe\_agent, create\_spark\_dataframe\_agent, PALChain}.
+    \item PandasAI: \texttt{PandasAI}.
+    \item LlamaIndex: \texttt{PandasQueryEngine}.
+\end{itemize} 
+\begin{table}[H]
+\caption{Characteristics used to search black-box apps (number contains overlap between each characteristic.)}
+\label{tab:cha}
+\begin{tabular}{ll}
+\toprule
+\textbf{Characteristic (keywords)} & \textbf{\#Tested App} \\ \midrule
+data analysis           & 16              \\
+chat with ...           & 5               \\
+csv                     & 6               \\
+interperter             & 2               \\
+math                    & 1               \\
+data science            & 14              \\
+langchain               & 5               \\
+agent                   & 7               \\ \bottomrule
+\end{tabular}
+\end{table}

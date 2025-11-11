@@ -1,0 +1,46 @@
+Bolometric interferometry is a technique that combines the use of bolometers, which are state-of-the-art wide-band cryogenic detectors providing high sensitivity, with the advantage of precision control of systematic effects provided by the \textit{self-calibration} technique, commonly used in radio-interferometry \citep{1981MNRAS.196.1067C}. The application to BI is detailed in \citet{Bigot-Sazy2013}.
+
+Figure~\ref{fig:BI_instrumental_concept} shows a schematic of the QUBIC instrument, highlighting the fundamentals of BI. The sky signal enters the cryostat through an aperture window and propagates through a series of filters, a step-rotating half-wave plate, a polarizing grid, and an array of paired back-to-back feed-horn antennas. The back horns directly illuminate an optical combiner, which focuses the radiation onto two focal planes through a dichroic plate. 
+
+When the instrument observes a distant point source along the optical axis an interference pattern forms on the two focal planes (see the top panel of Fig.~\ref{fig:Theo_SB}). As a result, each focal plane element measures the sky signal convolved by a specific beam pattern, called the \textit{synthesized beam}, shown in the bottom panel of Fig.~\ref{fig:Theo_SB}. The constructive or destructive interference of the incoming signal defines a series of peaks and nulls, with properties that depend on the signal wavelength, $\lambda$, on the number of horns along the maximum axis of the antennas array, $P$, and on the separation between two consecutive horns, $\Delta h$, as follows \citep{2020.QUBIC.PAPER2}:
+
+\begin{equation}
+    \label{eq_synth_beam_properties_dependece}
+    \theta_\mathrm{FWHM}  = \frac{\lambda}{(P-1)\Delta h},\,\,\,\,\,\Theta = \frac{\lambda}{\Delta h},
+\end{equation}
+% 
+where $\theta_\mathrm{FWHM}$ is the half power width of the peaks and $\Theta$ is the angular distance between the main peak and the first secondary peak.
+
+Equation~\ref{eq_synth_beam_properties_dependece} demonstrates that the positions of the secondary peaks depend on $\lambda$. As an example, in the bottom panel of Fig.~\ref{fig:Theo_SB} we show a cut of the synthesized beam at a fixed azimuthal angle for two frequencies: 140\,GHz and 160\,GHz. Knowing how the multiple-peaked shape of the synthesized beam evolves with frequency allows us to recover the sky signal during data analysis at various frequencies within the physical band. This is possible as long as the two frequencies, $\nu_1$ and $\nu_2$, are far enough apart that the secondary peaks are well-resolved.  That is, we require $\Theta(\nu_2) -  \Theta(\nu_1) > \theta_\mathrm{FWHM} (\sqrt{\nu_1\nu_2})$, which occurs for $\frac{\Delta \nu}{\nu} \geq \frac{1}{P-1}$. We call this technique \textit{spectral imaging}.
+
+Our goal is to reconstruct maps of an extended source in polarization thereby computing the three Stokes parameters I, Q, and U at the same time. Because an extended source is a linear combination of point-sources, this reconstruction is possible but requires deconvolving from the multiple peaks of the synthesized beam, as well as relying on a half-wave plate modulation for polarization reconstruction.
+This problem can be solved thanks to a scanning strategy which allows information to be captured several times with various geometrical configurations\footnote{Similar to grism spectroscopy that benefits from different orientations of the field of view.}, and through an inverse problem approach that reconstructs unbiased maps of the three Stokes parameters in sub-bands within the physical band of the instrument ~\citep{2020.QUBIC.PAPER2}.
+
+%\textbf{\st{Cosmic fluctuations in the sky form an extended source, which can be interpreted as a linear combination of point sources. In addition, scanning strategies allow information to be captured several times with various geometrical configurations to constrain observations\footnote{Similar to grism spectroscopy benefit of different field of view}.}}
+
+%Because each detector on the focal plane is illuminated by all the feed-horns simultaneously, the received signal is the sky convolved with the angular response of all the antennas, which is called \textit{synthesized beam}.
+
+
+%As a result, the position of the secondary peaks evolves with frequency and allows us to recover the sky signal during data analysis for frequencies far enough that the same secondary peak at two different frequency is well-resolved, namely 
+
+%A unique feature of bolometric interferometry is thus \textit{spectral imaging}, which is the ability to recover the sky signal at different frequencies within the physical band through a precise knowledge of how the multiple-peaked shape of the synthesized beam evolves with frequency.
+
+Consequently, the frequency dependence of the secondary peaks enables us to achieve a spectral resolution of a few GHz within the physical band. Furthermore, since spectral imaging occurs at the data analysis level, it allows us to re-analyze the same data with different spectral configurations, which can help us detect biases in the obtained results. This is a unique asset compared to traditional imagers, which would need several focal planes coupled to multichroic filters to achieve the same spectral performance, or to Fourier-transform spectrometers, which would suffer from a noise penalty related to not observing all frequencies simultaneously.
+
+% The dependence of secondary peaks on frequency brings two advantages: on the one hand, it allows us to achieve a spectral resolution of a few GHz, which is unfeasible \JCH{[\bf Here, I don't really like this formulation: it is not that it is unfeasible for a traditional imager. One can do it, but the number of photons will be significantly reduced for this set of detectors... So we need to find a better formulation.]} for a traditional imager; on the other hand, 
+
+In this context, our aim is to investigate how the increased spectral resolution provided by BI helps in controlling the contamination from Galactic foregrounds in the quest for primordial $B$-modes detection, with a special focus on the Galactic dust emission.
+
+\begin{figure}[ht]
+	\includegraphics[width=9cm]{II/II-1/QUBIC_scheme.pdf}
+        \caption{\label{fig:BI_instrumental_concept}Schematic of the QUBIC instrument showing the principle of bolometric interferometry. The sky signal is received by an array of back-to-back horns and re-imaged onto the bolometric focal planes where the field interferes additively. A polarizer and a rotating half-wave plate make the instrument sensitive to linear polarization.}
+\end{figure}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=7cm]{figure/Interference_uv_plane.pdf} \\
+    \includegraphics[width=9cm]{figure/Synthesized_beam_theoretical.pdf}
+	%\includegraphics[width=9cm]{II/II-1/tmp_Synthesized_beam_theoretical.pdf}
+        \caption{\label{fig:Theo_SB} \textit{\textbf{Top} panel}: simulation of the interference pattern on the focal plane generated by a monochromatic point source. \textit{\textbf{Bottom} panel}: azimuth cut of the theoretical synthesized beam (solid lines) at 140 GHz (blue line) and at 160 GHz (green line) for a detector at the center of the focal plane. Dashed lines represent the beam pattern of a single feed horn. The frequency-dependent position of the secondary peaks is clearly visible.}
+\end{figure}
+

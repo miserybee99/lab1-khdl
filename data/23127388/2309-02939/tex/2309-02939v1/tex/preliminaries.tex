@@ -1,0 +1,47 @@
+In this section, we briefly present the framework developed by \citet{laconte2019lambda}.
+In a similar way as occupancy grid frameworks, the environment is tessellated into cells, where all cells have a fixed size and area $\Delta a \in \mathbb{R}_{>0}$.
+The core difference of their approach, compared to a standard Bayesian occupancy grid, is the information that is stored in each cell.
+Instead of estimating the probability of collision, they estimate the density of collision $\lambda \in \mathbb{R}_{\geq 0}$ for each cell, also called the intensity.
+The probability of collision within the cell is then $\lambda \Delta a$. The higher the intensity of a cell, the more likely it is that a hazardous event will happen in this cell.
+On the contrary, an intensity of zero means that the cell will never lead to a harmful collision and can be crossed safely.
+As shown in \cite{laconte2019lambda}, the probability of facing at least one hazardous event (i.e., collision) over a path $\mathcal{P}$ in the discretized field is
+%
+%
+%
+%
+%
+\begin{equation}
+    \label{eq:P_coll_Discrete}
+    \mathbb{P}(\text{coll}|\mathcal{P}) = 1 - \exp\left(-\Delta a \sum_{c_{i} \in \mathcal{C}}\lambda_i\right),
+\end{equation}
+where $\mathcal{C}$ is the set of cells crossed by the path $\mathcal{P}$, and $\lambda_i$ is the intensity of a cell $c_i \in \mathcal{C}$.
+
+In order to build this map, \citet{Laconte_2021} use a 2D lidar.
+If $e$ is the error region area attached to every lidar measurement, then a cell $c_i$ is measured as hazardous if it is located within the error region area of a lidar beam impact.
+%
+Otherwise, if the lidar beam traversed the cell without returning a collision, the cell is measured as safe.
+Under these considerations, the intensity $\lambda_i$ of each cell is computed using an expectation maximization approach. %
+Let $s_i$ be the number of times a cell $c_i$ is measured as safe and $h_i$ the number of times a cell $c_i$ is measured as hazardous, it can be shown, see \cite{Laconte_2021}, that the intensity of the cell $c_i$ can be expressed as
+\begin{equation}
+    \lambda_i = \frac{1}{e}\ln\left(1+\frac{h_i}{s_i}\right).
+    \label{eq:measur_2D}
+\end{equation}
+
+Furthermore, the main advantage of the Lambda-Field is that it enables the computation of the probability of collision, but also of a generic risk over a path.
+%
+Following the demonstration in \cite{Laconte_2021}, the expected value of a generic deterministic risk over a path $\mathcal{P}$ crossing the cells $\{c_i\}_{0:N-1}$, is given by
+\begin{equation}
+    \mathbb{E}[r(X)] = \sum_{i=0}^{N-1} K_i r(x_i),
+    \label{eq:E_risk}
+\end{equation}
+%
+where $x_i$ corresponds to the position on the path associated to the cell $i$ and $r(x_i)$ is a generic risk function that gives the value of the deterministic risk if a collision would happen at $x_i$.
+$K_i$ gives the probability of encountering an harmful event at $x_i$ and is given by
+\begin{equation}
+    \label{eq:Ki}
+    K_i = \exp\left(-\Delta a \sum_{j=0}^{i-1} \lambda_j\right)(1-\exp(-\Delta a \lambda_i)).
+\end{equation}
+$\mathbb{E}[r(X)]$ encompasses both the state of the environment through the intensity field, and the state of the robot when it comes at a given position along the path, though the risk function $r(x_i)$.
+%
+%
+As such, this framework provides a way to compute a meaningful risk over a path in occupancy grids.

@@ -1,0 +1,51 @@
+%
+We present here our extension of the Lambda-Field to take into account traversable 3D obstacles in the environment.
+For that, we use a 3D lidar to compute a \ac{DEM} \cite{DEM}.
+%
+By aggregating multiple point clouds over time, we compute the difference in elevation of the environment.
+%
+This is achieved by taking into account the elevations of the eight neighboring cells for each grid cell.
+Then, this \ac{DEM} is used to compute the Lambda-Field.
+
+%
+%
+To model traversable obstacles in the context of urban environments containing road curbs and speed bumps.
+%
+We define a cell $c_i$ as safe if the value of the difference in elevation is below a threshold value $H_\text{safe}$; otherwise, this cell is defined as hazardous.
+The intensity equation \autoref{eq:measur_2D} is however modified to take into account the severity of the event and will stop the robot in its course.
+As such, the intensity of a cell $c_i$ is computed with
+\begin{equation}
+    \lambda_i = \frac{1}{e}\ln{\left(1+\frac{h_i}{s_i}\right)}p_{i}
+    \label{eq:3D_lambda_field}
+\end{equation}
+where quantity $p_i$ describing the severity of this collision is defined by
+\begin{equation}
+    \label{eq:harmful_prob}
+    p_{i} = \min\left(\frac{|H_i|}{R}, 1\right),
+\end{equation}
+with $H_i$ the difference in elevation of the cell $c_i$ with reference to its neighbors and $R$ the radius of the wheel.
+As such, the likelihood it stop $p_i$ is one when the obstacle is higher than the wheel radius and the robot has no chance to go over the obstacle, and tends to zero for small obstacles which are harmful.
+In the conservative case where we assume the robot is not able to go over any obstacle, then $p_i=1$ and the measurement equation returns to \autoref{eq:measur_2D}.
+\autoref{eq:3D_lambda_field} is then a generalization of the approach where we consider that the robot is also able to traverse over small obstacles.
+
+As an example, \autoref{fig:lambda-field_3D} depicts a Lambda-Field computed using \autoref{eq:3D_lambda_field}, for the environment shown in \autoref{fig:intro}.
+The global Lambda-Field map is shown at the top in \autoref{fig:lambda-field_3D} and the construction of the map around the speed bump (in yellow in \autoref{fig:intro}) at different times is illustrated below.
+At time $t_1$, the speed bump is in the lidar range and the intensities $\lambda_i$ representing the speed bump began to converge.
+The speed bump is better represented at time $t_2$ through new and additional measurements.
+As the speed bump has been completely scanned at time $t_3$, the intensities associated with it have completely converged.
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{media/lf3D_example.pdf}
+  \caption{Example of Lambda-Field of the environment depicted in \autoref{fig:intro}.
+  The area containing the speed bump and the cones is enlarged and shown at different times.
+  The lidar range (vertical line) and the robot (box) pose for each of these times are illustrated in teal ($t_1$), dull green ($t_2$) and blue ($t_3$).
+  The left curb (light blue) and the traffic lights (green) seen in \autoref{fig:intro} are outlined in dashed lines.}
+  \label{fig:lambda-field_3D}
+  \vskip-.5em
+\end{figure}
+One can note that the curbs, traffic cones, speed bump, buildings and traffic lights poles are well detected.
+The borders of the speed bump have high intensity values, when its ascending and descending portions have more nuanced intensities, meaning that harmful collisions are less prone to happen.
+As a result, the robot will be able to cross the speed bump by taking a reasonable risk.
+Additionally, buildings, traffic light poles, and traffic cones have high intensities.
+These obstacles cannot be crossed by the robot without taking an unreasonable risk.
+%

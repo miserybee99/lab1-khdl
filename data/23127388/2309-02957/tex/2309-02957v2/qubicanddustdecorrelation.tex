@@ -1,0 +1,321 @@
+%                                                                 aa.dem
+% AA vers. 9.1, LaTeX class for Astronomy & Astrophysics
+% demonstration file
+%                                                       (c) EDP Sciences
+%-----------------------------------------------------------------------
+%
+%\documentclass[referee]{aa} % for a referee version
+%\documentclass[onecolumn]{aa} % for a paper on 1 column  
+%\documentclass[longauth]{aa} % for the long lists of affiliations 
+%\documentclass[letter]{aa} % for the letters 
+%\documentclass[bibyear]{aa} % if the references are not structured 
+%                              according to the author-year natbib style
+
+%
+\documentclass{aa}  
+
+\newcommand{\JCH}[1]{{\textcolor[rgb]{0, 0, 1}{#1 (JCH)}}}
+\newcommand{\MATHIAS}[1]{{\textcolor[rgb]{0, 1, 0}{#1 (Mathias)}}}
+\newcommand{\ELENIA}[1]{{\textcolor[rgb]{1, 0, 1}{#1 (Elenia)}}}
+\newcommand{\optinMDP}[1]{{\textcolor[rgb]{1, 0.5, 0}{\textbf{#1 (Marco De Petris)}}}}
+\newcommand{\optinLM}[1]{{\textcolor[rgb]{1, 0.5, 0}{\textbf{#1 (Louise Mousset)}}}}
+\newcommand{\optinCOS}[1]{{\textcolor[rgb]{1, 0.5, 0}{\textbf{#1 (Creidhe O'Sullivan)}}}}
+\newcommand{\optinN}[1]{{\textcolor[rgb]{1, 0.5, 0}{\textbf{#1 (Nahuel)}}}}
+\newcommand{\optinSilvia}[1]{{\textcolor[rgb]{1, 0.5, 0}{\textbf{#1 (Silvia Masi)}}}}
+\newcommand{\commentsreferee}[1]{{\textbf{#1}}}
+\usepackage{ulem}
+\input{header}
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\usepackage[options]{hyperref}
+% To add links in your PDF file, use the package "hyperref"
+% with options according to your LaTeX or PDFLaTeX drivers.
+%
+\begin{document} 
+
+   \title{Identifying frequency decorrelated dust residuals in B-mode maps by exploiting the spectral capability of bolometric interferometry}
+   \titlerunning{Identifying frequency decorrelated dust residuals in B-mode maps}
+
+    \input{authorsandinstitutes}
+
+   \date{Received September 15, 1896; accepted March 16, 2197}
+
+ 
+  \abstract
+    {Astrophysical polarized foregrounds represent the most critical challenge in Cosmic Microwave Background (CMB) $B$-mode experiments, requiring multi-frequency observations to constrain astrophysical foregrounds and isolate the CMB signal. However, recent observations indicate that foreground emission may be more complex than anticipated. Not properly accounting for these complexities during component separation can lead to a bias in the recovered tensor-to-scalar ratio.}  
+    {In this paper we investigate how the increased spectral resolution provided by band-splitting in bolometric interferometry (BI) through a technique called \textit{spectral imaging} can help control the foreground contamination in the case of unaccounted Galactic dust frequency decorrelation along the line-of-sight (LOS).} 
+    {We focus on the next-generation ground-based CMB experiment CMB-S4 and compare its anticipated sensitivity, frequency, and sky coverage with a hypothetical version of the same experiment based on bolometric interferometry (CMB-S4/BI). We perform a Monte-Carlo analysis based on parametric component separation methods (FGBuster and Commander) and compute the likelihood of the recovered tensor-to-scalar ratio, $r$.}
+    {The main result is that spectral imaging allows us to detect systematic uncertainties on $r$ from frequency decorrelation when this effect is not accounted for in component separation. Conversely, an imager like CMB-S4 would detect a biased value of $r$ and would be unable to spot the presence of a systematic effect. We find a similar result in the reconstruction of the dust spectral index, where we show that with BI we can measure more precisely the dust spectral index also when frequency decorrelation is present and not accounted for in component separation.} 
+    {The in-band frequency resolution provided by BI allows us to identify dust LOS frequency decorrelation residuals where an imager of similar performance would fail. This opens the prospect of exploiting this potential in the context of future CMB polarization experiments that will be challenged by complex foregrounds in their quest for $B$-modes detection.}
+
+    
+
+   \keywords{cosmic microwave background --
+             inflation -- ISM -- data analysis}
+
+   \maketitle
+%
+%-------------------------------------------------------------------
+
+\section{Introduction}
+\label{sec_introduction}
+
+    \input{I/I-1/Introduction.tex}
+
+\section{Bolometric interferometry in a nutshell}
+\label{sec_bolometric_interferometry_and_qubic}
+
+    In this section we briefly describe the principles of BI, focusing on a specific feature of this technique, called \textit{spectral imaging}, which is at the heart of our study. 
+    The interested reader can find more details on BI and \textit{spectral imaging} in \cite{2020.QUBIC.PAPER1, 2020.QUBIC.PAPER2}, whereas more information about the QUBIC experiment, currently the only one based on BI, and on its laboratory characterization can be found in \cite{2020.QUBIC.PAPER3, 2020.QUBIC.PAPER4, 2020.QUBIC.PAPER5, 2020.QUBIC.PAPER6, 2020.QUBIC.PAPER7, 2020.QUBIC.PAPER8}.
+
+    \subsection{Principles of bolometric interferometry}
+    \label{sec_bolometric_interferometry}
+    
+        \input{II/II-1/Principles_of_BI}
+
+    
+    %\subsection{The QUBIC instrument}
+    %\label{sec_qubic}
+    
+        %\input{II/II-2/The_QUBIC_Instrument}
+
+
+ 
+\section{Dust decorrelation with bolometric interferometry and direct imaging}
+
+\label{sec_detecting_dust_decorrelation}
+
+    This paper aims to quantify the effect of various dust models with increasing complexity on the component separation results and demonstrate the benefits of spectral imaging in this regard. We focus, in particular, on the LOS frequency decorrelation of thermal dust, a phenomenon already observed in Planck data \citep{Pelgrims_2021}. 
+    
+    To quantify dust decorrelation, we follow \citet{planck_2020_decorrelation}, and use the quantity $\mathcal{R}_\ell$, defined in Eq.~(\ref{Rl}): 
+    
+    \begin{equation}
+        \mathcal{R}_{\ell}^{\nu_1 \times \nu_2} = \frac{\mathcal{C}_{\ell}^{\nu_1 \times \nu_2}}{\sqrt{\mathcal{C}_{\ell}^{\nu_1 \times \nu_1} \times \mathcal{C}_{\ell}^{\nu_2 \times \nu_2}}}.
+        \label{Rl}
+    \end{equation}
+    
+    $\mathcal{R}_\ell$ is the ratio between the crossed spectrum between two frequencies, $\nu_1$ and $\nu_2$, and the square root of the product of the auto-spectra at these same frequencies. This ratio is close to 1 for completely correlated thermal dust. In our sky simulations, we can increase or decrease the level of complexity in the thermal dust spectral energy density (SED) by tuning $\mathcal{R}_{\ell}$ to a value farther or closer to one, thanks to the parametric expression of $\mathcal{R}_{\ell}$ derived in Eq.~(14) of \citet{Vansyngel_2018}.
+    
+    To assess the potential of BI, we compare the component separation performance of CMB-S4 to a BI version of the same experiment having the same sensitivity per unit bandwidth, but allowing for a higher spectral resolution through band-splitting using spectral imaging. In the following subsections, we present the methods used for this comparison.
+
+
+    \subsection{Methods}
+    \label{sec_methods}
+
+        \subsubsection{Simulated sky}
+        \label{sec_simulated_sky_model}
+            \input{III/III-1/III-1-1/Simulated_Sky}
+            
+        \subsubsection{Instrument models}
+        \label{sec_instrument_models}
+            \input{III/III-1/III-1-2/instrument} 
+        
+        \subsubsection{Simulation pipeline}
+        \label{sec_simulation_pipeline}
+
+        \input{III/III-1/III-1-3/Simulation_pipeline}
+            
+        %\subsubsection{Detecting dust decorrelation on a single realization}
+        %\label{sec:machine_learning}
+        
+        \input{III/III-1/III-1-4/machine_learning}
+
+    \subsection{Results}    
+    \label{sec_results}   
+
+    \input{III/III-2/results.tex}
+     
+
+\section{Conclusions}
+\label{sec_conclusions}
+\input{IV/Conclusions.tex}
+    
+
+\begin{acknowledgements}
+QUBIC is funded by the following agencies. France: ANR (Agence Nationale de la
+Recherche) contract ANR-22-CE31-0016, DIM-ACAV (Domaine d’Intérêt Majeur-Astronomie et Conditions d’Apparition de la Vie), CNRS/IN2P3 (Centre national de la recherche scientifique/Institut national de physique nucléaire et de physique des particules), CNRS/INSU (Centre national de la recherche scientifique/Institut national et al de sciences de l’univers). Italy: CNR/PNRA (Consiglio Nazionale delle Ricerche/Programma Nazionale Ricerche in Antartide) until 2016, INFN (Istituto Nazionale di Fisica Nucleare) since 2017.  Argentina: MINCyT (Ministerio de Ciencia, Tecnología e Innovación), CNEA (Comisión Nacional de Energía Atómica), CONICET (Consejo Nacional de Investigaciones Científicas y Técnicas).
+ 
+ S. Paradiso acknowledges support from the Government of Canada's New Frontiers in Research Fund, through grant NFRFE-2021-00595.
+
+ The authors want to thank Alexandre Boucaud for valuable advices about Machine Learning.
+\end{acknowledgements}
+
+
+\bibliographystyle{aa} % style aa.bst
+\bibliography{biblio,qubic} % your references Yourfile.bib
+
+\appendix
+
+\section{Reconstruction of foregrounds parameters}
+\label{app:reconstruction_foregrouds}
+
+%\hl{I've made two version of the plot: one with the results of S4,BI3,BI5,BI7 and one with all the nsubs cases. If we decide to only plot S4,BI3,BI5,BI7, I think we can write down the average and std within the plot of the histogram. If we want to show all the nsubs, I think it's better to leave the plot of the histogram plain and summarize the average and sigma in a separate table for each foreground model that we've used.
+%If anyone has a better idea, please feel free to share any suggestion.}
+
+%\comm{Mathias : I guess we can keep the plot with all nsubs and the colorbar on the bottom.}
+
+
+In our paper, we focused on the reconstructed tensor-to-scalar ratio, $r$, as it is the main quantity of interest. The level of systematic uncertainties in the reconstructed $r$, however, depends on the reconstructed foreground spectral parameters and distributions. Thus, in this appendix we focus on the distribution of the foregrounds spectral indices after component separation. 
+
+%\begin{figure}[ht]
+%	\includegraphics[width=9cm]{figure/Param_distribution_5_FinalConfNoiseNew2_Comp_42_['d0', 's0']_0.0_0.1_None_['S4', 'BI3', 'BI5', 'BI7']_nsidefit0_Nbpintegr100_iter500.pdf}
+%        \caption{\label{fig:param_reconstruction_d0s0}Reconstruction of foregrounds parameters in the \textbf{d0s0} case.\hl{version with S4,BI3,BI5,BI7}}
+%\end{figure}
+
+In Fig.~\ref{fig:histograms_foregrounds} we show the normalized histograms of the difference between the reconstructed and input dust and synchrotron spectral indices, $\Delta\beta_\mathrm{d}$, $\Delta\beta_\mathrm{s}$ for the following three models: \textbf{d0s0} (top row), \textbf{d1s1} (middle row), \textbf{d6s1} (bottom row), all with \mbox{$r_\mathrm{input}=0$}. Each histogram does not correspond to a particular pixel but contains values from the sky patch. 
+
+\begin{figure}[h!]
+    \resizebox{\hsize}{!}
+	{\includegraphics[width=9cm]{figure/histograms_foregrounds.pdf}}
+    \caption{Reconstruction of foregrounds spectral indices. \textit{Top}: model \textbf{d0s0}, $r_\mathrm{input}=0$. \textit{Middle}: model \textbf{d1s1}, $r_\mathrm{input}=0$. \textit{Bottom}: model \textbf{d6s1}, $r_\mathrm{input}=0$.}
+    \label{fig:histograms_foregrounds}
+\end{figure}
+
+In the case of \textbf{d0s0}, the model assumes a constant spectral index all over the sky. Therefore we expect unbiased estimates with a standard deviation related to the noise in the input frequency maps. The results shown in the top row of Fig.~\ref{fig:histograms_foregrounds} confirm this expectation as we observe no bias on the reconstructed spectral indices. We note that the standard deviation slightly increases with the number of sub-bands, $n_\mathrm{sub}$, because of the slight sub-optimality inherent to spectral-imaging \cite[parametrized by $\varepsilon$ in Eq.~\ref{sigma}, see][]{2020.QUBIC.PAPER2}. 
+
+%{\color{red} It feels you are mixing up two different effects here. If the FG spectral properties change across the sky, you'd expect "decorrelation" regardless of the $N_{side}$ at which you fit for the FG spectral indexes. You can easily verify this if you use pysm to generate a  pure d1 map at e.g. 353 and 150GHz and  compute the corresponding $R_{\ell}$. You will notice a ~ 0.005 level decorrelation. The fact that you evaluate the spectral indexes at $Ns=8$ rather than $Ns=256$ leaves biases and residuals in your recovered FG and CMB parameters, but does not affect decorrelation, which is a feature of the input dust maps.}
+
+%\ELENIA{I think that we should just remove "spatial decorrelation" in the sentence below. We should keep the reason why we get the bias (which is because we fit the spectral params for Ns=8 instead Ns=256) but without calling this a "spatial decorrelation".}
+
+When spectral indices vary across the sky, as in \textbf{d1s1}, we expect biases in the reconstructed spectral indices because we only reconstruct the spectral indices on relatively large sky pixels ($N_\mathrm{side}=8$), while the input sky was simulated with spectral indices that vary among smaller pixels ($N_\mathrm{side}=256$). Consequently, averaging multiple spectral indices in large pixels introduces a bias to the reconstructed spectral index. This bias is responsible for foreground residuals in the CMB maps obtained after component separation and produces the bias on $r$ observed in Figs.~\ref{fig:results_d0s0_r} and ~\ref{fig:r_vs_nsub}.
+
+This is shown in the middle row of Fig.~\ref{fig:histograms_foregrounds}. The bias due to spatial decorrelation appears as an enlarged spread of the distribution with respect to the \textbf{d0s0} case (notice the increased scale of the $x$-axis in the middle row compared to the top row). Also in this case we observe an increase in standard deviation with $n_\mathrm{sub}$ caused by the sub-optimality related to spectral imaging.
+
+Finally, in the case of frequency decorrelation in the dust emission ({\bf d6s1} model), spectral indices are no longer an accurate description of the dust spectral behavior. As a result, if we reconstruct $\beta_\mathrm{d}$ using a {\bf d1s1} model we expect a much larger bias. Note that the comparison between input and reconstructed spectral indices is done using the template map of $\beta_{\mathrm{d}}$ \citep{Planck_15} that was used as an input for the {\bf d6s1} model. It is clear however that in the case of {\bf d6s1}, the comparison between the input and recovered spectral indices is less meaningful than in the simpler models. In this case, one is more interested in the residuals found in the "clean" CMB maps, discussed in the main text of this article. In this case, the increase in spectral resolution provided by spectral imaging supplies extra information, allowing us to reduce this bias. 
+This is confirmed by the results shown in the bottom row of Fig.~\ref{fig:histograms_foregrounds}. First, we see a much larger spread in the histograms compared to the other two cases.  Second, we see that the spread reduces significantly by increasing $n_\mathrm{sub}$. In this case the benefit from spectral imaging more than balances the sub-optimality effect and allows us to reduce the bias on the reconstructed spectral index which then reduces the bias on $r$, as shown in Fig.~\ref{fig:r_vs_nsub}.
+
+
+\section{Simulations with Commander}
+\label{app:commander}
+
+    \subsection{Simulation pipeline}
+    \label{app:commander_pipeline}
+    
+We describe here the simulation pipeline for the analysis performed using the Commander code \citep{eriksen_2006,eriksen_2008}.
+We generated 100 CMB power spectra using CAMB \citep{Lewis:1999bs} from the set of cosmological parameters shown in Table \ref{tab:1}.
+
+\begin{table}[h!]
+    \caption{\label{tab:1}Set of cosmological parameters from the \textit{CAMB Python example notebook} in the CAMB documentation (\protect\url{https://camb.readthedocs.io/en/latest/CAMBdemo.html}).
+    %\footnote{\url{https://camb.readthedocs.io/en/latest/CAMBdemo.html}}.
+    }
+    \renewcommand{\arraystretch}{2}
+    %\setlength{\tabcolsep}{0.1pt}
+    \begin{center}
+        \begin{tabular}{p{2cm} m{2cm}}
+\hline
+\hline
+\makecell[c]{$\mathrm{H}_0$} & \makecell[c]{67.5}\\
+\makecell[c]{$\Omega_b h^2$} & \makecell[c]{0.022}\\
+\makecell[c]{$\Omega_c h^2$} & \makecell[c]{0.122}\\
+\makecell[c]{$\Omega_K$} & \makecell[c]{0}\\
+\makecell[c]{$m_\nu$} & \makecell[c]{0.06}\\
+\makecell[c]{$\tau$} & \makecell[c]{0.06}\\
+\makecell[c]{$A_s \times 10^{-9}$} & \makecell[c]{2}\\
+\makecell[c]{$n_s$} & \makecell[c]{0.965}\\
+\hline
+
+\end{tabular}
+%\footnotesize{\st{$^1$\url{https://camb.readthedocs.io/en/latest/CAMBdemo.html}}}
+\end{center}
+\end{table}
+
+
+\begin{table}[h!]
+    \caption{\label{tab:2}Parameters used for analyzing simulations with Commander.}
+    \renewcommand{\arraystretch}{2}
+    \setlength{\tabcolsep}{1pt}
+    \begin{center}
+        \begin{tabular}{p{5cm} m{2cm}}
+            \hline
+            \hline
+            Number of CMB realizations\dotfill & \makecell[c]{100}\\
+            Map $N_\mathrm{side}$\tablefootmark{a} \dotfill	& \makecell[c]{64} \\
+            Multipole range\tablefootmark{b} \dotfill	&\makecell[c]{21--128} \\
+            $\Delta\ell$\dotfill &\makecell[c]{\phantom{0}{35}} \\
+            Input $r$\dotfill & \makecell[c]{\phantom{00}{0}} \\
+            Residual lensing fraction\tablefootmark{c} \dotfill & \makecell[c]{\phantom{000}100\%} \\
+            Sky fraction [\%]\dotfill & \makecell[c]{\phantom{0000}3\%} \\
+            \makecell[l]{Sky patch center\\ \mbox{}[Equatorial coord.]\dotfill}\dotfill & 
+                \makecell[c]{$\text{RA}=0^\circ$\\\phantom{1}$\text{DEC}=-57^\circ$\rule[-2.2ex]{0pt}{0pt}}\\
+            FWHM\dotfill & \makecell[c]{1$^\circ$}\\
+            \hline
+            \multicolumn{2}{l}{\makecell[l]{
+              \tablefoot{\\
+               \tablefoottext{a}{Limited by computational time.}
+               \\
+               \tablefoottext{b}{Limited by $N_\mathrm{side}=64$.}
+               \\
+               \tablefoottext{c}{The value of 100\% means that all the lensing signal was left.}}
+              }}
+        \end{tabular}
+    \end{center}
+\end{table}
+
+%The accuracy for lensing B-modes is defined by setting $\ell_\mathrm{max} = 2500$ and 
+%lens\_potential\_accuracy = 0
+%in the code \textbf{(write it or not?)}. 
+We smoothed both the CMB and foreground signals with a Gaussian beam with FWHM of 1$^\circ$ and applied the HEALPix pixel window function at $N_\mathrm{side}=64$.
+The only model used to generate the foreground is the $\mathbf{d6s1}$ described in Sect. \ref{sec_simulated_sky_model}, in particular setting the dust correlation length to $\ell_\mathrm{corr}=10$.
+
+For this test we considered a circular patch covering 3\% of the sky, centered on the QUBIC observation field ---corresponding to RA = $0^\circ$ and DEC = $-57^\circ$. 
+We made this choice in order to be consistent with an already-existing BI experimental set-up, after observing that such a sky region is reasonably close to the CMB-S4 one
+---considered throughout the analysis in the main text. We note that the foreground contamination is going to differ in the two pipelines, as well as the CMB realization,
+leading to a slightly different estimate of $r$. Nevertheless, we still expect the final posterior distribution to be compatible within the instrumental uncertainty, the component separation residual 
+contamination, and the additional statistical uncertainty arising from the different CMB realizations. However, the latter contribution is reduced by $\sqrt{N}$, where
+$\mathrm{N}=100$ is the number of CMB realizations considered in the analysis.
+
+%We considered a 3\% sky patch around the center of the one observed by QUBIC. The coordinates of the center of the patch are RA = $0^\circ$ and DEC = $-57^\circ$. 
+For computational reasons only four configurations have been studied.  They are \mbox{CMB-S4/BI} with 1, 3, 5, and 7 sub-bands.
+
+For each simulated sky map, we generated a second version by taking the same CMB, synchrotron, and dust realization, and a different Gaussian noise realization.
+The analysis chain is the same as outlined in Sect. \ref{sec_simulation_pipeline} except that we use an apodization radius of 4.6$^\circ$ instead of 4$^\circ$.
+We performed the component separation sampling the amplitudes $\mathrm{a}_{\mathrm{CMB}}, \mathrm{a}_{\mathrm{s}}, \mathrm{a}_{\mathrm{d}}$ and the spectral indices $\beta_{\mathrm{s}}, \beta_{\mathrm{d}}$ by means of the following Gibbs chain:
+\begin{align}
+        \{\mathrm{a}_{\mathrm{CMB}},\mathrm{a}_\mathrm{s}, \mathrm{a}_\mathrm{d}\}^{i+1} &\leftarrow P(\mathrm{a}_{\mathrm{CMB}},\mathrm{a}_\mathrm{s}, \mathrm{a}_\mathrm{d} \,|\, \beta_\mathrm{s}^i,\beta_\mathrm{d}^i,\mathrm{d})\tag{7a}\label{eq:gibbs_chain_1}\\
+        \notag\\
+        \beta_\mathrm{s}^{i+1} &\leftarrow P(\beta_\mathrm{s} \,|\, \mathrm{a}_{\mathrm{CMB}}^{i+1},\mathrm{a}_\mathrm{s}^{i+1}, \mathrm{a}_\mathrm{d}^{i+1},\beta_\mathrm{d}^i,\mathrm{d})\tag{7b}\label{eq:gibbs_chain_2}\\
+        \notag\\
+        \beta_\mathrm{d}^{i+1} &\leftarrow P(\beta_\mathrm{d} \,|\, \mathrm{a}_{\mathrm{CMB}}^{i+1},\mathrm{a}_\mathrm{s}^{i+1}, \mathrm{a}_\mathrm{d}^{i+1},\beta_\mathrm{s}^{i+1},\mathrm{d})\tag{7c}\label{eq:gibbs_chain_3}\,.
+\end{align}
+
+%\noindent
+The spectral indices are sampled at $N_\mathrm{side}=8$ as for the \mbox{FGBuster} pipeline.
+We generated 1000 MCMC samples for each input sky realization and discarded the first 100 samples as burn-in.
+The two noise uncorrelated versions of the same sky realization are associated with two parallel sampling chains.
+We compute the cross-spectra between these two parallel chains, iteration by iteration, to collect a set of 900 spectra for each CMB realization considered in the analysis. We also average all of the sampled maps produced in a single chain into a mean map, and for every couple of parallel chains we compute the cross-spectrum between the two mean maps.
+
+After the component separation, we compute the likelihood function for the cross spectrum of each mean map, exploiting the sample-based noise covariance matrix obtained by all the power spectra from the corresponding sampling chain.
+
+
+    
+    \subsection{Results}
+    \label{app:commander_results}
+
+    From the probability density functions of the model parameters obtained with Commander, we find that the upper limit to the estimation of a single realization of $r$ is reduced with the number of sub-bands, as shown in Figure \ref{fig:commander_r0}. The $r$ bias and $\sigma(r)$ are greater than the FGBuster results due to the marginalization over the foreground components.
+
+\begin{figure}[ht]
+	\includegraphics[width=9cm]{figure/appendix_commander_r0.png}
+        \caption{\label{fig:commander_r0}Mean and standard deviation of the best fit distributions
+        obtained with Commander, using the \textbf{d6s1} model with $\ell_\mathrm{corr}=10$ and $r=0$.}
+\end{figure}
+
+Increasing the number of sub-bands also reduces the standard deviation of the marginalized posterior distributions of the standard deviation of the spectral indices for all pixels. Figure \ref{fig:commander_indices_all_pixels} shows the comparison between the reconstructed dust and synchrotron spectral indices. As in Appendix~\ref{app:reconstruction_foregrouds} we compare reconstructed spectral indices with the input ones, from~\cite{Planck_15} for 1, 3, and 5 sub-bands on all pixels. Because of frequency decorrelation, the spectral indices residuals for dust are not as meaningful as the distribution of reconstructed $r$ shown in Fig.~\ref{fig:commander_r0}. This analysis has not been performed for the 7 sub-band configuration results because of data storage issues. Here a single $\Delta \beta$ from the plotted distributions represents the difference between the mean value of the marginal distribution on a single pixel for a given sky realization and the template value in the same pixel from the model. These results are in agreement with the FGBuster simulations.
+
+%\begin{figure}[ht]
+%	\includegraphics[width=9cm]{figure/appendix_commander_indices_d6_one_pixel.pdf}
+%        \caption{\label{fig:commander_indices_one_pixel}: Reconstruction of foregrounds parameters in the \textbf{d6s1} case for one pixel with the Commander pipeline.}
+%\end{figure}
+
+\begin{figure}[ht]
+    %\centering
+    \hspace{-0.1cm}
+	\includegraphics[scale=0.2]{figure/appendix_commander_indices_d6_all_pixels.pdf}
+        \caption{\label{fig:commander_indices_all_pixels}: Reconstruction of foreground spectral indices for the \textbf{d6s1} model with the Commander pipeline.}
+\end{figure}
+
+\end{document}
+%
+
+
+
+%%%% End of aa.dem

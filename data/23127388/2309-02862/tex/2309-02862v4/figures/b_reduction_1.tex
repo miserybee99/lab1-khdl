@@ -1,0 +1,89 @@
+\begin{figure}
+\centering
+
+% skip
+\begin{subfigure}[b]{0.45\linewidth}
+\centering
+\begin{tikzpicture}[
+    state/.style={},
+    xscale=1.5,yscale=-1.5
+]
+    \node[state]	at (0,0)	(q1) {$\channelstate$};
+    \node[state]	at (0,1)	(h1) {$\hstate$};
+    \node[state]	at (0,2)	(q2) {$\channelstate'$};
+
+    \draw[->] (q1) -- node[right] {$\nop$} (h1);
+    \draw[->] (h1) -- node[right] {$\nop$} (q2);
+
+    \node[state]	at (3,1)	(hL) {$\hstate_L$};
+    \draw[->] (h1) -- node[above right] {$\rd(\xrd, \channelmessage')$} (hL);
+    \draw[->] (hL) to [out=315,in=45,loop] node[right] {$\nop$} (hL);
+\end{tikzpicture}
+\bigskip
+\caption{skip operation $\channelstate \to[\nop]_\channelsystem \channelstate'$}
+\end{subfigure}
+\hfill
+%
+% send
+\begin{subfigure}[b]{0.45\linewidth}
+\centering
+\begin{tikzpicture}[
+    state/.style={},
+    xscale=1.5,yscale=-1.5
+]
+    \node[state]	at (0,0)	(q1) {$\channelstate$};
+    \node[state]	at (0,1)	(h1) {$\hstate$};
+    \node[state]	at (0,2)	(q2) {$\channelstate'$};
+
+    \draw[->] (q1) -- node[right] {$\wr(\xwr,\channelmessage)$} (h1);
+    \draw[->] (h1) -- node[right] {$\wr(\yvar,1)$} (q2);
+
+    \node[state]	at (3,1)	(hL) {$\hstate_L$};
+    \draw[->] (h1) -- node[above right] {$\rd(\xrd, \channelmessage')$} (hL);
+    \draw[->] (hL) to [out=315,in=45,loop] node[right] {$\nop$} (hL);
+\end{tikzpicture}
+\bigskip
+\caption{send operation $\channelstate \to[!\channelmessage]_\channelsystem \channelstate'$}
+\end{subfigure}
+\bigskip
+\bigskip
+
+% receive
+\begin{subfigure}[b]{0.45\linewidth}
+\centering
+\begin{tikzpicture}[
+    state/.style={},
+    xscale=1.5,yscale=-1.5
+]
+    \node[state]	at (0,0)	(q1) {$\channelstate$};
+    \node[state]	at (0,1)	(h1) {$\hstate$};
+    \node[state]	at (0,2)	(q2) {$\channelstate'$};
+
+    \draw[->] (q1) -- node[right] {$\rd(\xrd,\channelmessage)$} (h1);
+    \draw[->] (h1) -- node[right] {$\rd(\xrd,\bot)$} (q2);
+\end{tikzpicture}
+\bigskip
+\caption{receive operation $\channelstate \to[?\channelmessage]_\channelsystem \channelstate'$}
+\end{subfigure}
+\hfill
+%
+% final gadget
+\begin{subfigure}[b]{0.45\linewidth}
+\centering
+\begin{tikzpicture}[
+    state/.style={},
+    xscale=1.5,yscale=-1.5
+]
+    \node[state]	at (0,0)	(q1) {$\channelstate_F$};
+    \node[state]	at (0,1)	(h1) {$\hstate_F$};
+
+    \draw[->] (q1) -- node[right] {$\wr(\xwr,\top)$} (h1);
+    \draw[->] (h1) to [out=45,in=135,loop] node[below] {$\nop$} (h1);
+\end{tikzpicture}
+\bigskip
+\caption{construction for each $\channelstate_F \in \channelstateset_F$}
+\end{subfigure}
+
+\caption{$\process^1$ of the B-TSO reduction from PCS}
+\label{fig:b-reduction-1}
+\end{figure}

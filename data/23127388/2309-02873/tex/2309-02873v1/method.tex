@@ -1,0 +1,145 @@
+
+\section{Method: Hybrid KKL-RNN} \label{sec:method}
+Here, we develop a hybrid model that extracts as much information as possible from black-box simulators and maximizes the simulator's influence on the predictions.
+Thus, addressing the problem stated in Sec. \ref{section:problem}.
+The key component is a trainable KKL observer that informs the OVS latent states of a learning-based model via the simulator.  
+Since predictions are linked to latent states via an observation model, this allows to control the predictions via the simulator. 
+In contrast to the standard setting in control, the dynamics in Eq. \eqref{eq:partially_obs} are unknown and have to be learned.
+However, we can still benefit from the properties of KKL observers, in particular, we leverage their robustness against model errors here caused by learning \citep{DBLP:journals/corr/abs-2210-01476}. 
+Fig. \ref{fig:scheme} provides an overview of our method. 
+We model the evolution of the OVS states $u$ (cf. Eq. \eqref{eq:partially_obs}) by learning a KKL observer. Implicitly, this observer represents the dynamics $f_u$. 
+This yields a state space that can explain the OVS parts of the data via the observation model $g$ and the simulator via the observation model $h$. 
+Intuitively, the observer ensures that the estimated simulator outputs $h(u)$ coincide with the true simulator output $\hat s$ by constantly correcting the OVS states $u$. 
+This prevents error accumulation in $u$ and thus, also in the OVS parts of the predictions $g(u)$. In order to obtain a flexible model, we address the non-OVS states by jointly training a residual model $f_v$ between measurements and the observer-based reconstructions.
+We balance the influence of both components in the loss.
+
+Fig. \ref{fig:scheme} also demonstrates the concept of OVS and non-OVS states.
+Intuitively, the blue signal is OVS with simulator signal (green) since 
+different points on the blue curve always correspond to different points on the green curve.
+Thus, the blue states are backward-distinguishable via the green states and can be addressed by the trained KKL observer.
+In contrast, identical outputs on the green curve yield different points on the red curve.
+Due to the periodicity of the green states, the red states are not backward-distuingishable via the green states. 
+Thus, the red signal is non-OVS and has to be addressed by the RNN residuum. 
+
+\paragraph{Architecture: }
+We build a flexible learning scheme based on the partially OVS system \eqref{eq:partially_obs}.
+The OVS states $u \in \mathbb{R}^{d_u}$ are addressed by a trainable KKL observer.
+To this end, we consider additional latent states $z$, that can be transformed into $u$ via $T^{\star}$ (cf. Sec. \ref{sec:KKL}). 
+The non-OVS latent states $v \in \mathbb{R}^{d_v}$ are addressed
+by RNN dynamics $f_{\theta}^v$.  
+Consider training data $\hat{y}_n \in \mathbb{R}^{d_y}$ and simulator outputs $\hat{s}_n \in \mathbb{R}^{d_s}$. 
+This yields
+\begin{equation}\label{eq:transition}
+\begin{aligned}
+\begin{pmatrix}
+z_{n+1} \\
+u_{n+1}\\
+v_{n+1}
+\end{pmatrix}
+=\begin{pmatrix}
+D_{\theta}z_n+F_{\theta}\hat{s}_n \\
+T^{\star}_{\theta}(z_n) \\
+f_{\theta}^v(u_n,v_n,y_n)
+\end{pmatrix}.
+\end{aligned}
+\end{equation}
+and corresponding outputs
+\begin{equation}\label{eq:observation}
+\begin{pmatrix}
+s_n  \\
+y_n^v \\
+y_n
+\end{pmatrix}
+= 
+\begin{pmatrix}
+h_{\theta}(u_n) \\
+r_{\theta}(v_n)\\
+g_{\theta}(u_n)+r_{\theta}(v_n)
+\end{pmatrix}.
+\end{equation}
+Here, $\theta$ denotes the trainable parameters. 
+We consider a trainable KKL observer
+with matrices $D_{\theta} \in \mathbb{R}^{d_z \times d_z}, F_{\theta} \in \mathbb{R}^{d_z \times d_s}$ and a
+mapping $T^{\star}_{\theta}:\mathbb{R}^{d_z} \rightarrow \mathbb{R}^{d_u}$.
+Furthermore, we consider trainable observation models $h_{\theta}:\mathbb{R}^{d_u} \rightarrow \mathbb{R}^{d_s}$ $g_{\theta}^{u}:\mathbb{R}^{d_u} \rightarrow \mathbb{R}^{d_y}$
+and $r_{\theta}:\mathbb{R}^{d_v} \rightarrow \mathbb{R}^{d_y}$.
+Here, $h_{\theta}^{u}$ adresses the simulator, $g_{\theta}^{u}$ the OVS part of the predictions and $r_{\theta}$ the non-OVS residuum.
+Due to the KKL structure, we learn the dynamics $f_u$ only implicitly by propagating $z$ through time and mapping to $u$ via $T^{\star}_{\theta}$. 
+In case direct access to $f_u(u_n)=u_{n+1}=T_{\theta}^{*}(DT_{\theta}u_n+F \hat s_n)$ is required, we provide the option to jointly learn $T_{\theta}$.
+
+In the experiments, we show that our method can also be leveraged in the pure learning-based scenario.
+In particular, $\hat s$ is replaced by a robust but incomplete learning-based substitute.   
+Similar to the HM scenario, the observer architecture allows the substitute to inform the latent states of a second high-accuracy model, preventing error accumulation. 
+\paragraph{Models: }
+To respect the requirements in Sec. \ref{section:background}, the matrix $D_{\theta}$ is modeled as a diagonal matrix with trainable bounded eigenvalues, while $F_{\theta}$ is chosen as a matrix with ones as entries.
+This is not a restriction since a mapping $T$ exists for every controllable pair.
+In the default scenario, $T_{\theta}^{\star}$ is modeled by an MLP similarly to \citet{9683277}.
+However, our framework also offers the option to model $T_{\theta}^{\star}$ with an invertible NN consisting of affine coupling layers \citep{DBLP:conf/iclr/DinhSB17}.
+The inversion provides access to $T_{\theta}$ and thus, to $f_u$.  
+The trainable observation models
+$g_{\theta}, h_{\theta}$ and $r_{\theta}$ are modeled as linear layers.
+Here, we model the non-OVS part $f_{\theta}^v$ in Eq.~\eqref{eq:transition} with a gated recurrent unit (GRU) \citep{DBLP:conf/emnlp/ChoMGBBSB14}.
+Details are provided in Appendix Sec. 1.2. 
+\paragraph{Loss: }
+Consider measurement data $\hat{y}_{0:N}$ and simulator outputs $\hat{s}_{0:N}$. 
+The first $R$ steps $\hat{y}_{0:R}$ are used as a warmup phase for the non-OVS residuum to obtain appropriate
+latent states. We train our model by computing an $N$-step rollout $z_{0:N}, y_{0:N}^v$ and $y_{0:N}$ via Eq.
+\eqref{eq:observation} and minimizing the loss  
+\begin{equation}
+\hat{\theta}= \arg \min_{\theta} \Vert y_{0:N}-\hat{y}_{0:N} \Vert_2 + \Vert s_{0:N} - \hat{s}_{0:N} \Vert_2+\lambda \Vert y_{0:N}^v \Vert_2,  
+\end{equation}
+where $\Vert \cdot \Vert_2$ denotes the MSE. 
+We introduce a regularization factor $\lambda \in \mathbb R$ that allows to balance the influence of the learning-based component as it is typical for hybrid models \citep{takeishi2021physicsintegrated, yin2021augmenting}.
+This can yield some additional performance.
+However, it is not mandatory and we do not include it in all experiments. 
+In summary, the loss optimizes for a model that is able to represent the simulator outputs $\hat s$ via the
+observation model $h_{\theta}$ and the measurements $\hat{y}$ via a residuum model $g_{\theta}(u)+r_{\theta}(u,v)$.
+
+\paragraph{OVS and non-OVS components: }
+Latent states that are OVS can be informed and corrected via the simulator over time. 
+However, we do not intend to reconstruct the unknown internal states of the simulator as they might not even be informative enough for the data. 
+Instead, OVS states can explain both, the simulator and parts of the data via different observation models.  
+Also, there is no direct physical interpretation of the states.
+However, since they are extracted by a physics-based simulator and respect backward-distinguishability, unphysical behavior is prohibited to some extent. 
+We will also demonstrate that in the experiments. 
+ 
+In order to maximize the influence of the simulator, we aim to maximize the influence of the OVS part $g$. 
+The residual structure of the model allows to control the non-OVS counterpart $r_{\theta}$ (cf. Eq.~\eqref{eq:observation}).
+As an example, it is easily possible to simulate transient behavior via a decaying residuum. This yields a model that is fully driven by the simulator after some time (cf. Eq.~\eqref{eq:transition}) via $g$. Thus, potential drifts or errors in the RNN do not affect the model performance in the long term.
+In the experiments, we apply exponential damping by bounding the RNN observation model $r_{\theta}$ with an appropriate activation function and multiplying it with $\textrm{exp}(-a t)$. However, more elaborate strategies such as stable networks \citep{Schlaginhaufen2021LearningSD} could be easily incorporated.
+
+%
+%\paragraph{Extending to different scenarios: }
+%%As described, our method is especially advantageous for black-box simulators.
+%%However, the approach might also be beneficial when access to the simulator's latent states is available but not informative enough.
+%In the experiments that the method is also useful in the pure learning-based scenario. 
+%Here, the observer-based structure is leveraged to fuse learning-based models with different strengths and weaknesses.
+%In particular, the simulator component is replaced by a learning-based component that provides an incomplete but robust model.
+%This model informs a second high accuracy model by leveraging the proposed architecture.
+%The approach prevents the full model from accumulating errors. 
+
+
+
+\paragraph{Distinction to other architectures: }
+In the experiments, we compare to GRUs that receive the simulator as additional control input \citep{SCHON202219, 10.1145/3447814}.
+Under certain conditions, GRUs and other RNNs are a contraction \citep{BONASSI2021105049, miller2018stable}.
+In these cases, they can act as an observer with latent states being driven by the simulator as desired.  
+However, the GRU architecture is not restricted to these favorable models.  
+Further, there is no guarantee that indeed a GRU with the required properties exists for the specific system.
+For the KKL architecture, on the other hand, the existence is guaranteed if certain requirements described in Sec. \ref{section:background} hold.
+By choosing the architecture described in Eq.~\eqref{eq:transition} and Eq.~\eqref{eq:observation}, the states $u$ are further OVS and the model is an observer by design under mild assumptions.
+Additionally, the split in OVS and non-OVS part encourages the system to maximize the influence of the physics-based component.
+The GRU architecture, on the other hand, could easily underestimate or even ignore the simulator, destroying the observer property.
+Mathematical details for the statements are added in Appendix Sec. 1.2. 
+In the experiments, we will show the advantage of the proposed architecture in practice. 
+We will also demonstrate the advantages of addressing the OVS part in the partially OVS system ~\eqref{eq:partially_obs} indeed with an observer in contrast to modeling all components with separate GRUs.
+
+Our model can also be interpreted as an extension of the standard residuum model by setting $h_{\theta}=g_{\theta}$.
+We will show empirically that this extension allows to leverage simulator signals that are not informative enough for the standard residuum model and thus cause deteriorated behavior. 
+Intuitively, this is due to the fact that we leverage hidden information from the simulator. 
+ 
+
+ 
+
+
+ 

@@ -1,0 +1,133 @@
+\subsection{Chart Understanding}
+\label{sec: understanding}
+
+\begin{figure*}[htbp]
+\begin{center}
+\includegraphics{figures/understanding.pdf}
+\end{center}
+\caption{A GNN-based approach to classify chart elements for a chart. 
+(a) Original SVG-based chart; 
+(b) Conversion from SVG to graph; 
+(c) Two different vector encoders to extract features; 
+(d) Classification of each element by a multi-layer perceptron. 
+(e) Categories for elements in the chart. Each box corresponds to a primary category, followed by a set of sub-categories.}
+\label{fig:ChartUnder}
+\end{figure*}
+
+In this section, we present an approach for automatically understanding charts and recovering data together with` visual encodings. 
+
+Compared to common existing methods that rely on pixel-based charts, our proposed approach directly handles the raw SVG files to revive charts into Live Charts. 
+Pixel-based methods often suffer from high computational overheads and limitations in modifying individual elements due to their rasterized nature~\cite{yolat, rendnet}. 
+In contrast, SVG files, being vector-based, offer efficient rendering regardless of resolution and allow for targeted modifications through the use of element properties.
+The structured information between elements in vector graphics allows us to model SVG elements, such as lines, paths, and circles, as a multi-graph, which effectively captures the essential structural and spatial information. 
+In light of the proficiency of GNNs in handling structured graph-based data and their success in previous research~\cite{li2022structure}, we leverage GNNs for recognizing and analyzing elements within SVG files. 
+
+Especially, our chart understanding method involves a two-stage process: recognizing chart elements (e.g., marks, legends) and recovering visual encodings. 
+First, we apply a GNN-based method~\cite{yolat} to detect chart elements and classify them into pre-defined categories. 
+Second, we establish a set of rules to extract data and recover visual encodings based on the results from the classification.
+
+\subsubsection{Chart Element Recognition}
+\label{sec: recognition}
+Our goal is to identify various chart elements within a given chart. 
+To utilize the structural information within SVGs, we first convert the chart to graphs and apply a GNN-based method to extract features with two vector encoders.
+Then, we predict each element's category based on the extracted features.
+
+\textbf{Convert Chart to Graph.}
+We begin by constructing nodes and then connecting them with edges.
+SVG-based charts are represented as a set of SVG elements, including path, text, line, and other basic elements. 
+Two types of SVG elements (graphic and textual) are handled separately, as they possess distinct attributes.
+For graphic elements such as paths and lines, we utilize each element's start and end points as two nodes of the corresponding graph.
+For text elements, we connect the vertices of the bounding box to form a 4-node graph.
+Yellow circles in \autoref{fig:ChartUnder}(b) provide examples of the nodes.
+Next, a feature vector consisting of five dimensions was created to represent each node, including the element type ($e_t$), which is converted into a one-hot vector, the spatial coordinates of the points ($pos$), the fill color ($e_f$), the stroke color ($e_{sc}$), and the stroke width ($e_{sw}$).
+Thus, the node feature $V_f$ is:
+\begin{equation}
+    V_f = \{e_t, pos, e_{f}, e_{sc}, e_{sw}\}.
+\end{equation}
+
+After constructing nodes, we proceed to connect them using two types of edges.
+The first type is stroke-wise edges ($E_s$), which connect nodes that are directly connected in the SVG, such as adjacent points in a line chart.
+These edges are depicted by thick yellow lines in \autoref{fig:ChartUnder}(b).
+
+\begin{equation}
+    E_s = \{(v_i, v_j)|v_i, v_j \in \mathbb{C} \},
+\end{equation}
+where $\mathbb{C}$ is a set of tuples containing the start point $v_i$ and end point $v_j$.
+
+The second type, element-wise edges ($E_e$), connect nodes that have the same element type $e_t$.
+These connections can be observed as thin yellow lines in \autoref{fig:ChartUnder}(b):
+
+\begin{equation}
+    E_e = \{(v_i, v_j)|v_i, v_j\in e_i\}, i\in N.
+\end{equation}
+
+After that, we obtain the graph $G(V, E_s, E_e)$ with several nodes and the connected edges, where $V$ denotes the node, $E_s$ denotes the stroke-wise edge, and $E_e$ denotes the element-wise edge.
+
+
+\textbf{Feature Extraction with two Vector Encoders.}
+After converting the chart into a graph, we extract features from it using two vector encoders, each tailored for the corresponding category of edges. 
+For stroke-wise edges, we utilize a stroke-wise encoder, using a GNN layer that incorporates the functions of two linear transformations. 
+For element-wise edges, given the larger number of edges, we employ a GNN layer with one linear transformation. The specific architecture of the two encoders is depicted in \autoref{fig:ChartUnder}(c), where the features derived from each layer of the encoders are aggregated and utilized for downstream tasks.
+\begin{equation}
+    F_{fuse} = concat(f^1_s, f^2_s, \cdots, f^l_s, f^1_e, f^2_e, \cdots, f^l_e),
+\end{equation}
+where $F_{fuse}$ is the fused features of a specific element.
+
+
+\textbf{Classification Task.} 
+For each SVG element, we obtain the graph representation by aggregating the features extracted by two vector encoders. 
+To comprehend the categories that are depicted by each element, we utilize a multi-layer perceptron to classify the graph representation that corresponds to each element.
+We define five primary categories: background, title, legend, mark, and axis. 
+The corresponding sub-categories can be found in \autoref{fig:ChartUnder}(e).
+The classification task is performed across these class labels, with cross-entropy losses serving as the training objective for the entire model.
+
+\textbf{Dataset.}
+To train the above model, we require an SVG chart dataset that encompasses different types of charts. 
+Additionally, the ground truth information for each element is essential for indicating its corresponding category in the chart. 
+We decided to use Vega-Lite~\cite{satyanarayanvegalite}, Plotly~\footnote{https://plotly.com/} and D3~\cite{bostock2011d3} for generating charts instead of collecting due to the substantial amount of data required.
+The high-level grammar enables the creation of charts in various types and styles while striking a balance between customization and complexity~\cite{satyanarayanvegalite}.
+We utilized the JavaScript library ``Faker''\footnote{\added{https://fakerjs.dev/}} to populate the charts with synthetic data.
+In this paper, we consider three basic chart types: bar chart, line chart, and pie (donut) chart.
+We conducted a comprehensive analysis of different chart components, such as background, axis, and points, based on previous collections~\cite{ren2017chartaccent}. We aim to identify the diverse styles associated with each component. Following that, we made a comprehensive list of styles, which can be used for generating charts.
+Consequently, for Vega-lite, Plotly, and D3, we generated 3,000 charts for each chart type separately, resulting in a total of 9,000 charts for each dataset~\footnote{https://github.com/YiYinYinguu/SVG-Chart-Dataset}.
+The performance of our model on this dataset is evaluated in \autoref{sec: performance}.
+
+\subsubsection{Data and Visual Encoding Recovering}
+We aim to recover the data and visual encodings for the above categorized elements.
+This is achieved by analyzing the relationships between the classified elements in the SVG. 
+We then add the data and visual encodings into the original SVG and produce a labeled SVG to facilitate the next two steps for generating the Live Chart. 
+The process contains three steps:
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics{figures/visual_encodings.pdf}
+    \caption{The process of recovering visual encodings. (a) The example chart. Dotted dark blue lines connect chart elements with their SVG expressions. (b) Matching the mark with the legend. (c) Data calculation for different charts. (d) One path in the labeled SVG. }
+    \label{fig:visual_encoding}
+\end{figure}
+
+\textbf{Legend-Mark Matching.}
+With the aid of the classification results, we can obtain the bounding box of the legend labels and legend symbols through the attribute $d$ in the path element. 
+For charts that include legends, we determine the corresponding label for each legend symbol by calculating the Euclidean distance between the top-left corner of the bounding box of each symbol and label and identifying the nearest label.
+Next, we match each mark with the corresponding legend by comparing the stroke and fill color of the mark and legend symbols (\autoref{fig:visual_encoding}(b)).
+
+\textbf{Data Calculation.}
+For charts that contain textual information, such as bar labels appearing alongside the bars, we match each mark with the closest label to retrieve the corresponding y-value.
+For charts that lack textual information, we handle the Polar (pie charts) and Cartesian (line and bar charts) coordinate systems separately, as shown in \autoref{fig:visual_encoding}(c).
+For the Polar coordinate system, we parse the $d$ attribute for the path element and get the arc length of all sectors. We then calculate the percentage of data represented by each sector.
+For the Cartesian coordinate system, the marks are first matched with the closest ``x-label'' in horizontal distance to retrieve the corresponding x-value.
+Then, the y-value is calculated using an interpolation method with all values of the ``y-label'' and the vertical distance between the marks and the closest``y-label''.
+
+\textbf{Output Labeled SVG.}
+After we calculate the data within the chart, we add it to the original SVG.
+The output labeled SVG $C_{lsvg}$ contains the same structure as the original SVG, but with additional attributes that represent the extra information extracted from the chart.
+\autoref{fig:visual_encoding}(d) shows an example <path> in the labeled SVG.
+We add three attributes:
+\begin{itemize}
+\item\textbf{Class}: We assign two class names, including the primary category and the sub-category type (\autoref{fig:ChartUnder}(e)), to the element.
+\item\textbf{ID}: We define the ID as the concatenation of the sub-category type and an ordered number (e.g., \textit{line-0}). 
+This attribute is used for identifying specific elements within the SVG in the following workflow.
+\item\textbf{Ac-data}: 
+We store the extracted data in this attribute, using two data dimensions for charts without legends and three dimensions for charts with legends. 
+We assign the content of x-title, y-title, and legend-title as the field names for these dimensions. 
+In cases where these fields are empty, such as the x, y, legend fields in the line chart depicted in \autoref{fig:visual_encoding}(a), we label them as ``None'' (\autoref{fig:visual_encoding}(d)).
+\end{itemize}

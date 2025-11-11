@@ -1,0 +1,205 @@
+\section{Empirical Study}
+\label{sec:Measure}
+
+In this section, \X1 We perform a more detailed measurement of LLM framework vulnerabilities detected in Section \ref{sec:eval:1}. \X2 We categorize the apps tested during prompt attacks in Section \ref{sec:eval:4} based on their capabilities and delve into the reasons behind attack failures. \X3 We conduct a detailed hazard analysis of these RCE vulnerabilities and propose new practical real-world attacks.
+
+
+\subsection{Vulnerabilities in LLM-Integrated Frameworks}
+
+\begin{table*}
+	\centering
+	\scriptsize
+\caption{Vulnerabilities found by \tool{}. (CVEs with ``*'' mean that we are not the first discovering these vulnerabilities, and non-* represents the ones credited to us. ``RCE'' is the remote code execution and ``R/W'' represents the vulnerability type of arbitrary file read and write)}
+\label{tab:vulns}
+\vspace{-10pt}
+\begin{tabular}{llllllll}
+\toprule
+\textbf{Framework} & \textbf{User-level API}                & \textbf{Type}             & \textbf{Trigger}  & \textbf{CVE}     & \textbf{CVSS}     & \textbf{Description}                                                             \\ \midrule
+
+LangChain          & create\_csv\_agent               &RCE     & Prompt                            & CVE-2023-39659   & 9.8               & Execute code without checking                        \\
+
+
+LangChain          & create\_spark\_dataframe\_agent  &RCE     & Prompt                            & CVE-2023-39659   & 9.8               & Execute code without checking                        \\
+
+
+LangChain          & create\_pandas\_dataframe\_agent &RCE     & Prompt                            & CVE-2023-39659   & 9.8               & Execute code without checking                        \\
+LangChain          & PALChain.run                     &RCE     & Prompt                            & CVE-2023-36095   & 9.8               & Execute code without checking                        \\
+LangChain          & load\_prompt                     &RCE     &Loaded File                         & CVE-2023-34541*   & 9.8*               & Use dangerous ``eval'' while loading prompt from file                            \\
+LlamaIndex       & PandasQueryEngine.query          &RCE     & Prompt                            & CVE-2023-39662   & 9.8 & Execute code without checking (need LLM escape) \\
+Langflow           & api/v1/validate/code             &RCE     & API Post                      & CVE-2023-40977 & Pending  & Limited trigger condition of exec can be bypassed via API post       \\
+Langflow           & load\_from\_json                 &RCE     &Loaded File                         & CVE-2023-42287 & Pending  & Limited trigger condition of exec can be bypassed via loading file   \\
+PandasAI          & PandasAI.\_\_call\_\_\_          &RCE     & Prompt                            & CVE-2023-39660 & 9.8  & Sandbox can be bypassed (need LLM escape \& code escape)  \\
+PandasAI          & PandasAI.\_\_call\_\_\_          &RCE     & Prompt                            & CVE-2023-39661   & 9.8 & Sandbox can be bypassed (need LLM escape \& code escape)  \\
+PandasAI          & PandasAI.\_\_call\_\_\_          & R/W & Prompt                            & CVE-2023-40976 & Pending  & Sandbox allows file read and write (need LLM escape)         \\
+Pandas-llm         & PandasLLM.prompt                 &RCE     & Prompt                            & CVE-2023-42288 & Pending  & Sandbox does not work as expected                                  \\
+Pandas-llm         & PandasLLM.prompt                 &RCE     & Prompt                            & CVE-2023-42288 & Pending  & Sandbox does not work as expected (need LLM escape)      \\    
+Griptape         & griptape.tools.Calculator                &RCE     & Prompt                            & CVE-2024-25835 & Pending  & Execute code without checking (need LLM escape) \\
+Lagent         & lagent.actions.PythonInterpreter                &RCE     & Prompt                            & CVE-2024-25834 & Pending  & Execute code without checking \\
+langroid & TableChatAgent.run & RCE & Prompt & Reporting & - & Execute code without checking (need LLM escape) \\
+LlamaIndex         & PandasQueryEngine.query                &RCE     & Prompt                            & - & -  & Bypass the fix via third-party library (need LLM escape \& code escape) \\
+MetaGPT & metagpt.strategy.tot.TreeofThought & RCE & Prompt & CVE-2024-5454 & 8.4 & Execute code without checking (need LLM escape)\\ 
+MetaGPT & DataInterpreter & RCE & Prompt & - & - & Execute code without checking (need LLM escape)\\
+vanna & vanna.ask & RCE & Prompt & CVE-2024-5826 & 9.8 &  Execute code without checking (need LLM escape)
+\\ \bottomrule
+\vspace{-10pt}
+\end{tabular}
+\end{table*}
+
+As shown in Table \ref{tab:vulns}, we have discovered a total of 20 vulnerabilities across 11 frameworks and obtained 13 CVEs. 
+There are mainly three types of attack triggers: \emph{prompt}, meaning that RCE can be achieved via user prompts to the target app; \emph{API post}, where users send a post via APIs to the app, and \emph{loaded file} is a type of files that are uploaded by users and then loaded by apps, triggering RCE vulnerabilities. 
+
+Here, ``prompt'' is the primary triggering entry point to these vulnerabilities. Therefore, we dive deeper into these vulnerabilities triggered via prompts as follows.
+
+\vspace{3pt}
+\noindent\textbf{Vulnerability Type.} These vulnerabilities can be categorized into two types, \ie, remote code execution and arbitrary file read/write. 
+In particular, RCE allows remote execution of arbitrary code, leaking sensitive data (\eg developers' OpenAI API key, azure key), even granting control over the server. Arbitrary file read indicates that the attacker gains unauthorized access to some files on a system, and arbitrary file write enables an attacker to modify and create files on the system without proper authorization. 
+
+\vspace{3pt}
+\noindent\textbf{Vulnerability Triggering.} The root causes of these critical vulnerabilities are straightforward and intuitive: using hazardous functions to execute untrusted code generated by LLMs. 
+However, it requires different prompts to trigger vulnerabilities across frameworks. 
+Taking LangChain as an example, an attacker can merely send the request of executing one piece of code, leading to the RCE vulnerabilities. 
+For the remaining frameworks like PandasAI, prompts from users will be rewritten or transformed to become more detailed and complex before being passed to the LLM, where the trigger may cease to effect.
+For example, when a user sends a prompt \textit{``How many items are there in the dataframe?''}, PandasAI first embeds the input prompt into a template, \eg, \textit{``You are provided with a pandas dataframe (df) with \{num\_rows\} rows and \{num\_columns\} columns, ..., return the python code exactly to get the answer to the following question: How many items are there in the dataframe?''} and then passes it to LLMs.
+The additional content is a system prompt, designed initially for providing LLMs with more information about specific tasks (\eg input/output format, detailed description of tasks). 
+Interestingly, our attack payloads are always significantly shorter than the templates. Therefore, when these attack prompts are embedded within the templates, the semantics of the payloads become diluted and appear incongruous. Thus, the LLM's attention to the payload is consequently diverted during inference. As a result, the LLM frequently fails to assist effectively in generating malicious code as demanded, either due to safety alignment mechanisms or attention diversion.
+Thus, these detailed and complex templates unintentionally grant the framework security ability by offsetting malicious prompts' semantic and the corresponding attention.
+However, it can be bypassed through LLM escape.
+Additionally, exploitation varies across different frameworks, highlighting discrepancies in security awareness among framework developers.
+Some developers (e.g., developers from PandasAI) exhibit a good security awareness, evident in their implementation of a custom sandbox rather than directly code execution. Even if attackers bypass prompt template interference and safety alignment to generate malicious code, this sandbox restricts allowed keywords, functions, and execution environments to prevent arbitrary code execution. However, it is not robust enough, as experienced attackers may escape the sandbox using Python's builtin features (e.g., inheritance chain).
+Thus, to successfully exploit vulnerabilities in PandasAI, it necessitates not only LLM escape to eliminate the interference from system prompts, but also code escape to circumvent the custom sandbox implemented by the developers. Figure \ref{fig:pandasai_attack} shows how to exploit PandasAI with LLM escape and code escape working together. 
+\begin{figure}
+	\centering
+    \vspace{-8pt}
+	%\setlength{\abovecaptionskip}{0pt}
+	\setlength{\belowcaptionskip}{0pt}
+	\includegraphics[width=.9\columnwidth]{figures/pandasai_attack.pdf}
+	\caption{LLM escape and Python sandbox escape to RCE in PandasAI. Attack session 1 stands for attack prompt with only code escape; attack session 2 stands for attack prompt with only LLM escape; and attack session 3 stands for attack prompt with LLM escape and code escape.} 
+	\label{fig:pandasai_attack}
+	\vspace{-7mm}
+\end{figure}
+
+Although AutoGPT uses a separate Docker container for each code execution behavior to ensure environment isolation, this approach results in significant efficiency loss. Furthermore, this seemingly foolproof solution also has security vulnerabilities. Before this study, some researchers discovered security issues in AutoGPT (CVE-2023-37273~\cite{cve-2023-37273}), allowing attackers to achieve Docker escape by overwriting the \texttt{docker-compose.yml} file. Thus, in the era of LLMs, RCE vulnerabilities have been somewhat overlooked even by well-known frameworks during the rapid development, becoming both tricky and difficult to mitigate due to the trade-off between usability and security.
+
+\subsection{Analysis of LLM-Integrated Apps} \label{sec:Measure:class}
+In this section, we intend to systematically and comprehensively understand LLM-integrated apps and the exploitability of their vulnerabilities, as well as to extract insightful information from them.
+Based on the experiment in Section~\ref{sec:eval:4}, we first conduct an investigation on the reasons of exploitation failures during prompt attacks. Then we further explore the exploitability level for successful attacks, \ie, what we can achieve through the exploitations. 
+
+\vspace {3pt}\noindent\textbf{Failure Reasons.}
+There are 5 types of failure reasons leading one app to be not exploitable (where CE represents for ``code execution'').
+
+\begin{itemize} [leftmargin=*, topsep=0pt,parsep=0pt]
+    \item \textbf{Runtime Exceptions.} One app may be dysfunctional due to internal issues and cannot be interacted with properly. Prompt attacks are unsuccessful upon it crashes.
+    \item \textbf{Restricted Prompts.} Some apps have restrictions on user provided prompts. As a result, prompt injection, which requires crafting arbitrary prompts, cannot work anymore.
+    \item \textbf{Without CE Ability.} Some apps may not possess the ability to execute code, which is common in the apps collected in a black-box manner.
+    \item \textbf{Protection from CE.} In such cases, code execution is feasible. But protective measures or limitations are deployed, which can protect apps from prompt attacks.
+    \item \textbf{Others.} The remaining is unidentified, especially when LLM-integrated apps exert unique and undisclosed measures like setting query limits and user permission.
+\end{itemize} 
+
+As shown in Table~\ref{tab:app_class}, ``Runtime Exception'' and ``Without CE Ability'' account for the largest portions among these failure reasons, with a percent of 38.2\% and 29.4\%, respectively.
+However, the most interesting and research-worthy aspect is ``Protection from CE''. Unlike the conventional approaches of executing LLM-generated code on the server and returning results, these apps use Pyodide~\cite{pyodide}, a Python distribution for browsers and Node.js based on WebAssembly, to run the code directly in the browser. Therefore, the code is executed on client-side rather than the server. It fundamentally resolves the RCE vulnerability. However, we observed that such apps are relatively rare for two reasons: \X1 Developers may not have strong security awareness; \X2 Developers are reluctant to sacrifice app functionality and efficiency for security. We observed that technologies like Pyodide only support a limited number of third-party libraries which may not satisfy the needs of LLM-generated code. Additionally, loading the app for the first time can be extremely slow, as the browser may need to download an entire Python interpreter and third-party libraries.
+
+\vspace {3pt}\noindent\textbf{Exploitability Levels.} As for the successful prompt attacks in Section~\ref{sec:eval:4}, we categorize the severity of exploitations with 4 levels.
+
+\begin{itemize} [leftmargin=*, topsep=0pt,parsep=0pt]
+    \item \textbf{SQL Injection.} Attackers can perform SQL injection attack against the database via the prompt. Different from conventional SQL injection~\cite{halfond2006classification}, the database manager executes one command that is generated by LLMs without security sanitization. 
+    \item \textbf{Limited RCE.}
+    Attackers can achieve limited RCE through crafted prompts, meaning only a specific set of code or commands can be executed successfully.
+    \item \textbf{Reverse Shell.} Attackers can leverage RCE to gain whole and persistent control over the remote host using reverse shell techniques, allowing them to launch multiple attacks subsequently.
+    \item \textbf{Root.} Upon receiving a reversed shell, some apps allow attackers to escalate their privileges to root on the remote host without using complex kernel exploitation.
+\end{itemize}
+
+
+
+\begin{table*}[!htbp]
+\caption{Statistics of (non-)exploitable LLM-integrated apps.}
+\label{tab:app_class}
+\centering
+\scriptsize
+\vspace{-10pt}
+\begin{tabular}{c|ccccc|cccc}
+\toprule
+ \multirow{2}{*}{\textbf{Type}}  & \multicolumn{5}{c|}{\textbf{Not Exploitable (34): Failure Reasons}}                                                                         & \multicolumn{4}{c}{\textbf{Exploitable (17): Exploitability Levels}} \\ \cline{2-10}
+            & \multicolumn{1}{c}{\textbf{Runtime Ex.}} & \multicolumn{1}{c}{\textbf{Restricted Prompts}} & \multicolumn{1}{c}{\textbf{w/o CE Ability}} & \multicolumn{1}{c}{\textbf{Protection from CE}} & \textbf{Others} & \multicolumn{1}{c}{\textbf{SQL Inj.}} & \multicolumn{1}{c}{\textbf{Limited RCE}} & \multicolumn{1}{c}{\textbf{Reverse Shell}} & \textbf{Root} \\ \midrule
+
+\textbf{\#White-Box}      & \multicolumn{1}{c}{7}               & \multicolumn{1}{c}{1}                     & \multicolumn{1}{c}{1}             & \multicolumn{1}{c}{0}                      & 1              & \multicolumn{1}{c}{1}                      & \multicolumn{1}{c}{13}            & \multicolumn{1}{c}{11}                      & 2             \\
+% \textbf{Gray-Box\#} & \multicolumn{1}{c|}{2}               & \multicolumn{1}{c|}{0}                     & \multicolumn{1}{c|}{1}              & \multicolumn{1}{c|}{0}                      & 0              & \multicolumn{1}{c|}{0}                      & \multicolumn{1}{c|}{5}            & \multicolumn{1}{c|}{5}                      & 1             \\
+\textbf{\#Black-Box}      & \multicolumn{1}{c}{6}               & \multicolumn{1}{c}{2}                     & \multicolumn{1}{c}{9}              & \multicolumn{1}{c}{2}                      & 5              & \multicolumn{1}{c}{0}                      & \multicolumn{1}{c}{3}            & \multicolumn{1}{c}{3}                      & 2             \\ \midrule
+
+
+\textbf{\#Total}          & \multicolumn{1}{c}{\textbf{13}}              & \multicolumn{1}{c}{\textbf{3}}                     & \multicolumn{1}{c}{\textbf{10}}             & \multicolumn{1}{c}{\textbf{2}}                      & \textbf{6}              & \multicolumn{1}{c}{\textbf{1}}                      & \multicolumn{1}{c}{\textbf{16}}           & \multicolumn{1}{c}{\textbf{14}}                     & \textbf{4}             \\ \bottomrule
+\end{tabular}
+\vspace{-8pt}
+\end{table*}
+
+Here, we analyze the data in Table~\ref{tab:app_class} from the vertical and horizontal views.
+
+From a vertical perspective, it is observed that 17 of them can be successfully exploited, accounting for 33.3\% of the total (51). Out of these 17 apps, 16 of them suffer from limited remote code execution (limited RCE), making up 31.4\% of the total. Among the exploitable apps, 14 of them allow the attackers to obtain a reversed shell, representing 27.5\% of the total and 87.5\% of the apps with RCE vulnerability. Furthermore, 4 of these reverse shell-exploitable apps can attain root privileges without using complex kernel exploitation after the attacker gains the shell, constituting 7.8\% of the total and 28.6\% of the reverse shell-exploitable apps.
+
+From a horizontal perspective, it is observed that from 51 LLM apps above, there are 24 white-box apps and 27 black-box apps. We calculate their exploitable ratio respectively. The exploitable rate of white-box apps is 58.3\% and 11.1\% for black-box apps. 
+
+These statistics provide us with the following insights: 
+\X1 A significant portion of apps can be successfully attacked, confirming the existence, feasibility, and even prevalence of real-world attacks. 
+\X2 White-box app has much higher exploitable rates than black-box app. This disparity comes from the fact that attackers can access the code within white-box apps, allowing us to judge if there is a vulnerability and providing insights into potential exploits and escape approaches and so increasing the likelihood of successful exploitation. Black-box apps, on the other hand, lack code visibility, making vulnerabilities and their exploitation mostly unknown, resulting in inherent difficulty and, as a result, lower rates of successful exploitation. 
+\X3
+A notable number of app developers exhibit insufficient security awareness. Only two apps incorporate some form of security protection, 
+whereas four of the successfully exploited apps can be escalate to root privileges (2 are originally rooted, and 2 can escalate privileges to root through improper SUID~\cite{9936713} settings). This indicates that, amidst rapid development, the security of LLM-integrated apps has been somewhat neglected and needs improvement.
+\X4 Such apps are in a phase of rapid development, and some are merely experimental. For instance, the ``Runtime Exception'' column in the table reflects the developers' negligence toward the app's usability and maintenance. This indirectly indicates a lack of emphasis on security by app developers as well.
+
+\subsection{Hazard Analysis of RCE Vulnerabilities} \label{sec:Measure:attack}
+
+In this section, we conduct a comprehensive analysis of the hazards caused by these RCE vulnerabilities.
+
+\subsubsection{Hazards to App Hosts}
+When an attacker successfully achieves RCE on the app host through prompt injection, it signifies that the attacker gains the ability to execute arbitrary code on the app host, opening the door to various attack vectors. In the following, we present several practical attack vectors for consideration.
+
+\vspace {3pt}\noindent\textbf{Privacy leakage.} 
+There is a lot of sensitive information stored in app host servers that should not be visible to the public, but attackers can use RCE to access this sensitive information. In the era of LLMs, the forms of sensitive information have become more diverse. In addition to traditional sensitive information such as SSH configuration, \texttt{/etc/passwd}, kernel version, network topology, and source code of black-box applications, new types of sensitive information have also emerged. For instance, most of apps keep their OpenAI API keys in the environment variables of the host server. Thus, attackers can execute the \texttt{env} command to extract these variables and steal the keys for free. Furthermore, prompts embedded in the source code might also contain sensitive information protected by copyright, e.g., intellectual property.
+
+\vspace {3pt}\noindent\textbf{Backdoor injection.} 
+After the attacker gains the capability to execute arbitrary commands remotely via prompts, it can inject backdoors into the app host server, thus gaining and keeping control over the server. For example, the attacker can create a reverse shell script on their VPS, using prompt injection to let the server execute the \texttt{curl} command and download the backdoor script from the VPS. Afterward, by leveraging prompt injection once more, the attacker can execute the backdoor script, thereby attaining a reversed shell to get full control over the server.
+
+\vspace {3pt}\noindent\textbf{Privilege escalation.} 
+After successfully using the reverse shell technique to take over the host server, the attacker can potentially change SUID or SGID to escalate privilege. Alternatively, it can exploit kernel vulnerabilities corresponding to the leaked kernel version mentioned above, thus achieving higher execution privilege.
+Additionally, the attacker may modify sensitive files that are usually only available to root users. 
+
+\subsubsection{Hazards to Benign App Users}
+Since these web apps provide services to the public, the hazards of RCE vulnerabilities can further extend to benign app users. 
+Hence we propose several practical attacks, threatening benign app users but without their awareness.
+
+\vspace {3pt}\noindent\textbf{Output hijacking attack.} Previous attacks on chatbots aiming to manipulate the model's output, i.e., jailbreaking, were limited to single sessions and could not affect other users. However, with the RCE, cross-session attacks have become feasible, enabling attackers to compromise other user sessions.
+Attackers exploiting RCE vulnerabilities can manipulate the model's output, compromising service availability and disseminating disinformation or phishing attacks. As illustrated in Figure 10, attackers can hijack the app's original output, which is intended to provide details about a CSV file, and replace it with a message like ``I don’t know!''
+This undermines user trust and compromises the app's functionality.
+We propose proof-of-concept attacks by setting up an app locally. Upon achieving RCE, the attacker changes the output of the app by modifying the main file of the app (``original\_app.py'') as shown in Figure \ref{fig:attack1_diff}. This allows it to entirely control the app's output, inserting offensive words, disinformation or even phishing links, significantly misleading app users. 
+
+\begin{figure}
+	\centering
+ % \vspace{-10pt}
+	%\setlength{\abovecaptionskip}{0pt}
+	\setlength{\belowcaptionskip}{0pt}
+	\includegraphics[width=0.9\columnwidth]{figures/attack1_diff_new.pdf}
+	\vspace{-1mm}
+	\caption{Output Hijacking Attack: Diff between malicious and original file.} 
+	\label{fig:attack1_diff}
+\end{figure}
+
+\vspace {3pt}\noindent\textbf{User data stealing attack.} 
+Upon achieving RCE, attackers can exfiltrate users' private data by modifying the source code, including stealing LLM API keys, user-provided prompts, and user-uploaded files. These data may encompass sensitive information, intellectual property, and personal assets. For instance, we illustrate how to steal a user's API key. Numerous applications necessitate users to supply their own LLM API keys to access services. This undoubtedly provides attackers with a new and hard-to-detect attack surface.
+In Figure \ref{fig:new_attack2}, 
+the attacker modifies the code such that once the app receives an API key entered by the user, it logs and transmits the key to the attacker. Alarmingly, this attack remains undetected from the victim's perspective, as the app performs normal functionalities as expected. This enables the attacker to covertly transform a benign app into a malicious one.
+To avoid disrupting the functionalities of public apps, we deploy a real-world white-box app locally and successfully implement this attack. Once an attacker achieves RCE, it modifies the main code of the app (``original\_app.py'') as shown in Figure \ref{fig:attack2_diff}. 
+This attack can be extended to steal other privacy. 
+\begin{figure}
+	\centering
+	%\setlength{\abovecaptionskip}{0pt}
+	\setlength{\belowcaptionskip}{0pt}
+	\includegraphics[width=0.9\columnwidth]{figures/attack2_diff_new.pdf}
+	\caption{API Key Stealing Attack: Diff between malicious and original file.}
+	\label{fig:attack2_diff}
+	\vspace{-5mm}
+\end{figure}
+
+\vspace {3pt}\noindent\textbf{Phishing attacks.} 
+The phishing attack is a classic attack that can be conducted after achieving RCE. Typically, phishing attack allows attackers to trick users into exposing themselves or their organizations to cybercrime (\eg sensitive information leakage, malware distribution)~\cite{phishing_ibm}. Attackers can manipulate app pages by modifying the code to include phishing attack entry points, exploiting users based on their trust in the app. This enables attackers to launch phishing attacks on benign app users. 
+Figure \ref{fig:phishing_attack} illustrates a phishing attack. In this scenario, the attacker modifies the app's functionality and web page, adding persuasive text to induce users to download and open a file purportedly containing a ``secret token'' (which is actually malware). Users cannot use the app normally unless they comply with the attacker's demands. Given their trust in the app, users are likely to download and open the malware in search of the secret token. Once opened, the malware compromises the user's system.
+We won't include code samples here because there are many ways to create phishing pages and the serious potential harm caused by such attacks. 
+Other phishing attack types are feasible, such as forging websites' login pages to trick people into logging in with their private credentials. 

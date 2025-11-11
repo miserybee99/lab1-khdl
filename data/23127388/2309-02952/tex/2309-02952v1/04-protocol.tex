@@ -1,0 +1,128 @@
+\section{The \prot\ Protocol}
+\label{sec:protocol}
+
+
+The novel idea of \prot\ is that it redefines the concept of \emph{node descriptors}, from simple data structures carrying node metadata, to  unique, unforgeable, and unclonable tokens required to participate in gossiping.
+Through this novel concept, adversaries that attempt to increase their share of overlay participation by either generating descriptors faster than allowed, or by cloning existing descriptors, can be discovered by correct nodes.
+Most importantly, correct nodes are able to provide indisputable proof of the violations they discover, enabling the entire network to hold violators accountable of their actions, and to blacklist them from all future communication.
+
+That said, \prot\ remains a protocol of predominantly probabilistic nature, in the sense that not every single violation is guaranteed to be discovered, however, malicious nodes that systematically violate the protocol \emph{will} eventually be caught \emph{and} blacklisted.
+This is fully in line with the original Cyclon protocol's self-healing properties, as sporadic violations do not constitute a threat to the health of the overlay.
+Instead, malicious nodes should rapidly and repetitively violate the rules in order to deploy the high-impact attacks discussed in \secref{sec:challenges}, in an attempt to outperform Cyclon's self-healing properties.
+As we demonstrate in our evaluation, when paired with proper configuration, \prot\ can withstand coordinated attempts to conduct malicious actions.
+
+It should be mentioned that \prot\ relies on the collective effort of all correct nodes participating in the network.
+We assume that rational nodes value the importance of security, hence will not free-ride on the effort of others, especially given that the protocol has very reasonable resource demands.
+On the other hand, it is assumed that malicious nodes opt not to participate in the protocol's security enhancements, as this would work against their own interest.
+
+
+\subsection{Enhanced node descriptors}
+\label{subsec:enhanced-node-descriptors}
+
+
+\begin{figure}
+    \includegraphics[width=\linewidth]{drawings/descriptors}
+    \caption{Node $A$ generates a fresh descriptor of itself, and transfers it along with its ownership to node $B$.
+    Subsequently $B$ transfers the descriptor and its ownership to node $C$,
+    which, in turn, transfers it to node $D$.
+    The node descriptor carries the chain of ownership ($A\rightarrow B\rightarrow C\rightarrow D$) of its entire lifetime.}    \label{fig:descriptor}
+\end{figure}
+
+A Cyclon node descriptor goes through three phases in its lifespan, its \emph{creation}, its \emph{traversing}, and its \emph{redemption}.
+A descriptor's \emph{creation} is when it gets initially established by its \emph{creator}, the node it points at.
+The \emph{traversing phase} starts when its creator transfers it for the first time to another node during a gossip exchange.
+The descriptor may be transferred further on during this phase, in the context of subsequent gossip exchanges.
+The descriptor's \emph{redemption phase} is when the node currently holding that descriptor selects it to initiate a gossip exchange to the node the descriptor links to, that is, the descriptor's creator.
+The redemption corresponds to the action of presenting the descriptor back to its creator in order to be allowed to gossip with that specific node.
+At the end of this phase, the lifecycle of the node descriptor ends, and it gets permanently removed.
+
+In our enhanced version of node descriptors, a descriptor holds the following information.
+When created, a descriptor stores its creator's public key (which also serves as its ID), its network address, and a wall-clock timestamp.
+Our protocol does not enforce strict clock synchronization between nodes, other than keeping their clocks updated in a best-effort fashion, e.g., through an ordinary NTP service.
+Nevertheless, each node should review the newly created descriptors it receives and reject the ones that contain a timestamp with a high deviation from its own clock.
+A descriptor's timestamp is used to discover frequency violations, as we will see in the following section.
+
+During the traversing phase, when a descriptor is passed on from one node to another, we say that the receiving node acquires the descriptor's \emph{ownership}.
+The initial owner of a node descriptor is its creator.
+A node $A$ transfers a descriptor's ownership to a node $B$ by appending $B$'s public key to the descriptor, and by then signing the entire data structure with its own private key.
+By continuously appending owners to a descriptor, a chain-like structure is formed that can track the descriptor's predecessors all the way up to its creator.
+We call this structure the \emph{chain of ownership}, and it is used to discover cloned descriptors, as we will see in the following section.
+\figref{fig:descriptor} illustrates a descriptor and three consecutive transfers of its ownership.
+
+The final step of our protocol takes place in the redemption phase.
+In order for a node to be allowed to initiate a gossip exchange with one of its neighbors, it must send to that neighbor a descriptor for which the initiator is currently the owner and its neighbor was the creator.
+This step prohibits malicious nodes from arbitrarily choosing which target node to communicate with, as they should first possess a legitimately acquired descriptor created by that same node in the past.
+In other words, at the end of its lifetime, a descriptor serves as a certificate permitting a gossip exchange with its creator.
+A correct node will never accept a gossip invitation without being presented with such a certificate, having been issued by itself in the past.
+
+It should by now be clear that the information stored in a node descriptor is able to reveal protocol violations.
+The following section explains how this information is matched to discover such illicit behavior.
+
+
+\subsection{Discovering Protocol Violations}
+\label{subsec:discovering-malicious-actions}
+
+
+Protocol violations can be discovered by comparing two conflicting node descriptors.
+To that extent, nodes should cache all descriptors they have seen in order to match them against each other and against descriptors they will receive in the future.
+Note that caching a descriptor, that is, maintaining a copy of it, does not require obtaining its ownership too.
+A node caching a descriptor without also owning it, is not allowed to attempt to transfer its ownership to another peer, or to attempt to redeem it.
+Such an action would constitute a protocol violation.
+Instead, cached descriptors are used solely for violation discovery.
+We call these cached descriptors \emph{descriptor samples}, or just \emph{samples}.
+
+When two nodes swap $s$ descriptors in a gossip exchange, they also transfer the respective ownerships to each other.
+In addition to the $s$ swapped descriptors, each node sends a copy of the rest of its view to the other party, without, however, transferring the respective ownerships to it.
+These descriptors will only be cached by the other node as samples.
+\newline
+
+
+To discover malicious actions each node should perform the following two checks for each node descriptor it receives, be it an owned descriptor or a sample:
+\newline
+
+\noindent
+\textbf{Frequency Check:} The node compares the timestamp of the received descriptor against the timestamps of all stored samples created by the same node.
+If the timestamps of any two descriptors of the same creator are closer to each other than the prescribed gossiping period, it constitutes indisputable proof that the creator node in question has performed a frequency violation. 
+
+\noindent
+\textbf{Ownership Check:} The node looks up its cache for a descriptor generated by the same node and with the same timestamp as the received descriptor.
+If such a descriptor is found, the two samples should refer to the same original descriptor, therefore, their chains of ownership should be compatible with each other.
+For instance, the two descriptors could report the same chain of ownership, e.g., $A\rightarrow B\rightarrow C$ on both.
+Or, they could report different chains of ownership, with one being a subset of the other, e.g., $A\rightarrow B\rightarrow C$ on either one descriptor, and $A\rightarrow B\rightarrow C\rightarrow D\rightarrow E$ on the other.
+Both these cases are perfectly ok, as they report a seemingly legitimate path the descriptor has followed during its traversing phase.
+
+If, however, the two descriptors report ownership chains such that neither is a subset of the other, this constitutes indisputable proof of a cloning violation.
+For example, if one descriptor reports $A\rightarrow B\rightarrow C\rightarrow D\rightarrow E$, and the other one reports $A\rightarrow B\rightarrow F\rightarrow G$, there is indisputable proof that $B$ illegally transferred this descriptor's ownership twice, to nodes $C$ and $F$, respectively.
+\newline
+
+If both checks pass, the node will cache the descriptor as a sample in order to compare it with descriptors received in the future.
+In case two samples of the same creator and same timestamp report non-conflicting ownership chains of different lengths, the one with the longest version is retained, as it corresponds to a more updated form of that same descriptor.
+If one of the checks fails, it constitutes a provable violation, and the malicious node discovered is handled as described in the following section.
+
+
+\subsection{Handling Violators}
+\label{subsec:disposing-malicious-nodes}
+
+
+For the violators' removal problem, we take an approach similar to the one presented in~\cite{TowardsSecureEpidemics}.
+
+Violations are discovered by finding two conflicting descriptors, both of which were previously signed by the violator.
+Thus, a violation discovery is followed by the indisputable proof of the offender's identity, namely, its public key.
+Presenting the two conflicting descriptors to any third node can prove to it the offender's violation and its identity.
+Thus, it only takes \emph{one} node to discover a violation, for \emph{all} nodes to reliably acknowledge the fact.
+
+When a node makes a violation discovery, it initiates a flooding to broadcast the corresponding proof to all nodes of the overlay.
+Upon receiving and locally validating proofs of violation, correct nodes blacklist the corresponding malicious nodes.
+Legitimate nodes immediately drop any descriptors linking them to a blacklisted node, be it descriptors they already own or ones they receive in the future.
+They also stop accepting gossip requests from blacklisted nodes.
+After a proof gets disseminated to the entire network, the blacklisted node effectively gets disconnected from the legitimate portion of the overlay.
+After the eviction of a malicious node, any descriptors it may have cloned will gradually get replaced by fresh descriptors of other nodes.
+
+Flooding opens a vector of DoS attacks, as malicious nodes could swarm the network with arbitrary messages, or disseminate valid proofs that refer to nodes that have already been discovered and blacklisted.
+To overcome such attacks, legitimate nodes should check that each received proof has valid content, as well as that the discovered malicious node has not been yet discovered, before disseminating the proof any further.
+
+Last but not least, proofs should be exchanged between nodes during gossip in order to inform newly joined nodes, or nodes that were absent during a flooding dissemination, about the discovered malicious nodes they are missing.
+
+% Should we include this as a part of the protocol or should we make it optional? Maybe probabilistically remove?
+%Furthermore, any link that contains a blacklisted node in its chain of owners should be removed.
+%This way any potential duplicate node descriptors get removed.

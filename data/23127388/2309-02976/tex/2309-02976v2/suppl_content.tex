@@ -1,0 +1,173 @@
+\appendix
+
+\subsection{Simulation Engines}
+\label{supp:sim}
+ The \hyfydy and \mujoco simulation engines differ in these key areas:
+\myparagraph{Musculotendon dynamics} The muscle model in \hyfydy is based on Millard at el. \cite{Millard2013} and includes elastic tendons, muscle pennation, and muscle fiber damping. The \mujoco muscle model is based on a simplified Hill-type model, parameterized to match existing OpenSim models~\cite{MyoSuite2022}, and supports only rigid tendons and does not include variable pennation angles.
+\myparagraph{Contact forces} \hyfydy uses the Hunt-Crossly \cite{Hunt1975} contact model with non-linear damping to generate contact forces, with a friction cone based on dynamic, static, and viscous friction coefficients \cite{Sherman2011}. \mujoco contacts are rigid, with a friction pyramid instead of a cone, and without separate coefficients for dynamic and viscous friction.
+\myparagraph{Contact geometry} The \mujoco model uses a convex mesh for foot geometry, while in the \hyfydy models the foot geometry is approximated using three contact spheres.
+\myparagraph{Integration step size} \hyfydy uses an error-controlled integrator with variable step size, while \mujoco uses a fixed step size and no error control. The average simulation step size in \hyfydy is around 0.00014s (7000\,Hz) for the H2190 model, compared to the fixed MyoSuite step size of 0.001s (1000\,Hz) for the \myoleg model.
+\subsection{Training Curves}
+\label{supp:training}
+Here we present more detailed results about the training evolution in \figref{supp:trainingcurve}. We plot the experimental match percentage between the collected gait-cycle averaged data and experimental human data, the muscle-averaged effort, the training returns, and the weight that the effort-reward term has over training. This weight is adapted over time and depends on the agent's performance. It increases slower for the complex models and saturates at smaller values. It can also be seen that the returns for the \myoleg are generally smaller than for the other models. We observed that there was more variance over training and over different seeds for the \myoleg-agent, leading to much smaller averaged returns. It was still possible to find a training checkpoint that achieved robust, close-to human-like walking for this model. 
+\begin{figure}
+    \centering
+    \hspace{1.2cm}\textcolor{ourblue2}{\rule[2.5pt]{15pt}{1.5pt}} H0918 \textcolor{ourorange2}{\rule[2.5pt]{15pt}{1.5pt}} H1622 \textcolor{ourgreen2}{\rule[2.5pt]{15pt}{1.5pt}} H2190 \textcolor{ourred2}{\rule[2.5pt]{15pt}{1.5pt}} MyoLeg\\
+    \vspace{0.1cm}
+    \includegraphics[width=0.48\textwidth]{figs/kinematics/plot_rl_natural.pdf}
+    \caption{\textbf{Training curves for the walking task.} We present the evolution of the match with experimental data (exp. match), the averaged muscle activity, the task performance, and the effort cost weight. The cost weight increases more slowly for the more complex models, showing its adaptive nature.}
+    \label{supp:trainingcurve}
+\end{figure}
+\subsection{Running}
+\label{supp:running}
+We performed maximum-speed running experiments with every model. While most reward terms remained identical to the natural walking case, we replace the external task reward by the velocity of the center of mass $r_{\mathrm{vel}} = v$ and removed energetic constraints such as the muscle excitation clipping and the effort cost term. The gait-cycle- and leg-averaged kinematics are shown in \figref{supp:running}. As this task is a maximum performance movement, we have equalized the forces between the \hyfydy- and \mujoco-based models, as the \hyfydy-models in the main experiments are generally based on experimental data with weaker maximum isometric muscle forces~\cite{Delp1990}. Note that we added a negative reward for self-collision forces for the running tasks, as the agents would often cross their legs and hit them against each other, thereby hopping instead of running. 
+
+Even though there remains a stronger discrepancy between the produced kinematics and the experimental data than for walking, the hip movement and GRFs are generally well aligned for the \hyfydy-models. The \myoleg-model presents very strong lateral torso oscillations during running, see also \figref{supp:oscillation_run}. In future work, biological objectives such as head stabilization or the inclusion of arms in the model might minimize some of these artifacts. See \tabref{tab:running} for the maximum running velocities for each model. 
+
+We also performed robustness experiments on a challenging obstacle course, see \figref{fig:running_obstacle} and supplementary videos.
+\begin{figure*}
+\begin{subfigure}[b]{0.5\textwidth}
+    \centering
+    \includegraphics[width=1.0\textwidth]{figs/kinematics/torso_oscillation_run.pdf}\\
+    \vspace{-10pt}
+    \caption{\textbf{Torso oscillations during flat-ground running.} We show the torso angle with the vertical axis for 5 rollouts of 10~s for the \complexmodel and the \myoleg models. The \myoleg presents strong lateral oscillations. The dashed line shows a straight torso posture. {\color{white}textesttttttttttttttttttttt\\ttttsssssssssssssssssssssss}}
+    \label{supp:oscillation_run}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.5\textwidth}
+    \centering
+   \includegraphics[width=0.7\textwidth]{figs/environments/obstacle_running.png}\\
+   \vspace{5pt}
+    \caption{\textbf{Dynamic terrain for running.} We probe the robustness of our policies trained for the \threedmodel and the \complexmodel with challenging obstacles. The tiles of the bridge rotate around the central axis and hang downwards, similar to a drawbridge. The agents were trained on \textbf{flat} ground and only have access to proprioceptive feedback.}
+    \label{fig:running_obstacle}
+    \end{subfigure}
+    \caption{Torso oscillations for running and dynamic perturbation environment.}
+\end{figure*}
+
+\begin{table}
+\caption{Maximum running velocity for different models, expressed in \nicefrac{m}{s} and total achieved distance in the rough terrain environment. We only show the maximum speed over 20 roll-outs for each model to show the largest velocity that we were able to achieve. For the rough terrain, we also record 20 roll-outs for each agent. We do not perform this experiment for the \planarmodel model, as the 3D nature of the terrain is not applicable to it, and we do not apply it to the \myoleg model, as the terrain has not been implemented in the \mujoco simulator.}
+\centering
+\begin{tabular}{ccccc}
+ \toprule 
+ system & H0918 & H1622 & H2190 & 
+ MyoLeg\\
+ 
+ \midrule
+ max. velocity & 5.38 & 5.04 & 6.49 & 5.44\\ 
+ achieved distance & n.a. & $9.87 \pm 4.27$ & $10.45 \pm 4.77$ & n.a.\\
+\bottomrule
+\end{tabular}
+\label{tab:running}
+\end{table}
+
+
+
+\begin{figure*}
+    \centering
+      \textcolor{ourred2}{\rule[2.5pt]{15pt}{1.5pt}} RL \,\textcolor{ourgray2}{\rule[2.5pt]{15pt}{1.5pt}} human-data\\
+    \includegraphics[width=1.0\textwidth]{figs/kinematics/kinematics_allmodels_running.pdf}\\
+    \caption{\textbf{Gait-cycle kinematics for running.} The experimental data shows human subjects running at $5 $~\nicefrac{m}{s} and was extracted from \cite{hamner2013}.}
+    \label{fig:running}
+\end{figure*}
+\subsection{Reward function ablation}
+We perform ablations on our reward, see \figref{fig:ablations}. Throughout all considered variations, only the full reward functions leads to gaits resembling human kinematics with low muscle activity across all models.
+
+\begin{figure*}
+    \centering
+          \hspace{40pt}\textcolor{ourred2}{\rule[2.5pt]{15pt}{1.5pt}} ours \,\textcolor{ourblue2}{\rule[2.5pt]{15pt}{1.5pt}} no-adapt \,\textcolor{ourorange2}{\rule[2.5pt]{15pt}{1.5pt}} no-effort \,\textcolor{ourgreen2}{\rule[2.5pt]{15pt}{1.5pt}} only-vel\\
+          \vspace{5pt}
+
+    \includegraphics[width=0.9\textwidth]{figs/kinematics/plot_ablations.pdf}\\
+    \caption{\textbf{Cost function ablations.} We show several ablations of our cost function and plot the average match with experimental human data, as detailed in the main paper, as well as the average muscle activity. A natural gait is generally characterized by a large experimental match as well as minimal muscle activity. Different ablations are shown: The adaptive effort term is zero ($\alpha(t) = 0$): no-adapt. The entire effort cost term is zero ($c_{\mathrm{effort}}=0$) and we deactivate the action clipping: no-effort. We only reward with the velocity reward term ($c_\mathrm{effort} = 0$ \& $c_{\mathrm{pain}} =0$): only-vel. Only the combined cost function achieves a close resemblance to natural gait with low muscle activity. Leaving out the pain-related costs leads to the worst gait trajectories, while a combination of the effort cost terms and the adaptive cost term is needed to achieve the lowest muscle activity.}
+    \label{fig:ablations}
+\end{figure*}
+\subsection{Hyperparameters}
+Used hyperparameter settings for the RL agent, DEP and the cost function are shown in \tabref{supp:params}. Non-reported RL values are left to their default setting in TonicRL~\cite{pardo2020tonic}. See \cite{schumacher2023deprl} for an explanation of the DEP-specific terms. The RL parameters were held constant, except for an increase in network capacity for \complexmodel and \myoleg.
+\begin{table*}
+    \centering
+     \caption{Hyperparameters for all algorithms.}
+    \label{supp:params}
+     \begin{subtable}[t]{.5\textwidth}
+        \centering
+        \caption{DEP settings.}
+        \begin{tabular}{@{}lll@{}}
+        \toprule
+        &\textbf{Parameter} & \textbf{Value} \\
+
+
+        \midrule
+        DEP & $\kappa$ & 1200 \\
+         & $\tau$ & 40 \\
+         & buffer size & 200\\
+         & bias rate & 0.002 \\
+         & s4avg & $2$ \\
+         & time dist ($\Delta t$) & $5$\\
+         \midrule
+        integration & $p_{\mathrm{switch}}$ & $3.71\times 10^{-4}$ \\
+        & $H_{\mathrm{DEP}}$ & 8 \\
+        & test episode & 3 \\
+        & force scale & n.a. \\
+        \bottomrule
+        \end{tabular}
+    \end{subtable}%
+ \begin{subtable}[t]{.5\textwidth}
+        \centering
+        \caption{MPO settings}
+          \begin{tabular}{@{}lll@{}}
+        \toprule
+        &\textbf{Parameter} & \textbf{Value} \\
+        \midrule
+                & buffer size  & 1e6 \\
+        & batch size & 256 \\
+        & steps before batches & 2e5 \\
+        & steps between batches & 1000 \\
+        & number of batches & 30 \\
+        & n-step return & 1 \\
+        & n parallel & 20 \\
+        & n sequential & 10 \\
+        & hidden layers & 2 \\
+        & hidden sizes  & 256 \\
+        & lr$_{\mathrm{actor}}$ & $3\times 10^{-4}$ \\
+        & lr$_{\mathrm{critic}}$ & $3\times 10^{-4}$ \\
+        & lr$_{\mathrm{dual}}$ & $1\times 10^{-2}$ \\
+
+        \bottomrule
+        \end{tabular}
+    \end{subtable}\\
+    \vspace{0.3cm}
+        \begin{subtable}[t]{.5\textwidth}
+        \centering
+        \caption{MPO setting changes for \complexmodel and \myoleg.}
+          \begin{tabular}{@{}lll@{}}
+        \toprule
+        &\textbf{Parameter} & \textbf{Value} \\
+        \midrule
+                & hidden sizes  & 1024 \\
+        & lr$_{\mathrm{actor}}$ & $3.53\times 10^{-5}$ \\
+        & lr$_{\mathrm{critic}}$ & $6.08\times 10^{-5}$ \\
+        & lr$_{\mathrm{dual}}$ & $2.13\times 10^{-3}$ \\
+        \bottomrule
+        \end{tabular}
+        \end{subtable}%
+ \begin{subtable}[t]{.5\textwidth}
+        \centering
+        \caption{Cost function settings.}
+        \begin{tabular}{@{}llll@{}}
+        \toprule
+        &\textbf{Parameter} & \textbf{Value} & \textbf{Meaning}\\
+        \midrule
+        & $\omega_{1}$ & 0.097 & action smoothing\\
+        & $\omega_{2}$ & 1.579 & number of active muscles above 15\% activity\\
+        & $\omega_{3}$ & 0.131 & joint limit torque \\
+        & $\omega_{4}$ & 0.073 & GRFs above 1.2 BW\\
+        \midrule
+        & $\Delta\alpha$ & $9\times 10^{-4}$ & change in adaptation rate \\
+        & $\theta$ & 1000 & performance threshold \\
+        & $\beta$ & 0.8 & running avg. smoothing\\
+        & $\lambda$ & 0.9 & decay term\\
+        \bottomrule
+        \end{tabular}
+    \end{subtable}\\
+    \vspace{0.5cm}
+    \end{table*}
+
+   

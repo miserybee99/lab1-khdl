@@ -1,0 +1,73 @@
+\section{Importance of feature choice}
+
+When using a contextual MAB algorithm to personalize student experiences in an educational technology, the system designer must choose which student characteristics to include as variables for personalization. The designer is very unlikely to know with certainty which student features are truly relevant and will actually impact student outcomes.
+One could include every possible relevant feature, knowing that while the algorithm can learn that an included feature is not relevant, it cannot learn that a non-included feature is in fact relevant.
+However, asymptotic growth rates for regret are quadratic in the number of features~\cite{agrawal2013thompson}, meaning that as more features are included, the algorithm will tend to take longer to learn. Designers thus must balance the desire to include all features that influence outcomes with the knowledge that extraneous features could hurt performance.
+
+To better understand how student outcomes are impacted by the choice of features for personalization, we systematically explore the inclusion of both relevant and non-relevant features in a contextual MAB algorithm and examine the impact on student outcomes and on the rate of assigning students to their personally optimal version of the technology. 
+For these simulations, we assume that features are uncorrelated and that their values are chosen uniformly at random for each student, i.e., the probability of observing any particular combination of features is the same as observing any other combination of features.
+%These simulations examine a range of situations that we expect to commonly occur when using MABs to select versions of an educational technology, with the goal of informing both researchers and system designers about impact of different design choices.
+
+
+\subsection{Methods}
+
+\subsubsection{Representing student features}
+
+We focus on binary student features and thus feature values implicitly group students. For example, some CS classes may have two different prerequisites, such as a discrete math course taught by the CS department or a similar one taught by the math department. Students who have taken the CS version will all have the same value for the prerequisite feature, while those who take the math one will have the other.\footnote{In both the MAB algorithms and the outcome-generating models, feature values are represented using dummy variables.} 
+
+\subsubsection{Outcome-generating models}
+
+The outcome-generating model describes the \textit{true} relationship between student characteristics (feature values), the actions of assigning students to different versions of a technology, and the outcomes of student learning. We focus on scenarios in which two actions, such as choosing between concrete versus abstract explanations, affect the outcomes for two groups of students, such as those with math versus CS prerequisite as aforementioned. 
+%We limit our models to have a maximum of one student feature that impacts the outcome. Without loss of generality, this feature was always the first feature.
+
+In each of the models, we generate the true reward probability for a student with particular features using logistic regression, with a separate logistic regression equation for each action.
+Given a feature vector $x^{(j)}$ for student $j$, the reward probabilities are generated according to:
+\begin{align*}
+  P_{action=k}(\text{reward} = 1 \mid x^{(j)}) = \text{sigmoid}(b_{0,k} + \sum_{i=1}^{n}b_{i,k}x_{i}),
+\end{align*}
+where $b_k$ is the coefficient vector for action $k$ and has intercept $b_{0,k}$.
+For our simulations, the coefficients for the feature values were zero for any feature past the first feature, meaning that a maximum of one student feature impacts the outcomes but more features may still be observed. By varying the coefficients for the intercept ($b_{0,k}$) and the first feature, we produced three models for the relationship among student characteristics (i.e., features or feature values), action choices, and outcomes (see Table~\ref{table:rewardProb}):
+
+\vspace{-.05in}
+\begin{small}
+\begin{itemize}
+  \item \textit{Baseline}: Student features have no impact on outcomes.
+  \item \textit{Universal optimal action}: Student features have an impact on outcomes, but not the optimal action---the best version of the technology is the same regardless of features.
+  \item \textit{Personalized optimal action}: Student features impact outcomes, meaning that the optimal action differs based on features---some students are better off experiencing Version A of the technology while for others Version B.
+\end{itemize}
+\end{small}
+\vspace{-.05in}
+
+For the baseline model,the coefficients of the actions vary only for the intercept in order to control the effect of each action when student features are ignored. For the universal optimal action model, we included four variations to capture different educationally meaningful scenarios. For instance, universal optimal action (1) reflects a case in which differences in prior knowledge minimally interact with the impact of different versions of a technological intervention, while (2) reflects a student characteristic magnifying the effectiveness of an intervention. 
+
+\begin{table}[t]
+
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}lllll}
+\toprule
+\multicolumn{1}{r}{\textit{Relevant Feature:}}   & \multicolumn{2}{c}{F=0}         & \multicolumn{2}{c}{F=1}      \\
+\multicolumn{1}{r}{\textit{Action Number:}}         & \multicolumn{1}{c}{A1} & \multicolumn{1}{c}{A2} & \multicolumn{1}{c}{A1} & \multicolumn{1}{c}{A2} \\
+\midrule
+Baseline     & 0.4     & \textbf{0.6}     & 0.4     & \textbf{0.6}     \\
+Universal optimal action (1) & 0.4     & \textbf{0.6}     & 0.6     & \textbf{0.8}    \\
+Universal optimal action (2) & 0.4     & \textbf{0.6}     & 0.4     & \textbf{0.8}\\
+Universal optimal action (3) & 0.4     & \textbf{0.6}     & 0.5     & \textbf{0.7}\\
+Universal optimal action (4) & 0.4     & \textbf{0.6}     & 0.8     & \textbf{0.9}     \\
+Personalized optimal action  & 0.4     & \textbf{0.6}     & \textbf{0.6}     & 0.4    \\
+\bottomrule
+\end{tabular*}
+\caption{Reward probabilities for each combination of actions (A1 and A2) and values of the relevant feature (F=0 and F=1) in the simulations. The optimal action, shown in bold, is the same (A2) for both feature values, except for the personalized optimal action model.}\label{table:rewardProb}
+\end{table}
+
+\subsubsection{Simulation parameters}
+
+We varied three factors across the simulations: the outcome-generating model; the MAB algorithm (contextual or non-contextual);
+%that specifies how student characteristics and action choices are related to the probability of a positive versus negative outcome
+and the number of student features. For all simulations, we considered three horizons: classrooms of 50, 250, and 1000 students. Multiple horizons illustrate the behavior of the algorithm at different time points and can guide decisions for incorporating adaptive algorithms based on the number of students who are expected to interact with the system. Each simulation was repeated 1000 times.
+
+For the non-contextual Thompson sampling, parameters for a Beta distribution per action are learned independent of student features. For the contextual algorithm, we specify the weights of the student features as model coefficients. All simulations included at least one student feature regardless of the outcome-generating models.
+%For the two outcome-generating models where the features impacted outcomes, this means that 100\% of included features were in fact associated with the outcome. 
+
+To model the fact that curriculum designers may not know which student characteristics really matter, we included simulations where the observed features were a superset of those that actually impacted outcomes. Specifically, we considered models with a total of~1, 2, 3, 5, 7, 8, and 10 features. Therefore, for the non-baseline scenarios, the proportion of included features that impacted outcomes varied from 100\% to only 10\%. Since our contextual features are binary, we include indicator variables for each of the two values, and learn a separate weight for each indicator variable.\footnote{In pilot simulations, this encoding led to better performance than if only a single coefficient was learned for each feature, and corrected asymmetries in performance for students who had different values of the feature.} 
+
+
+

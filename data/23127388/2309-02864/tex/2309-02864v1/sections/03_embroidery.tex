@@ -1,0 +1,46 @@
+\section{Machine Embroidery for Visualization}
+\label{sec:embroidery}
+We first detail the workflow we followed for creating data embroidery from a chart image, as well as the choices we made during this process. We then discuss the common issues we encountered during our data embroidery process and possible troubleshooting methods.
+
+\subsection{Machine embroidery process}
+\label{sec:machine-embroidery-process}
+Embroidering a data representation, much like any image, consists of two significant steps: (1) the preparation of an embroidery file that describes the path of the needle and other settings and (2) the actual embroidery process. In our work, we used the Pfaff Creative 3.0 Sewing and Embroidery Machine (\autoref{fig:machine_embroidery}), which affects further choices below.
+
+\begin{figure}
+    \centering
+		\includegraphics[width=1\columnwidth]{figures/machine_embroidery.jpg}	
+    \caption{The embroidery machine is embroidering a chart. Notice the hoop that holds and stretches the fabric for the embroidery process.}%\vspace{-1ex}
+    \label{fig:machine_embroidery}
+\end{figure}
+
+
+\subsubsection{Embroidery File Preparation}
+%Our process begins with the creation of an embroidery file using embroidery software. We opted to use
+For the first step we selected mySewnet, a set of software tools recommended by Pfaff. Notably, numerous other free and open-source software tools and libraries are available as well, such as Ink/Stitch \cite{inkstitch}. Regardless of the chosen software, the procedure is similar: we open an image and process it within the embroidery software to then save it in an embroidery format. The specific input and output formats vary, depending on the capabilities of the embroidery software and machine. In our case, we used the pixel-based \texttt{PNG} format as the source and \texttt{VP3} (a format used by Pfaff machines) as the export format.
+
+MySewnet provides three methods for converting an image to an embroidery file: converting the entire image, tracing the elements’ outline, or tracing the image border. To achieve optimal results, we divided the chart image into three components---areas and two types of lines. We used the ``whole image convert'' method for areas, and the ``trace outline convert'' method for lines. The embroidery software, however, treats the entire image as a whole during the conversion process, meaning that certain parts can potentially impact others. For instance, if we would attempt to convert an entire bar chart with a line-based texture in one go, the line texture within the bar may distort the bar's outline. Consequently, we recommend the separation of the outline and the filling before the conversion process---even if both are based on lines. In the end, we thus processed area fillings, line-based texture fillings, and element outlines as separate parts and then reassembled them within the processing software, which lead to improved results.
+
+After the conversion, we performed minor edits on the embroidery file in the tool mySewnet Digitilizing, for example we converted some curved stitches to straight lines based on the original input. In addition, we added text elements to the chart within the tool mySewnet Embroidery, because directly converting text from images often yielded bad results. We also adjusted the size of each component for a better fit with respect to each other. After finalizing the embroidery file, we imported it into the embroidery machine via USB, adjusted its positioning within the embroidery hoop (the frame that holds and stretches the fabric), and prepared for the physical embroidery process.
+
+\subsubsection{Embroidery Process}
+Before starting the embroidery process, we prepared the necessary materials. Through several small-scale experiments with various fabrics such as paper, cotton, linen, soft shell, and canvas, we found that canvas produced the best results for embroidering our textured charts. We thus decided to use canvas with a 2.5\,oz cut-away stabilizer (the material to put on the back of the fabric during the embroidery process), which is a recommended type of stabilizer for canvas. We ironed the fabric, bonded the fabric to the stabilizer with 505 temporary adhesive spray, and placed the fabric into the hoop. Next, we attached the hoop to the embroidery machine. We experimented with different needle and thread combinations, and finally used a 75/11 embroidery needle with polyester black thread for the best performance. After attaching the needle to the machine, we wound the bobbin (the part that holds the bottom thread) with the thread and threaded the needle. After these preparations we could initiate the embroidery process.
+
+\subsection{Troubleshooting}
+To get a good embroidery, it is important to ensure that the needle, the threading, and the bobbin are correctly set. A flawless setup, however, does not necessarily guarantee an error-free embroidery process. During our experimentation we faced several common issues as follows.
+
+\begin{figure}
+    \centering
+		(a)~\includegraphics[width=0.45\columnwidth]{figures/error_thread_break.jpg}\hfill%
+		(b)~\includegraphics[width=0.45\columnwidth]{figures/error_bobbin.jpg}		
+    \caption{Errors during the embroidery process: (a) thread breakage and (b) bobbin thread getting stuck under the needle plate.}%\vspace{-1ex}
+    \label{fig:embroidery_errors}
+\end{figure}
+
+A common issue we frequently encountered was \textbf{thread breaking during embroidery}, as shown in \autoref{fig:embroidery_errors}(a). If this happens it is essential to rethread the machine correctly. If thread breakage occurs frequently despite the right setup, however, one may need to consider reducing the embroidery speed. This reduction might decrease the stress on the thread and, subsequently, prevent breakage.
+
+Another typical problem was the \textbf{bobbin thread getting stuck under the needle plate}, often accompanied by bobbin bunching (\autoref{fig:embroidery_errors}(b)). We then removed the needle plate and cleaned the tangled thread under the needle plate and around the bobbin. After clearing the jam, we rethreaded the bobbin to continue the process.
+
+When noticing any error during embroidery, it is crucial to stop the process immediately, so observing the machine while it works is recommended. The machine may also automatically stop when it detects a problem. Before restarting, it is important to check for any missed stitches due to the error and to patch potentially missing stitches using the embroidery machine's ``step through stitch by stitch'' function.
+
+
+

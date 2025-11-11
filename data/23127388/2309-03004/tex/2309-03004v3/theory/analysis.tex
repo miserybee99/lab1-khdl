@@ -1,0 +1,324 @@
+\input{theory/gradients.tex}
+
+\subsection{Flat Minima, Implicit Adversarial Robustness and Effective Gradient Sparsity}\label{sec:three_elements}
+
+\NewDocumentCommand{\ce}{}{\loss_{\mathrm{CE}}}
+As discussed in \cref{sec:illustration}, we start from $\trace{\hessian}$ and relate it to implicit adversarial robustness w.r.t. some hidden feature $x^l$, or $\ex[(X, Y)]{\norm{\derivatives{\loss}{x^l}}_2^2}$. 
+Cross Entropy loss is assumed under classification tasks. Note that aside from explicit classification tasks, next-token classification and Cross Entropy loss form the basis for many self-supervision objectives in NLP pretraining, including causal language modeling and masking language modeling. Therefore this assumption can be applied across broad practical scenarios. Assuming $\loss = \ce = -\log f(y \mid \theta, x)$, the Hessian writes
+\begin{align}
+    \nabla_\theta^2 \ex[(X, Y)]{-\log f(Y \mid \theta, X)}
+    =& -\ex[(X, Y)]{\nabla_\theta^2 \log f(Y \mid \theta, X)},
+\end{align}
+which, together with $\ex[(X, Y)]{\norm{\derivatives{\loss}{x^l}}_2^2}$, reminds us of the famous equality of Fisher's Information Matrix, i.e.,
+\begin{align}
+    \mathcal{I}(\theta)
+    = -\ex[X]{\nabla_\theta^2 \log g_\theta(X)}
+    = \ex[X]{\left(\derivatives{g_\theta(X)}{\theta}\right)\left(\derivatives{g_\theta(X)}{\theta}\right)^\transpose},
+\end{align}
+the trace of RHS of which is exactly the expected squared norm of the gradients. So adapting the classic proof of this equality, we connect flatness measured by Hessian trace to the norm of gradients in \cref{lemma:flatness_and_grad_norm}.
+\begin{lemma}[Flatness and samplewise gradient norm]
+    \label{lemma:flatness_and_grad_norm}
+    Assume $f_\theta$ is a neural network parameterized by $\theta$, trained by Cross Entropy loss $\ce$. Given $\hessian$ being the Hessian matrix of loss at $\theta$, there is
+    \begin{align}
+        \trace{\hessian}
+        =   \ex[(X, Y) \sim \dataset]{\norm{\nabla_\theta \ce(\theta, (X, Y))}_2^2} - \ex[(X, Y) \sim \dataset]{\frac{\trace{\nabla^2_\theta f(Y \mid \theta, X)}}{f(Y \mid \theta, X)}}.
+    \end{align}
+    Further for well learned models, i.e., $f_\theta(Y \mid X) \approx \dataset(Y \mid X)$ for all training samples, there is
+    \begin{align}
+        \trace{\hessian}
+        \approx   \ex[(X, Y) \sim \dataset]{\norm{\nabla_\theta \ce(\theta, (X, Y))}_2^2}.
+    \end{align}
+\end{lemma} 
+
+The proof of it can be found in \cref{proof:flatness_and_grad_norm}. This lemma invokes a samplewise point of view on Hessian and flatness, which is closer to adversarial attacks because they are added in a samplewise manner. Aside from implication in the context of sparsity, \cref{lemma:flatness_and_grad_norm} indicates that a flat minimum also provides solutions that are locally good for most individual samples. 
+We acknowledge that similar results with gradient outer products under abstract losses have been given by \citet{empirical_hessian}, but we believe under Cross Entropy loss the result becomes more direct, intriguing and implicative. 
+As an aside, Cross Entropy seems an interesting loss function, for example, \citet{ib_disentangle} rewrite CE loss expected among all training traces into mutual information between training data and final parameters.
+
+After that, we move perturbations from parameters to hidden features in \cref{lemma:grad_norm_and_adversarial}.
+\begin{lemma}[Gradient norm and implicit adversarial robustness]\label{lemma:grad_norm_and_adversarial}
+    Let $f_\theta$ be a neural network parameterized by $\theta$, and the parameters for the $l$-th layer is $\theta_l$. Let $\dbmlp^l$ be the $l$-th doubly biased MLP in $f_\theta$ whose input is $X^{l-1}$, zeroth bias is $D^l$. Then there is
+    \begin{align}
+        \norm{\nabla_{\theta_l} \ce(\theta, (x, y))}_2^2 \ge \norm{\nabla_{X^{l-1}} \ce(\theta, (x, y))}_2^2 + \norm{\HXT}_2^2 + \norm{\GAlphaT}_2^2.
+    \end{align}
+    If $\mlp^l$ is not doubly biased, then the first term in RHS simply disappears.
+\end{lemma}
+\begin{proof}
+    By noticing $\theta_l$ contains at least $K^l, V^l$ and $D^l$, there is
+    \begin{align}
+        \norm{\nabla_{\theta_l} \ce}_2^2 \ge \norm{\nabla_{D^l} \ce}_2^2 + \norm{\nabla_{K^l} \ce}_2^2 + \norm{\nabla_{V^l} \ce}_2^2.
+    \end{align}
+    Consider how $X^{l-1}$ is processed in $\dbmlp^l$: It is added with $D^l$ before any other operations. So there is $\nabla_{D^l} \ce = \nabla_{X^{l-1}} \ce = \nabla_{X^{l-1} + D^l} \ce$. 
+    Combining \cref{lemma:gradients_with_eff} for the second and the third terms, the lemma follows.
+\end{proof}
+
+From the proof of \cref{lemma:grad_norm_and_adversarial} we can see that zeroth biases avoid tedious linear or non-linear operations and drastically ease our analysis. This implies that one can design theoretically oriented architecture that allows easier theoretical analyses.
+
+We then connect implicit adversarial robustness to gradient sparsity.
+\begin{lemma}[Implicit adversarial robustness and gradient sparsity]\label{lemma:adversarial_and_sparsity}
+    Under the same condition of \cref{lemma:grad_norm_and_adversarial}, together with the assumption that in $\dbmlp^l$ the weight matrix is $K^l \in \reals^{n \times d}$ and $\gamma^l$ is the entrywise derivatives of activations, there is
+    \begin{align}
+        \norm{\nabla_{x^{l-1}} \ce(\theta, (x, y))}_2^2 = \left(\gamma^l\right)^\transpose \left(\left(K^l (K^l)^\transpose\right) \hadamard M^l\right) \gamma^l = \left(\eta^l\right)^\transpose \kkT \eta^l,
+    \end{align}
+    if hidden features are single tokens, where $M^l \defeq g^l_K \left(g^l_K\right)^\transpose$ is a symmetric positive semi-definite matrix of rank at most $1$, $\hadamard$ denotes Hadamard product, i.e., entrywise product.
+    
+    If hidden features are matrices, then there is
+    \begin{align}
+        \norm{\nabla_{X^{l-1}} \ce(\theta, (x, y))}_2^2 = \trace{\Eta^l \left(\Eta^l\right)^\transpose \kkT}.
+    \end{align}
+\end{lemma}
+\begin{proof}
+    By \cref{lemma:gradients_with_eff}, the gradients w.r.t. $d^l$ is 
+    \begin{align}
+        \derivatives{\ce(\theta, (x, y))}{d^l} = \left(K^l\right)^\transpose \eta^l.
+    \end{align}
+    Similar to the proof of \cref{lemma:grad_norm_and_adversarial}, $x^{l-1}$ and $d^l$ share the same gradient, so
+    \begin{align}
+        \nabla_{x^{l-1}} \ce = \derivatives{\ce(\theta, (x, y))}{x^{l-1}} = \left(K^l\right)^\transpose \eta^l.
+    \end{align}
+
+    Now we can compute the squared norm of gradients by its relation with trace
+    \begin{align}
+        \norm{\nabla_{x^{l-1}} \ce}_2^2
+        =& \trace{\left(\nabla_{x^{l-1}} \ce\right)^\transpose \nabla_{x^{l-1}} \ce}
+        =  \trace{\left(\eta^l\right)^\transpose \kkT \eta^l}\\
+        =&  \left(\eta^l\right)^\transpose \kkT \eta^l.
+    \end{align}
+    To see how $M^l \defeq g^l_{K} \left(g^l_K\right)^\transpose$ emerges, expand the definition of $\eta^l$ and obtain
+    \begin{align}
+        \norm{\nabla_{x^{l-1}} \ce}_2^2
+        =&  \left(\eta^l\right)^\transpose \kkT \eta^l
+        =   \left(\diag{g^l_{K}} \gamma^l\right)^\transpose \kkT \left(\diag{g^l_K} \gamma^l\right)\\
+        =&  \left(\gamma^l\right)^\transpose \diag{g^l_K} \kkT \diag{g^l_k} \gamma^l\\
+        =&  \left(\gamma^l\right)^\transpose \left(g^l_K \left(g^l_K\right)^\transpose \hadamard \kkT \right) \gamma^l
+        =  \left(\gamma^l\right)^\transpose \left(M \hadamard \kkT \right) \gamma^l,
+    \end{align}
+    where the second last step is to apply \cref{eq:hadamard_and_diagonal}.
+    Note that $M^l$'s rank is at most $1$.
+
+    When hidden features are matrices, $\norm{\nabla_{X^{l-1}} \ce}_2^2$ sums the gradient norms for all tokens, which leads to
+    \begin{align}
+        \norm{\nabla_{X^{l-1}}\ce}_2^2
+        =&  \sum_i \norm{\nabla_{x^{l-1}_i} \ce}_2^2
+        =  \trace{\sum_i \left(\eta^l_i\right)^\transpose \kkT \eta^l_i}\\
+        =&  \trace{\left(\sum_i \eta^l_i \left(\eta^l_i\right)^\transpose\right) \kkT}
+        =  \trace{\Eta^l \left(\Eta^l\right)^\transpose \kkT}.
+    \end{align}
+\end{proof}
+
+Combining \cref{lemma:flatness_and_grad_norm}, \cref{lemma:grad_norm_and_adversarial} and \cref{lemma:adversarial_and_sparsity} together, we have the main theorem.
+\begin{theorem}[Flatness, implicit adversarial robustness and sparsity]\label{theorem:main}
+    Let $f_\theta$ be a well-learned neural network parameterized by $\theta$, trained under Cross Entropy loss $\ce$. Let $\hessian$ be the Hessian matrix w.r.t. parameters at $\theta$. Let $\dbmlp^l$ be the $l$-th doubly biased MLP in $f_\theta$ whose input is $x^{l-1}$. There is
+    \begin{align}
+        &\trace{\hessian}\\
+        \ge& \sum_{l} \left(
+            \ex{\norm{\nabla_{X^{l-1}} \ce(\theta, (X, Y))}_2^2} 
+            +   \ex{\norm{\HXT}_2^2} + \ex{\norm{\GAlphaT}_2^2}\right)\\
+        =& \sum_{i, l} \ex{\left(\eta^l_i\right)^\transpose \kkT \eta^l_i} + \sum_{l} \ex{\norm{\HXT}_2^2} + \sum_l \ex{\norm{\GAlphaT}_2^2}. \label{eq:main}
+    \end{align}
+    The first term can also be expressed by $\left(\gamma^l_i\right)^\transpose \left(\kkT \hadamard M^l_i\right) \gamma^l_i$, where $M^l$ is a symmetric positive semi-definite matrix of rank at most $1$.
+    Further by Schur's Theorem, $\left(K^l \left(K^l\right)^\transpose\right) \hadamard M^l_i$ is also positive semi-definite.
+
+    If vanilla $\mlp$s are used, then the first term in RHS simply disappears.
+\end{theorem}
+
+
+The chained upperbounds connect flatness and implicit adversarial robustness to effective gradient sparsity (the first two terms in Equation \ref{eq:main}) and as well as activation sparsity (the last term in Equation \ref{eq:main}), indicating that both gradient and activation sparsity can be sources of implicit adversarial robustness and flatness. If flatness is achieved, then it is possibly done through (effective) gradient sparsity and activation sparsity. Note that this bound is very tight because $\mlp$s take a large portion of parameters \citep{knowledge_neurons} even in Transformers, so by Cauchy's Interlace Theorem most large eigenvalues of $\hessian$ are retained in the submatrix of $\mlp$ parameters. Therefore to achieve flatness, the terms in \cref{eq:main} must be suppressed.
+
+\subsection{Discussions on \cref{theorem:main}}\label{sec:discussion}
+
+In this section, we discuss the implications of \cref{theorem:main} under several particular settings, including pure MLPs, pure LayerNorm-ed MLPs, Transformers and Transformers with hypothetical massive perturbation training. 
+We point out their tendency toward effective gradient sparsity, which leads to gradient and activation sparsity as discussed in \cref{sec:gradients}, among which effective gradient sparsity is more stable.
+
+\subsubsection{Pure MLPs}
+
+The last two terms in \cref{eq:main} have similar forms, so we inspect them together. To have a clearer understanding on them, first consider the situations where models use single-token hidden features in \cref{corollary:main_with_hidden_vectors}
+\begin{corollary}[Flatness and sparsity in pure MLPs]\label{corollary:main_with_hidden_vectors}.
+    Inherit the assumptions of \cref{theorem:main}. Assume additionally that the model uses hidden features of single tokens, then there is
+    \begin{align}
+        \trace{\hessian} 
+        \ge& \sum_{l} \ex{\left(\eta^l\right)^\transpose \kkT \eta^l} + \sum_{l} \ex{\norm{x^{l-1} + d^l}_2^2 \norm{\eta^l}_2^2} + \sum_l \ex{\norm{g^l_V}_2^2 \norm{\alpha^l}_2^2} \label{eq:main_with_hidden_vectors}.
+    \end{align}
+\end{corollary}
+\begin{proof}
+    With single-token hidden features, $\norm{\HXT}_2^2$ reduces to 
+    \begin{align}
+        &   \norm{\HXT}_2^2
+        =   \norm{\eta^l \left(x^{l-1} + d^l\right)^\transpose}_2^2
+        =   \trace{\left(\eta^l \left(x^{l-1} + d^l\right)^\transpose\right)^\transpose \eta^l \left(x^{l-1} + d^l\right)^\transpose}\\
+        =&  \trace{\left(x^{l-1} + d^l\right) \left(\eta^l\right)^\transpose \eta^l \left(x^{l-1} + d^l\right)^\transpose}
+        =  \trace{\left(\eta^l\right)^\transpose \eta^l \left(x^{l-1} + d^l\right)^\transpose \left(x^{l-1} + d^l\right)}\\
+        =& \norm{\eta^l}_2^2 \norm{x^{l-1} + d^l}_2^2.
+    \end{align}
+    $\norm{\GAlphaT}_2^2$ can be reduced similarly.
+\end{proof}
+If normalization layers are imposed, for example, LayerNorm layers before MLP blocks, then $\norm{x^{l-1}}_2^2 = d$ will not change during training, eliminating all other sources of suppressing the second term aside from effective gradient sparsity. 
+Since key matrices also take a large portion of parameters, flatness in these parameters must be achieved as well and $\trace{\hessian[\theta_K]}$ is not too small from $\trace{\hessian}$, the second term alone will have a strong tendency to decrease. Therefore, a rigorously proved, strong and stable tendency of pure LayerNorm-ed MLPs toward effective gradient sparsity is presented in \cref{theorem:main_with_hidden_vectors_and_layernorm}.
+\begin{theorem}[Flatness and sparsity in pure MLPs with LayerNorms]\label{theorem:main_with_hidden_vectors_and_layernorm}
+    Inherit the assumptions of \cref{theorem:main}. Assume additionally that the model uses vector hidden features and LayerNorm layers, with affine transformation turned off, are imposed before every MLP block. Temporarily assume non-$\dbmlp$ models are used, then there is
+    \begin{align}
+        \trace{\hessian} 
+        \ge& d \sum_{l} \ex{\norm{\eta^l}_2^2} + \sum_l \ex{\norm{g^l_V}_2^2 \norm{\alpha^l}_2^2}\label{eq:main_with_hidden_vectors_and_layernorm}.
+    \end{align}
+
+    If $\dbmlp$s are used and LayerNorm layers are placed \emph{before} zeroth biases, by clipping the norm of columns in zeroth biases to $c$, there will be
+    \begin{align}
+        \trace{\hessian} 
+        \ge& \sum_{l} \ex{\left(\eta^l\right)^\transpose \kkT \eta^l} + \left(\sqrt{d} - c\right)^2 \sum_{l} \ex{\norm{\eta^l}_2^2} + \sum_l \ex{\norm{g^l_V}_2^2 \norm{\alpha^l}_2^2} \label{eq:main_with_hidden_vectors_and_layernorm_dbmlp}.
+    \end{align}
+    By \cref{lemma:eff_and_sparsity}, for $\relu$ networks, there is further
+    \begin{align}
+        \trace{\hessian} 
+        \ge& \sum_{l} \ex{\left(\eta^l\right)^\transpose \kkT \eta^l} \\&+ \left(\sqrt{d} - c\right)^2 \cdot \ex[X, l, i]{\left(g^l_{K, i}\right)^2 \mid \alpha^l_i > 0} \cdot \sum_{l} \ex{\norm{\alpha^l}_0} + \sum_l \ex{\norm{g^l_V}_2^2 \norm{\alpha^l}_2^2}
+    \end{align}
+    for $\dbmlp$ networks, and similar results can be obtained for architectures without zeroth biases.
+\end{theorem}
+LayerNorm places quite strong and stable drives towards effective gradient sparsity, if they are placed right before (DB-)MLP blocks and affine factors are turned off to avoid their reduction due to updates or weight decay. \cref{theorem:main_with_hidden_vectors_and_layernorm} can be one explanation of the benefits of LayerNorms and the practice to exclude their parameters from weight decay.
+
+The last term in \cref{eq:main_with_hidden_vectors} relating activation sparsity is less ensured than the second term. In experiments (although conducted with Transformers) we observe $\norm{g_V^l}_2^2$ becomes small in deep layers, indicating that effective gradient sparsity is the main cause of activation sparsity in deep layers.
+
+\subsubsection{Transformers and Other Architectures}
+
+When stacked hidden features are used, for example in Transformers, the discussion is more tricky. It is possible that gradients of different tokens cancel each other in 
+\begin{align}
+    \HXT = \sum_{i} \eta^l_i \left(x^{l-1}_i + d^l_i\right)^\transpose.
+\end{align}
+We can only rigorously conclude a possibly loose lowerbound with $\norm{\eta^l_i}_2^2$ in \cref{corollary:main_with_minimum_eigenvalue} using \cref{eq:trace_product_and_eigenvalue}.
+\begin{corollary}[Flatness and sparsity in Transformers]\label{corollary:main_with_minimum_eigenvalue}
+    Inherit assumptions from \cref{theorem:main}, then there is
+    \NewDocumentCommand{\mineigenbound}{m m}{\sum_{l} \ex{\lambda_{\min}\left(\left(#1\right)^\transpose #1\right) \sum_i \norm{#2}_2^2}}
+    \begin{align}
+        \trace{\hessian} 
+        \ge&
+            \sum_{i, l} \ex{\left(\eta^l_i\right)^\transpose \kkT \eta^l_i}\\
+            &+ \mineigenbound{\left(X^{l-1} + D^l\right)}{\eta^l_i}\\
+            &+ \mineigenbound{G^{l}_V}{\alpha^l_i},
+    \end{align}
+    where $\lambda_{\min}\left(\cdot\right)$ indicates the minimum eigenvalue of a matrix.
+\end{corollary}
+\arxivonly{\begin{proof}
+    \begin{align}
+        \HXT 
+        =&  \trace{\left(\HXT\right)^\transpose \HXT}\\
+        =&  \trace{\left(X^{l-1}\right)^\transpose X^{l-1} \left(H^l\right)^\transpose H^l}.
+    \end{align}
+    The last term can be similarly rearranged. Applying \cref{eq:trace_product_and_eigenvalue} to both of them and noticing $\trace{\left(H^l\right)^\transpose H^l} = \sum_i \norm{\eta^l_i}_2^2$ finish the proof.
+\end{proof}}
+
+There are tricky ways to bypass the canceling, however. For example, consider augments conducted on hidden features such as dropout. 
+They effectively duplicate the parameter into $k$ views and perturb each view independently (using dropout, rows of weight matrices are randomly pruned) if there are $k$ tokens. 
+If flatness can be extended to these effective duplicated parameters, i.e., if there is still flatness when we really duplicate the weight matrices and assign one token for each matrix, then each view is only handling one token and we can repeat \cref{corollary:main_with_hidden_vectors}. 
+However, traditional dropout may hinder the sparsity by eliminating activations and forcing the model to back up the representation. Additionally, its perturbations are not local enough, hindering theoretical analyses. 
+A soft dropout by slightly perturbing before activation functions is more preferable. 
+Moreover, the perturbation should better be conducted on weight matrices in an entrywise manner to avoid summing and canceling gradients.
+Under this hypothetical synapse perturbation \citep{synaptic_noise_1,synaptic_noise_2} but in a tokenwise manner, we assume flatness can be obtained w.r.t. the duplicated parameters because, in the real model, losses are suppressed even under independent perturbation so the effective model is not sensitive to independent changes in individual parameter duplicates. This intuition leads to \cref{lemma:flatness_of_perturbed_model}.
+
+\NewDocumentCommand{\proxytheta}{}{\hat{\theta}}
+\NewDocumentCommand{\dupW}{}{\tilde{W}}
+\begin{lemma}[Flatnesses of perturbed model and perturbation-induced effective model]\label{lemma:flatness_of_perturbed_model}
+    Assume weight matrices are perturbed by Gaussian noise \emph{independently} for each token, i.e., the perturbed $\mlp_*^l$ outputs
+    \begin{align}
+        \activation\left(\begin{bmatrix}
+            \proxyW^{l, 1} x_1 &   \cdots & \proxyW^{l, i} x_i & \cdots & \proxyW^{l, k} x_k
+        \end{bmatrix} + b^l\right) \label{eq:massive_perturbation}
+    \end{align}
+    for input hidden matrix $X = \begin{bmatrix} x_1 & \cdots & x_i \cdots & x_k \end{bmatrix}$, where $\proxyW^{l, i} \defeq W^l + \Epsilon^{l, i}$ , and $\Epsilon^{l, 1}, \dots, \Epsilon^{l, k}$ are $k \times n \times d$ independent centered Gaussian variables with variance $\sigma^2$. 
+    Let random variable $\Epsilon$ denote the collection of all perturbations.
+    Let $\proxytheta$ be the collection of proxied parameters, where $\proxyW^{l, i}$s are taken into consideration instead of $W^{l}$, while other parameters are inherited from $\theta$.
+
+    Let $g_{\efftheta}$ be the effective parameter by duplicating each weight matrix $W^l$ for $k$ times into $\dupW^{l, 1}, \dots, \dupW^{l, k}$, each of which deals with exactly one hidden vector $x_i$ during inference.
+
+    Then
+    \begin{align}
+        &   \frac{1}{\sigma^2} \ex[(X, Y), E]{\left(\loss(f_\theta, E, (X, Y)) - \loss(f_\theta, 0, (X, Y))\right)^2} + n d L k \cdot o\left(1\right)\\
+        %=& \ex{\norm{\derivatives{\loss(f_\theta, 0, (X, Y))}{\proxytheta}}_2^2}
+        %= \ex{\norm{\derivatives{\loss(g_{\efftheta}, (X, Y))}{\efftheta}}_2^2}\\
+        =& \sum_{l} \sum_{W \in \set{K, V}} \sum_{i}  \ex{\norm{\derivatives{\loss(f_\theta, 0, (X, Y))}{\proxyW^{l, i}}}_2^2}
+        = \sum_{l} \sum_{W \in \set{K, V}} \sum_{i} \ex{\norm{\derivatives{\loss(g_{\efftheta}, (X, Y))}{\dupW^{l, i}}}_2^2},
+    \end{align}
+    where $\loss(f_\theta, E, (X, Y))$ indicates the loss of $f_\theta$ on sample $(X, Y)$ when perturbation is $E$, $L$ is the number of $\mlp$ layers.
+    If Cross Entropy loss is assumed and $f_\theta$ is well learned when perturbations are removed then by \cref{lemma:flatness_and_grad_norm} applied to $g_{\efftheta}$,
+    \begin{align}
+        &   \frac{1}{\sigma^2} \ex[(X, Y), E]{\left(\ce(f_\theta, E, (X, Y)) - \ce(f_\theta, 0, (X, Y))\right)^2} + n d L k \cdot o\left(1\right)\\
+        =& \sum_{l} \sum_{W \in \set{K, V}} \sum_{i}  \ex{\norm{\derivatives{\ce(f_\theta, 0, (X, Y))}{\proxyW^{l, i}}}_2^2}
+        = \sum_{l} \sum_{W \in \set{K, V}} \sum_{i} \ex{\norm{\derivatives{\ce(g_{\efftheta}, (X, Y))}{\dupW^{l, i}}}_2^2}\\
+        \le& \ex{\norm{\derivatives{\ce(f_\theta, 0, (X, Y))}{\proxytheta}}_2^2} 
+        = \ex{\norm{\derivatives{\ce(g_{\efftheta}, (X, Y))}{\efftheta}}_2^2} \approx \trace{\hessian[\efftheta]}\\
+    \end{align}
+\end{lemma}
+\begin{proof}
+    By construction of $g_{\efftheta}$, gradients w.r.t. $\proxyW^{l, i}$ and $\dupW^{l, i}$ share the same path in $f_\theta$ and $g_{\efftheta}$. If the same sample is used and the perturbation is removed, then they are equal.
+
+
+    We can approximate $\loss(f_\theta, \Epsilon, (x, y))$ from $\loss(f_\theta, 0, (x, y))$ by
+    \begin{align}
+        \left(\loss(f_\theta, \Epsilon, (x, y)) - \loss(f_\theta, 0, (x, y))\right)^2
+        =&  \left(\left(\nabla_{\vectorize{\Epsilon}} \loss(f_\theta, 0, (x, y)) \right)^\transpose \vectorize{E} +  o\left(\norm{\vectorize{E}}_2 \right)\right)^2\\
+        =&  \left(\left(\nabla_{\vectorize{\Epsilon}} \loss(f_\theta, 0, (x, y)) \right)^\transpose \vectorize{E}\right)^2 +o\left(\norm{\vectorize{E}}_2^2 \right)\\
+    \end{align}
+    Since Gaussian $\vectorize{E}$ has covariance $\sigma^2 I$, $\nabla_{\vectorize{\Epsilon}}^\transpose \loss \times  \vectorize{E}$ is also Gaussian whose variance is 
+    \begin{align}
+        \sigma^2 \left(\nabla_{\vectorize{\Epsilon}} \loss(f_\theta, 0, (x, y))\right)^\transpose \left(\nabla_{\vectorize{\Epsilon}} \loss(f_\theta, 0, (x, y))\right) = \sigma^2 \norm{\nabla_{\vectorize{\Epsilon}} \loss}_2^2.    
+    \end{align}
+    Taking expectation over noises $E$, there is
+    \begin{align}
+            \ex[E]{\left(\loss(f_\theta, \Epsilon, (x, y)) - \loss(f_\theta, 0, (x, y))\right)^2}
+        =& \sigma^2 \norm{\nabla_{\vectorize{\Epsilon}} \loss(f_\theta, 0, (X, Y))}_2^2 + o(n d L k \sigma^2)\\
+        =&  \sigma^2 \norm{\nabla_{\vectorize{\proxyW}} \loss(f_\theta, 0, (X, Y))}_2^2 + o(n d L k \sigma^2),
+    \end{align}
+    where $\dupW$ denote the collection of all $\dupW^{l, i}$s. 
+    The rest of the proof is easy according to the equivalence between $f_\theta$ with perturbations removed and $g_{\efftheta}$.
+\end{proof}
+\begin{remark}
+    Although $\trace{\hessian[\efftheta]}$ is involved by an inequality, considering the large portion of $\dupW$ parameters, $\sum_{l} \sum_{W \in \set{K, V}} \sum_{i} \ex{\norm{\derivatives{\ce(g_{\efftheta}, (X, Y))}{\dupW^{l, i}}}_2^2}$ can in fact represent $\trace{\hessian[\efftheta]}$ well. If this argument is not satisfying, then perturb all parameters in the same way so that ``$\le$'' becomes ``$=$''.
+\end{remark}
+
+So by training a weight-perturbed non-pure-MLP network to have low losses, we are helping its pure-MLP equivalence reaching flat minima, where effective gradient sparsity can be directly obtained in \cref{theorem:main_with_effective_duplication}. If we assume 
+\begin{align}
+    \frac{1}{\sigma^2} \ex[(X, Y), E]{\left(\ce(f_\theta, E, (X, Y)) - \ce(f_\theta, 0, (X, Y))\right)^2} \le \trace{\hessian[\efftheta]}
+\end{align}
+is indeed suppressed during training because losses are suppressed to near-zero values, then \cref{theorem:main_with_effective_duplication} is meaningful.
+
+\begin{theorem}[Flatness and sparsity under tokenwise synapse noise perturbations]\label{theorem:main_with_effective_duplication}
+    Inherit the assumptions of \cref{theorem:main} as well as notations in \cref{lemma:flatness_of_perturbed_model}. Further assume that weight matrices are independently perturbed before multiplying with any individual tokens during training, then
+    \begin{align}
+        &   \frac{1}{\sigma^2} \ex[(X, Y), E]{\left(\ce(f_\theta, E, (X, Y)) - \ce(f_\theta, 0, (X, Y))\right)^2} + n d L k \cdot o\left(1\right) \\& + \sum_{i, l} \ex{\left(\eta^l_i\right)^\transpose \kkT \eta^l_i}\\
+        =& \sum_{i, l} \ex{\left(\eta^l_i\right)^\transpose \kkT \eta^l_i} + \sum_{i, l} \ex{\norm{x^{l-1}_i + d^l_i}_2^2 \norm{\eta^l_i}_2^2} + \sum_{i, l} \ex{\norm{g^l_{V, i}}_2^2 \norm{\alpha^l_i}_2^2} \\
+        \le&    \trace{\hessian[\tilde{\theta}]} + \trace{\hessian[\theta_D]}
+        \label{eq:main_with_effective_duplication},
+    \end{align}
+    where $\tilde{\theta}$ stands for the perturbation-induced effective parameter where weight matrices are really duplicated so that each of them serves one token and $\theta_D$ is the collection of parameters in all zeroth biases.
+    If no-affine LayerNorms are applied, there is further
+    \begin{align}
+        &   \frac{1}{\sigma^2} \ex[(X, Y), E]{\left(\ce(f_\theta, E, (X, Y)) - \ce(f_\theta, 0, (X, Y))\right)^2} + n d L k \cdot o\left(1\right)\\
+        \\& + \sum_{i, l} \ex{\left(\eta^l_i\right)^\transpose \kkT \eta^l_i}\\
+        =&  \sum_{i, l} \ex{\left(\eta^l_i\right)^\transpose \kkT \eta^l_i} + \left(\sqrt{d} - c\right)^2 \sum_{i, l} \ex{\norm{\eta^l_i}_2^2} + \sum_{i, l} \ex{\norm{g^l_{V, i}}_2^2 \norm{\alpha^l_i}_2^2}\\
+        \le&   \trace{\hessian[\tilde{\theta}]} + \trace{\hessian[\theta_D]},\\
+    \end{align}
+    where $c=0$ if non-$\dbmlp$s are used, otherwise $c$ is the norm bound of columns in zeroth biases.
+    
+    By \cref{lemma:eff_and_sparsity}, for $\relu$ networks, $\left(\sqrt{d} - c\right)^2 \sum_{i, l} \ex{\norm{\eta^l_i}_2^2}$ terms in the above equations can be replaced by $\left(\sqrt{d} - c\right)^2 \cdot \ex[X, l, i, j]{\left(g^l_{K, i, j}\right)^2 \mid \alpha^l_{i, j} > 0} \cdot \sum_{i, l} \ex{\norm{\alpha^l_i}_0}$ to have a direct relation with activation sparsity.
+\end{theorem}
+Aside from Transformers, tokenwisely perturbed CNNs, channel mixing layers of MLP-Mixers and other potential architectures apply, as long as they have MLP blocks and the perturbed loss is small enough.
+Additionally, this bound is also very tight by the tightness of \cref{lemma:flatness_of_perturbed_model} or by counting parameters, so perturbed error's reduction or the flatness of the effective model inevitably leads to a reduction in sparsity.
+\arxivonly{A simple algorithm $\magic$ is immediate after \cref{lemma:flatness_of_perturbed_model} and \cref{theorem:main_with_effective_duplication}, which is listed in \cref{appendix:magic} in order not to disrupt the presentation of major theoretical results.}
+
+\subsubsection{The First Term from Zeroth Biases}
+
+Now we look back to the first term in \cref{eq:main}. Although the first term seems to have minor weight compared to others, either by counting parameters or by decomposing eigenvalues of $\kkT$ (see \cref{fig:eigenvalues_of_kkT}), an investigation is still worthy since it leads to another phenomenon of spectral concentration in $\kkT$ and introduces random matrix theory to reason about training dynamics. 
+
+In the first term, since the gradient of the inner product w.r.t. $\eta^l$ is 
+\begin{align}
+    2 \kkT \eta^l,
+\end{align}
+there is an \emph{overall} positive tendency toward sparsity if $\trace{\hessian}$ is suppressed, because $\left(\eta^l\right)^\transpose 2 \kkT \eta^l$ is non-negative, i.e., partial derivatives w.r.t. $\eta^l$ are always overall positive if they are weighted by values in $\eta^l$ themselves. 
+
+It is better to reach a non-overall conclusion. Moreover, there are two possibilities that can also achieve implicit adversarial robustness: reducing the norm of $\kkT$, or misaligning the non-null space of $\kkT$ with $\eta^l$. 
+The first alternative can already be eliminated by parameter growth observed by \citet{parameter_growth}, where Transformers are observed to have increasing parameter norms during training. We also empirically verify this phenomenon under CV and NLP settings and show that the trace, or the sum of eigenvalues, will not decrease drastically during training in \cref{sec:t_exp:spectral_increase}, even under weight decay. 
+Another possible elimination is normalization layers, which make parameters scale-invariant and introduce normalized effective parameters \citep{zhang_three_2018} with moderate norms. However, this requires a total reform of the theory to utilize effective weight matrices so we simply hide normalization layers in $M$ and leave it, and especially its interaction with weight decay, for future works.
+
+The other alternative is dealt with in the next two subsections, where single-token features are used in proofs but the theories apply to stacked hidden features.
+To give a brief account, in the following subsections we will prove that non-zero eigenvalues of $\kkT$ have similar values. So if gradients have moderate projections in the non-null subspace of $\kkT$, then $\left(\eta^l\right)^\transpose \kkT \eta$ can be lowerbounded by $\lambda r \left(\eta^l\right)^\transpose \left(\eta^l\right)$, where $r \le 1$ indicates how much of $\eta^l$ falls in the non-null space of $\kkT$ and $\lambda$ is the smallest non-zero eigenvalue or some averaged non-zero eigenvalues of $\kkT$, which is not too small compared to the largest one. Assuming gradients are still back-propagated to shallower layers, $\lambda r \left(\eta^l\right)^\transpose \eta^l$ can only be suppressed by decreasing $\norm{\eta^l}_2^2$ given that $\lambda$ increases with the trace of $\kkT$.
+In \cref{sec:spectral_init} we prove this phenomenon at initialization in \cref{theorem:initial_spectral_properties} that the largest eigenvalue is initially at most $9$ times larger than the smallest non-zero one in Base-sized Transformers. The proof is based on ubiquitous Xavier or Kaiming initializations and Marchenko-Pastur distribution from random matrix theory.
+In \cref{sec:spectral_training}, we theoretically discuss its re-emergence during stochastic training. We first rewrite the updates to the weight matrix $K^l$ into two large random matrices, whose shape is hidden dimension times the number of samples used in training. We then extend Marchenko-Pastur distribution in \cref{theorem:spectral_of_accumulated} under the practical inter-batch dependence, intra-batch independence and non-asymptotic scenario to prove an upperbound on the fraction between the largest and smallest non-zero eigenvalues. Conditions and assumptions of the theorem are verified empirically in \cref{sec:t_exp:anisotropy}. There are still gaps in combining the two random matrices, so we measure the spectral concentration in $\kkT$ empirically in \cref{sec:t_exp:spectral_concentration} and leave a more rigorous discussion for future works.
+
+\input{theory/spectral.tex}

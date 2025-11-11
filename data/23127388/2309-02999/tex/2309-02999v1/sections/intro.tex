@@ -1,0 +1,163 @@
+\section{Introduction}
+\label{sec:intro}
+
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=\linewidth]{fig/teaser.pdf}
+    \vspace{-5mm}
+	\caption{
+    	\textbf{A comparison between our proposed methods and conventional ``detect-then-describe'' pipelines.}
+        % 
+        (a) The ``detect-then-describe'' pipelines build explicit relation modules directly on a detector's box-estimations, resulting in cumulative errors and heavy reliance on hand-crafted components. 
+        % 
+        (b) The proposed Vote2Cap-DETR frames 3D dense captioning as a set prediction problem and decouple the decoding process of object localization and caption generation. 
+        % 
+        (c) In the proposed Vote2Cap-DETR++, we further decouple the queries to capture task-specific features.
+    }
+	\label{fig:teaser}
+\end{figure}
+
+
+\IEEEPARstart{R}{ecent} years have witnessed significant growth in the field of 3D learning for various applications\cite{guo2020deep,xiao2023unsupervised,chen2023executing,yin2022coordinates,lin2021learning,hu2021learning,meng2021towards}. 
+% 
+As part of this trend, the task of 3D dense captioning\cite{chen2021scan2cap} has emerged, which requires a model to localize and generate descriptive sentences for all objects within an input 3D scene. 
+% 
+This problem is challenging, given 1) the sparsity of a point cloud and 2) the cluttered 3D scene.
+
+
+
+
+
+Prior works have achieved great success in 3D dense captioning.
+% 
+Scan2Cap\cite{chen2021scan2cap}, SpaCap3D\cite{wang2022spacap3d}, MORE\cite{jiao2022more}, and REMAN\cite{mao2023complete} extract relations among box estimations with well-designed relation modeling modules.
+% 
+Concurrently, \cite{zhong2022contextual3DdenseCap} introduces an additional contextual branch to capture non-object information.
+% 
+3DJCG\cite{cai20223djcg}, D3Net\cite{chen2021d3net}, and 3D-VLP\cite{jin2023context} study the mutual promotion of various \textbf{3D} \textbf{V}ision-\textbf{L}anguage (3DVL) tasks, containing additional tasks like \textbf{3D} \textbf{V}isual \textbf{G}rounding (3DVG), \textbf{3D} \textbf{Q}uestion \textbf{A}nswering (3DQA).
+% 
+$\chi$-Trans2Cap\cite{yuan2022x-trans2cap} also shows that transferring knowledge from additional 2D information could also improve the quality of captions generated.
+
+
+
+
+Among the existing methods, they all adopt the ``detect-then-describe'' pipeline (Figure \ref{fig:teaser}, upper).
+% 
+Specifically, they perform object localization and description generation in a cascade way by modeling relations among box estimations.
+% 
+Though these methods have achieved remarkable performance, the ``detect-then-describe'' pipeline suffers from the following issues: 
+% 
+1) Because of the serial and explicit reasoning, the latter modules depend heavily on object detection performance.
+% 
+The duplicate box predictions cause confusion and limit the mutual promotion of detection and captioning.
+% 
+2) The pipeline requires a vast number of hand-crafted components, such as 3D operators\cite{qi2017pointnet++}, relation graphs within box estimations\cite{chen2021scan2cap,jiao2022more}, and \textbf{N}on-\textbf{M}aximum \textbf{S}uppression (NMS)\cite{neubeck2006nms} for post-processing.
+% 
+These hand-crafted components introduce additional hyper-parameters, leading to a sub-optimal performance given the sparse object surfaces and messy indoor scenes.
+% 
+% This inspires us to design a 3D dense captioning system that decouples the captioning procedure from object localization.
+
+
+
+To address the above issues, we first propose a preliminary model named Vote2Cap-DETR, which is a full transformer\cite{vaswani2017attention} encoder-decoder model that decouples decoding process of caption generation and object localization in 3D dense captioning.
+% 
+Unlike the conventional ``detect-then-describe'' pipeline, Vote2Cap-DETR decouples the captioning process from object localization by applying two parallel task heads.
+% 
+By further casting 3D dense captioning to a set-to-set problem, we associate each target instance and its language annotation with a distinctive query, encouraging the models to learn more discriminative proposal representations, which in turn helps to identify each distinctive object in a 3D scene.
+% 
+To further facilitate the model's localization ability, we propose a novel vote decoder by reformulating the object queries in 3DETR\cite{misra2021-3detr} into the format of vote queries, which is a composition of the embedding and the vote spatial transformation of seed points.
+% 
+This also builds the connection between the vote queries in Vote2Cap-DETR and the VoteNet\cite{qi2019votenet}, but with a higher localization capacity.
+% but with better localization and higher training efficiencies.
+% 
+Besides, we develop a novel query-driven caption head that captures relation and attribute information through self- and cross-attention for descriptive and object-centric object captions.
+% 
+
+
+\whatsnew{
+Though Vote2Cap-DETR has established an elegant decoupled decoding approach to 3D dense captioning, it still has certain limitations.
+% 
+Localizing scene objects necessitates different levels of scene understanding from generating informative scene object descriptions.
+% 
+The former relies on a model's perception of an object's 3D structures to generate tight bounding boxes, while the latter relies on sufficient attribute information and spatial relations.
+% 
+Therefore, decoding the same set of queries to descriptions and box estimations makes it difficult for a model to capture discriminative features for either task, resulting in a sub-optimal performance.
+}
+
+
+\whatsnew{
+To address this issue, we further introduce an advanced framework, namely Vote2Cap-DETR++, to remove the obstacles to extracting task-specific features.
+% 
+As is shown in Figure \ref{fig:teaser} (bottom), we decouple the queries into 3D localization queries (``[LOC]'') and caption queries (``[CAP]'') with a shared transformer decoder for decoupled sub-task decoding.
+% 
+The two sets of queries correspond with each other, as they are tied to the same box-caption estimation.
+% 
+We further propose two additional strategies for better object localization and caption generation.
+% 
+First, we introduce the iterative refinement strategy for vote queries in the transformer decoder to progressively shorten the distance between query points and objects.
+% 
+This leads to faster convergence and better detection performance. 
+% 
+In addition, we insert an additional 3D positional encoding token to the caption prefix and apply a rank-based positional encoding for local surrounding guidance to help the caption head identify the exact location of a query for accurate caption generation.
+% 
+We empirically show that the advanced model, Vote2Cap-DETR++, performs consistently better than the preliminary version through extensive experiments.
+}
+
+
+\whatsnew{
+The preliminary version is published in \cite{chen2023vote2cap}.
+% 
+Compared to that, we have made significant improvements and extensions in three folds.
+% 
+We propose the decoupled-and-correspond queries to capture task-specific features for object localization and caption generation.
+% 
+Besides, we introduce a spatial refinement strategy on vote queries for faster convergence and better detection performance.
+% 
+Concurrently, we insert 3D spatial information into the caption generation process for more accurate descriptions.
+% 
+To the best of our knowledge, this is the first non-``detect-then-describe'' method for 3D dense captioning.
+% 
+With extensive experiments, we show that the advanced framework outperforms the preliminary version by a large margin.
+% 
+To facilitate and inspire further research in 3D dense captioning, we have made our codes partially available in \href{https://github.com/ch3cook-fdu/Vote2Cap-DETR}{https://github.com/ch3cook-fdu/Vote2Cap-DETR}, and we will keep updating codes for the advanced version.
+}
+
+
+
+
+Experiments on two commonly used datasets demonstrate that both proposed approaches surpass prior ``detect-then-describe'' approaches with many hand-crafted components by a large margin.
+% 
+Our preliminary framework, Vote2Cap-DETR, achieves 73.77\% and 45.53\% C@0.5 on the validation set of ScanRefer\cite{chen2020scanrefer} and Nr3D\cite{achlioptas2020referit3d}, respectively.
+% 
+Remarkably, the advanced version, Vote2Cap-DETR++, further achieves 78.16\% C@0.5 (\textcolor{mygreen}{+4.39}\%) and 47.62\% C@0.5 (\textcolor{mygreen}{+2.09}\%), which surpasses the preliminary version, and sets new state-of-the-art records on both datasets.
+
+
+
+
+To summarize, this paper's main contributions include:
+
+\begin{itemize} 
+\setlength\itemsep{0em}
+    \item We propose two transformer-based 3D dense captioning frameworks that decouple the caption generation from object localization to avoid the cumulative errors brought up by the explicit reasoning on box estimations in ``detect-then-describe'' pipelines.
+
+    \item We decouple the decoding process and feature extraction in 3D dense captioning to help the model learn discriminative features for object localization and description generation. 
+    % 
+    By further introducing the iterative spatial refinement strategy for queries and incorporating additional spatial information into caption generation, our method can generate bounding boxes and descriptions in a higher quality.
+    
+    \item Extensive experiments show that both the proposed Vote2Cap-DETR and Vote2Cap-DETR++ set new state-of-the-arts on both Nr3D\cite{achlioptas2020referit3d} and ScanRefer\cite{chen2021scan2cap}.
+\end{itemize} 
+
+
+
+\whatsnew{
+The remainder of this paper is organized as follows.
+% 
+We first briefly introduce the related works on 3D Vision-Language tasks, 3D dense captioning, DETRs, and other visual captioning tasks in Section \ref{sec:related}.
+% 
+Then, we deliver basic information for transformers before introducing our proposed Vote2Cap-DETR and Vote2Cap-DETR++ in Section \ref{sec:method}.
+% 
+After that, we take out extensive experiments and visualizations to verify the effectiveness of our proposed methods in Section \ref{sec:exp}.
+% 
+Finally, we state the limitations of our work in Section \ref{sec:limitations} and draw the conclusions in Section \ref{sec:conclusion}.
+}

@@ -1,0 +1,50 @@
+\section{Special Layout for On-wafer Application}
+\label{sec:4}
+
+The presented SRM calibration method applies to any measurement setup where the standards can be implemented. However, a particular case for on-wafer calibration arises when considering that the distance between the probes must remain constant. Semi-automatic probe station users often request this requirement, where only the chuck platform is motorized. For these measurement setups, the standards must be implemented with a constant distance between the probes to perform the calibration automatically.
+
+Considering the standards depicted in Fig.~\ref{fig:3.1}, we can see that the right probe would need to be moved to the right to measure the network-load standard. The network standard already dictates the distance between the probes, and cascading another standard would naturally increase the spacing, requiring probe movement.
+
+In planar circuit calibration, as in on-wafer measurement setups, we can advantageously apply the property of the network standard to represent any symmetric transmissive network. Hence, we can split the network into two cascaded flipped asymmetric networks. With this notation, we can use half of the network to define the network-load standard.  An illustration of coplanar waveguide (CPW) standards is depicted in Fig.~\ref{fig:4.1}.
+\begin{figure}[th!]
+	\centering
+	\includegraphics[width=1\linewidth]{Figures/on_wafer_kit.pdf}
+	\caption{Illustration of CPW structures implementing the proposed half-network approach of SRM calibration. The match standard is optional if the symmetric impedance standard is reused as the match standard.}
+	\label{fig:4.1}
+\end{figure}
+
+For any symmetric network (i.e., $S_{ij}=S_{ji}$), we can divide its T-parameters into two cascaded networks that are identical and flipped \cite{Marks1992}. This network can be expressed as follows:
+\begin{equation}
+	\bs{N} = \underbrace{\bs{R}}_{\text{left half}}\underbrace{\bs{P}\bs{R}^{-1}\bs{P}}_{\text{right half}}
+	\label{eq:4.1}
+\end{equation}
+where $\bs{P}$ represents the permutation matrix, as defined in \eqref{eq:2.11}, and $\bs{R}$ is the half-asymmetric part of the network standard. 
+
+By substituting \eqref{eq:4.1} into \eqref{eq:3.1}, and the right and left half networks into \eqref{eq:3.3a} and \eqref{eq:3.3b}, respectively, we obtain the following expressions:
+\begin{subequations}
+	\begin{align}
+		\bs{M}_\mathrm{net} &= k\bs{A}\bs{R}\bs{P}\bs{R}^{-1}\bs{P}\bs{B}\\
+		\bs{F}_a &= \eta\bs{A}\bs{R}\bs{P}\bs{B}\bs{P}, \qquad \forall\,\eta \neq 0\\
+		\bs{F}_b &= \zeta\bs{A}\bs{R}^{-1}\bs{P}\bs{B}\bs{P}, \qquad \forall\,\zeta \neq 0.
+	\end{align}
+	\label{eq:4.2}
+\end{subequations}
+
+Therefore, by combining the results of the above expressions with $\bs{H}$ from \eqref{eq:2.13}, we create a virtual thru standard as follows:
+\begin{subequations}
+	\begin{align}
+		\bs{M}_\mathrm{thru} &= \bs{H}\bs{F}_a^{-1}\bs{M}_\mathrm{net}\bs{P}\bs{H}^{-1}\bs{F}_a\bs{P} = k\bs{A}\bs{B},\\
+		\bs{M}_\mathrm{thru} &= \bs{F}_b\bs{H}^{-1}\bs{M}_\mathrm{net}\bs{P}\bs{F}_b^{-1}\bs{H}\bs{P} = k\bs{A}\bs{B}.
+	\end{align}
+	\label{eq:4.3}
+\end{subequations}
+
+With the virtual thru standard being established, the remaining calibration process follows the same procedure discussed in the previous section.
+
+One elegant application using half-network standards is the use of angled calibration. This method involves positioning the probes at an angle rather than facing each other. Traditional calibration methods such as TRL, LRM, and LRRM do not allow this type of calibration, whereas SOLR is often used for such scenarios \cite{Basu1997}. Fig.~\ref{fig:4.2} illustrates a potential implementation of the network and half-network standards at a $90^\circ$ angle.
+\begin{figure}[th!]
+	\centering
+	\includegraphics[width=1\linewidth]{Figures/on_wafer_kit_angled.pdf}
+	\caption{Illustration of CPW structures implementing the half network-load standards in an orthogonal orientation. The symmetric one-port standards are not shown, as they do not pose any mechanical challenge in orthogonal orientation.}
+	\label{fig:4.2}
+\end{figure}

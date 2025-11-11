@@ -1,0 +1,127 @@
+\section{Method: G-Prompt}
+Utilizing the information of downstream tasks and graphs is crucial for generating high-quality node representations. 
+The term ``high quality'' is inherently task-specific, as exemplified by the fact that height is a useful feature in predicting user weight but fails to accurately predict age. 
+Besides,  the valuable topological information of TAGs can significantly enhance the understanding of textual features in TAGs. 
+However, extracting node features using both task and graph information simultaneously is significantly challenging. 
+Current PLMs used for handling textual features are graph-free, while current graph-based methods employed to extract node features are primarily task-free. Therefore, this paper proposes a novel self-supervised method, G-Prompt, capable of extracting task-specific and graph-aware node representations. 
+
+\begin{figure*}[t]
+	\centering
+	\includegraphics[width=0.95\textwidth]{./picture/Model.pdf}
+	\caption{Framework of G-Prompt}
+	\label{fig:exp}
+\end{figure*}
+
+\subsection{Overview}
+
+While previous works have frequently employed PLMs to process TAGs, these investigations have been constrained in extracting a broad node representation from the text-based characteristics and have not incorporated task-specific prior knowledge. 
+Consequently, additional learning supervision via GNNs is needed to enable the effective adaptation of these node representations to downstream tasks. 
+To address this limitation, the paper suggests incorporating prompts and PLMs into the process of extracting task-relevant node features from TAGs.
+%\hkq{which should be highlighted in the next sentence }
+Nevertheless, PLMs only utilize contextual information to generate the prompts-related output, which may be insufficient for handling TAGs.
+Graph structures often contain essential information that can facilitate a better understanding of textual features.
+For instance, in a citation network, a masked sentence such as \textit{``This paper focuses on [MASK] learning in AI domain''} could have multiple candidate tokens based solely on context.
+However, if many papers related to graphs are cited, we can infer with greater confidence that the masked token is likely \textit{``graph''}. 
+At present, PLMs operate solely based on context, and their structure is graph-free. 
+Directly incorporating graph information into PLMs by prompts is not feasible because limited prompts cannot describe the entire topological structure adequately.
+
+Therefore, the proposed G-Prompt leverages a self-supervised based graph adapter and prompts to make PLMs aware of the graph information and downstream task. Given a specific TAG, the pipeline of G-Prompt is as follows: 
+(1) Training an adapter on the given TAG to make PLMs graph-aware. 
+Specifically, we propose a graph adapter that operates on the prediction layer of PLMs to assist in capturing graph information, which is fine-tuned by the fill-mask task based on the textual data contained by the given TAG. 
+(2) Employing task-specific prompts and fine-tuned graph adapters to generate task-aware and graph-aware node features.
+
+\subsection{Fine-Tuning PLMs with the Graph Adapter}
+
+% Currently, PLMs that have undergone large-scale text data pre-training have strong contextual understanding abilities and generalization abilities which form the basis for us to extract specific task information using prompts. 
+Using adapters to enable PLMs to perceive graph information is a straightforward idea. 
+However, unlike adapters used for downstream task fine-tuning \cite{hu2021lora,liu2022few}, the graph adapter is used to combine prompts in order to extract task-relevant node representations. 
+This is an unsupervised process, which means that the graph adapter only receives self-supervised training on given TAGs. 
+Consequently, the most challenging aspect of graph adapters is how to assist PLMs in perceiving graph information while also maintaining their contextual understanding capability. 
+Additionally, the graph adapter is only trained on a given TAG, generalizing to prompt tokens can also be quite difficult.
+Next, we introduce the graph adapter and discuss how it overcomes these challenges in detail.
+
+% The focus of this paper is on promoting the PLM to extract node features of TAGs, which is essentially a fill-mask task. Therefore, this paper proposes Graph Adapter, which \textbf{targets maximally retaining LMs' contextual modeling ability while enabling them to incorporate graph information during the fill-mask process.}
+
+\textbf{Context-friendly adapter placement.} 
+The fill-mask task involves two modules of PLMs: a transformer-based module that models context information to obtain representations of masked tokens and a linear transformation that decodes the representation to output the probable IDs of the masked token.
+To avoid compromising the contextual modeling ability of PLMs, the Graph Adapter only perform on the last layer of PLMs.
+More specifically, the graph adapter is a GNN structure combing with the pre-trained final layer of the PLMs.
+Given a specific masked token $\hat{s}_{i,k}$, The inputs of the Graph Adapter are the masked token $\hat{h}_{i,k}$, sentence representations of node $i$ and its neighbors and output is the prediction of the IDs' of the masked token. 
+This process aligns with intuition — inferring a possible token based on context first and then determining the final token based on graph information. Formally,
+\begin{equation}
+    \hat{y}_{i,k} =  \textbf{GraphAdapter} \{f_{\rm{LM}}, \hat{h}_{i, k}, z_i, \{z_j \in \mathcal{N}_i\}, \Theta\},
+\end{equation}
+where the $z_i$ and $z_j$ denote the sentence embedding of node $i$ and $j$. Note, sentence embedding is task-free and only used to model nodes' influence on their neighbor.
+In this paper, we utilize sentence embedding of nodes' textual features as their node feature. 
+$\Theta$ is all trainable parameters of the Graph Adapter. 
+
+\textbf{Prompting-friendly network structure}.
+% The hidden state of the masked token contains contextual information extracted through the transformer in PLMs. 
+% Therefore, directly manipulating it may also affect the contextual information it contains.
+The parameters of the adapter are only trained on the fill-mask task based on the textual data contained by the target TAG. 
+But the adapter will be used for combining prompts to generate task-related node features in various subsequent downstream tasks.
+So the generalization ability of the adapter is crucial. 
+On the one hand, the distribution of hidden states responding to masked tokens in prompts may be different from the hidden states used to train the adapter. 
+On the other hand, the candidate tokens for task-specific prompts may not appear in the tokens of the TAG. 
+Therefore, we carefully design the network structure of the graph adapter and utilize the pre-trained prediction layer of PLM to improve its generalization ability of it.
+
+When it comes to the graph adapter's training stage, it's possible that the hidden states associated with certain prompts may not be present. This means that directly manipulating those hidden states could result in overfitting the tokens already present in the TAGs.
+Therefore, the graph adapter models the influence of each modeled node on the distribution of surrounding neighbor tokens based on node feature, which remains unchanged when prompts are added. Considering that some tokens can be predicted well based solely on their context and that different neighbors may have different influences on the same node, the impact of a neighbor on a token is determined jointly by a gate mechanism and the token's context. Give a specific node $i$, it's neighbor $j$, and hidden states of a masked token $\hat{h}_{i,j}$,
+\begin{equation}
+    \tilde{h}_{i, k, j} = a_{ij}\hat{h}_{i,k} + (1-a_{ij})g(z_j,\Theta_g)
+\end{equation}
+where $a_{ij} = \mathrm{sigmoid}((z_iW_q)(z_jW_k)^T)$. Here, $g(\cdot)$ represents multi-layer perceptions (MLPs) with parameters $\Theta_g$ that model the influence of node $j$.
+It is worth noting that when considering the entire graph, $g(z_j, \Theta_g)$ will be combined with many marked tokens of node $j$'s neighbors, which can help to prevent $g(z_j, \Theta_g)$ from being overfitted on a few tokens.
+
+Subsequently, the graph adapter combines all neighbor influence to infer the final prediction result. Since the prediction layer of PLM (i.e., $f_{LM}(\cdot)$) is well-trained on massive tokens, it also contains an amount of knowledge. Therefore, the graph adapter reuses this layer to predict the final result. 
+\begin{equation}
+    \tilde{y}_{i,k} =  \mathbf{Pool}\{f_{\rm{LM}}(\tilde{h}_{i, k, j}) | j\in \mathcal{N}_i\},
+\end{equation}
+In this equation, the $\mathbf{Pool}(\cdot)$ used in this paper is mean-pooling. 
+It is worth noting that the position of $f_{\rm{LM}}(\cdot)$ can be interchanged with pooling since it is just a linear transformation. All trainable parameters in the graph adapter are denoted by $\Theta = \{\Theta_g, W_q, W_k\}$.
+
+
+\subsection{Model optimization of G-Prompt}
+
+The graph adapter is optimized by the original fill-mask loss, $\mathcal{L}_{i,k} = \mathrm{CE} (\tilde{y}_{i,k}, y_{i,k})$, where $\hat{y}_{i,k}$ is the predicted probability of the $k$-th masked token for the node $i$ and $y_{i,k}$ is the true label. We aim to minimize $\mathcal{L}_{i,k}$ with respect to $\Theta$. 
+
+However, in actual optimization, the prediction results of $\tilde{y}_{i,k,j} = f_{\rm{LM}}(\tilde{h}_{i, k, j})$ consist of many small values because of the large vocabulary size of the language model. 
+Therefore, using mean-pooling presents a significant problem as it is insensitive to these small values. For example, during some stages of the optimization process, a node may have mostly $0.9$ predictions for the ground truth based on each edge, with only a few being $0.1$. 
+Averaging them together would result in a very smooth loss, making it difficult to train the influence of neighbors with temporarily predicted values of 0.1. 
+To address this issue, we use geometric mean instead of mean-pooling in the finetuning stage of the graph adapter, which is more sensitive to small values. 
+It is easy to prove that the geometric mean of positive numbers is smaller than the arithmetic means, making it harder to smooth and helping the model converge faster. formally, in finetuning stage, the loss function is:
+\begin{equation}
+    \mathcal{L}_{i,k} = - y_{i,k} \odot \log\{(\prod_{j\in \mathcal{N}_i}{\tilde{y}_{i,k,j}})^{1/|\mathcal{N}_i|}\}
+    = -\sum_{j\in \mathcal{N}_i}{ \frac{1}{|\mathcal{N}_i|}y_{i,k}\odot \log(\tilde{y}_{i,k,j})} 
+\end{equation}
+On the right-hand side of the equation, we are essentially minimizing $\tilde{y}_{i,k,j}$ through the cross-entropy loss $\mathcal{L}_{i,k,j}= \frac{1}{|\mathcal{N}_i|}\mathrm{CE}(\tilde{y}_{i,k,j},y_{i,k})$. It is worth noting that the graph adapter is only performed on the last layer of PLMs. As a result, we can sample a set of masked tokens and preserve their hidden states inferred by the PLMs before training. This implies that training of graph adapters can be achieved with very few computing resources.
+\subsection{Prompt-based Node Representations}
+After training the graph adapter, it can be combined with task-specific prompts to generate task-specific and graph-aware node representations. Similar to other prompt-based approaches, we simply add task-specific prompts directly into the textual feature. For example, we might use the prompt ``This is a [MASK] user, consider their profile: [textual feature].'' Formally, this process can be expressed as $\hat{h}_{i|p} = \mathbf{PLM}(\{[P_0],[P_1]...[MASK],S_i\})$.
+Where, $\hat{h}_{i|p}$ represents the hidden state of the inserted [MASK], while $[P_0],[P_1]...$ refers to the task-specific prompts. The resulting hidden state is then fed into the graph encoder to decode the most probable token.
+\begin{equation}
+    \hat{y}_{i|p} = \mathbf{Pool}\{{f_{\rm{LM}}(a_{i,j}\hat{h}_{i|p}+(1-a_{i,j})g(z_j,\Theta_g))} | j\in \mathcal{N}_i\}
+\end{equation}
+$\hat{y}_{i|p}$ is a $|D|$-dimensional vector, where $|D|$ is the size of the PLM vocabulary. Therefore, directly using this prediction result for node representation is not conducive to downstream tasks and storage. Thus, we use the filtered results as node features, denoted by 
+$
+    x_{i|p} = \mathrm{Filter}(\hat{y}_{i|p})
+$. 
+Note, each dimension represents the probability of a token being inferred by PLMs with the graph adapter based on node textual features, neighbors' information, and task-respected prompts. Intuitively, tokens that are unrelated to downstream tasks are almost the same for all nodes. 
+Therefore, for $Y_{p} \in \mathbb{N}^{|V|\times|D|}$, which denotes prediction results of all nodes. This paper sorts all columns of $Y_p$ in descending order of standard deviation and keeps the top $M$ columns as the node features. Note, we can also manually select task-relevant tokens based on prior knowledge of the task and use them as node features. 
+% \subsection{Model optimization of G-Prompt}
+% The optimization objective of G-Prompt is straightforward: (1) model the impact of each neighbor on a node's word distribution and (2) infer masked words based on the influence of all neighbors. 
+% However, in actual optimization, the large vocabulary size of the language model leads to the prediction results of $\hat{y}_{i,j,k}$ that consist of many small values after softmax. 
+% Therefore, using mean-pooling during optimization presents a significant problem as it is insensitive to these small values. For example, during some stages of the optimization process, a node may have mostly 0.9 predictions for the ground truth based on each edge, with only a few being 0.1. 
+% Averaging them together would result in a very smooth loss, making it difficult to train the neighbors with temporarily predicted values of 0.1. 
+% To address this issue, we use geometric mean instead of mean-pooling in the finetuning stage of the Graph Adapter, which is more sensitive to small values. 
+% It is easy to prove that the geometric mean of positive numbers is smaller than the arithmetic means, making it harder to smooth and helping the model converge faster. formally, in finetuning stage, the pooling function is:
+% \begin{equation}
+%     \mathbf{Pool}^{tr}\{\hat{y}_{i,j,k} | j\in \mathcal{N}_i\} = (\prod_{j\in \mathcal{N}_i}{\hat{y}_{i,j,k}})^{1/|\mathcal{N}_i|}
+% \end{equation}
+
+% Considering that multiplication may easily exceed the precision of calculations, we have expanded the loss function based on geometric mean aggregation during optimization. The formula is as follows:
+% \begin{equation}
+%     \mathcal{L}_{i,k} = - y_{i,k} \odot \log\{(\prod_{j\in \mathcal{N}_i}{\hat{y}_{i,j,k}})^{1/|\mathcal{N}_i|}\}
+%     = -\sum_{j\in \mathcal{N}_i}{ \frac{1}{\mathcal{N}_i}y_{i,k}\odot \log(\hat{y}_{i,j,k})}
+% \end{equation}
+
+% Therefore, the whole training pipeline is: 

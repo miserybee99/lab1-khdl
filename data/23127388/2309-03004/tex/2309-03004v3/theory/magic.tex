@@ -1,0 +1,39 @@
+\section{Theoretically Guided Magic: Massive Perturbation with Small Computation Cost and Good Parallelism}\label{appendix:magic}
+
+\cref{lemma:flatness_of_perturbed_model} and \cref{theorem:main_with_effective_duplication} state that by adding massive synaptic noises (non-massive synaptic noises for single tokens can be found in works of \citet{synaptic_noise_1,synaptic_noise_2}) to weight matrices during forward propagation as in \cref{eq:massive_perturbation}, we are training a $k$ times larger effective model and optimizing its flatness w.r.t. these $k$ times parameters, where $k$ is the number of tokens. 
+These noises can potentially greatly improve the generalization of deep CNNs, Transformers, MLP-Mixers or other architectures as long as they split input into multiple tokens.
+
+However, \cref{eq:massive_perturbation} requires adding noises to weight matrices independently for each token before matrix multiplication, which is unfriendly to GPUs who prefer stacked matrix multiplication. Direct application of \cref{eq:massive_perturbation} also requires $k \times n \times d$ independent Gaussian noises. Therefore, here we propose an algorithm called $\magic$ that is friendly to parallelism and only requires $k \times n$ independent noises, which is the same number as dropout.
+
+The core motivation of $\magic$ is to add noises \emph{after} matrix multiplication, which is possible by merging multiple Gaussian noises into one.
+Let $Z^l$ be the result of multiplication with $\proxyW^{l, i}$s in \cref{eq:massive_perturbation} and $z^l_i \defeq Z^l_{\cdot,i}$ be the $i$-th (column) hidden vector/token in it. Then there is
+\begin{align}
+    z^l_i 
+    \defeq& \proxyW^{l, i} x_i
+    =   W^l x_i + E^{l, i} x_i
+    =   W^l x_i + \begin{bmatrix}
+        \inner{E^{l, i}_j}{x_i}
+    \end{bmatrix}_j\\
+    =&   W^l x_i + \begin{bmatrix}
+        \sum_{q} X^l_{q, i} \cdot E^{l, i}_{j, q}
+    \end{bmatrix}_j.
+\end{align}
+The summation is a linear combination of independent Gaussian variables, which is also Gaussian. Since entries in $E^{l, i}$ are assumed to follow $\gaussian{0}{\sigma^2}$, there is
+\begin{align}
+    \sum_{q} X^l_{q, i} \cdot E^{l, i}_{j, q} \sim \gaussian{0}{\sigma^2 \sum_{q} \left(X^l_{q, i}\right)^2} = \gaussian{0}{\sigma^2 \norm{x_i}_2^2}.
+\end{align}
+Note that $E^{l, i}_{j}$ is only used once for each $(i, j)$, so the linear combinations are independent and the perturbed matrix product simplifies to
+\begin{align}
+    z^l_i 
+    =&   W^l x_i + e^{l, i}, 
+\end{align}
+where $n$-variate Gaussian noise $e^{l, i} \sim \gaussian{0}{\sigma^2 \norm{x_i}_2^2 I}$.
+Therefore, we only need to compute the norm of input tokens, then sample $k \times n$ Gaussian noises columnly scaled by them and add the scaled noises to the matrix product, which is $\magic$. If zeroth biases are removed and LayerNorm layers are placed before linear layers, the squared norm further simplifies to constant $\norm{x_i}_2^2 = d$.
+
+Interestingly, $\magic$ is theoretically ensured by \cref{lemma:flatness_of_perturbed_model} and \cref{theorem:main_with_effective_duplication} to encourage flatness if the empirical loss is small enough, even though it is only a first-order optimization and requires only one forward and one backward propagations. 
+Moreover, by using $\magic$, one is magically expanding the number of parameters. Although their values are correlated, their flatness w.r.t. non-correlated perturbations is indeed optimized. To give a sense of this magical parameter expansion, for ViT-Base, $\magic$-ed ViT-Base is effectively 197 times larger, with approximately 17B flatness-effective parameters. In NLP tasks this expansion is even larger given the larger number of tokens.
+$\magic$ can be easily implemented as a PyTorch forward \texttt{Hook} that is registered on all linear layers, which is useful in almost any architectures. For CNN, which can be seen as MLPs with parameters de-duplicated, the computation of input norms can be tricky but is also possible and efficient by all-1-kernel convolution on squared input feature maps.
+
+$\sigma^2$ is a hyperparameter that must be determined beforehand. The noise should be small compared to the magnitudes of entries in weight matrices to allow approximation. However, the norm of parameters may change drastically during training, especially under weight decay. So a more practical solution is to adjust $\sigma^2$ dynamically. We consider a simple solution: for each weight matrix, we compute the average $L_1$ norm of entries in that matrix and multiply it with a pre-determined $\rho < 1$ to obtain $\sigma^2$. We call it $\magic[Adaptive]$.
+
+The experiments of $\magic$ is under preparation and will come in future works. We introduce it here only for completeness.

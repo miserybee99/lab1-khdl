@@ -1,0 +1,297 @@
+\section{Appendix}
+\subsection{Dataset details}
+
+\textbf{Arxiv}. This paper uses the public partition, ground truth, and text information provided by OGB\cite{hu2020open}. The few-shot train samples are sampled from the train set of public partition 
+
+\textbf{Instagram}. The original dataset for Instagram is provided by \cite{kim2020multimodal}. Since the original dataset did not contain graph information, we obtained users' follow lists, personal introductions, and tags for commercial users through Instagram's public API\footnote{\url{https://developers.facebook.com/docs/graph-api}}. Therefore, the node text feature for Instagram is the user's personal introduction, and the edge represents the mutual relationship.
+
+\textbf{Reddit}. Reddit is constructed on a public dataset \footnote{\url{https://convokit.cornell.edu/documentation/subreddit.html}} that collected replies and scores from Reddit users. The node text feature of this graph is the user's historical post content (limited to the last three posts per user), and the edge represents mutual replies between two users. We divided users into popular and normal categories based on their average score of history posts, with users whose average score is higher than the median considered popular and others considered normal.
+
+\subsection{Prompts}
+According to the information of the downstream task and graph, this article has designed simple prompts for each dataset. As shown in Table 5, all prompts are added before the node textual features. It should be noted that because PLMs are sensitive to prompts, different prompts may result in significant performance differences. However, how to find suitable prompts is not the focus of this paper, so no search for prompts is conducted.
+\begin{table}[h!]
+  \caption{Detailed prompts on three datasets. All prompts are added before node features.}
+    \label{Table:dataset}
+  \centering
+\resizebox{0.95\textwidth}{!}{
+      \begin{tabular}{ccc}
+        \toprule
+        
+        \textbf{Dataset}&\textbf{Node feature} &\textbf{prompts} \\ 
+         \hline
+        \textbf{Arxiv}& \{abstract\} & \{This paper is published on [mask] subjection, its abstract is: \}\\
+        \textbf{Instagram}& \{profile\} &\{This user is a [mask] user on Instagram, his profile is: \}\\
+        \textbf{Reddit}&\{content of last 3 posts \}&\{This user is a [mask] user on Reddit, his last 3 posts is: \}\\
+
+        %\cmidrule(r){1-5}
+        \bottomrule
+      \end{tabular}
+      }
+\end{table}
+
+\subsection{Baselines}
+\textbf{PLM-cls}. It represents using the hidden states of RoBERTa-Large directly corresponding to the [cls] token (without any prompts) as node features.
+
+\textbf{PLM-prompt-dense}. It represents using the hidden states of RoBERTa-Large directly corresponding to the mask in the prompt (without passing through the final prediction layer) as node features.
+
+\textbf{PLM-prompt-sparse}. It represents using the predicted results of RoBERTa-Large corresponding to the mask in the prompt (filtered in the same way as in G-Prompt) as node features.
+
+\textbf{GAE}. Its encoder consists of MLP and the input features are the [cls] representations of each node based on RoBERTa-Large (same as PLM-cls). We implement it based on the code provided by PyG\footnote{\url{https://pytorch-geometric.readthedocs.io}}. The training epochs are set to 300. The final node feature is the output of MLPs.
+
+\textbf{GAE+prompt}. The framework is similar to GAE, but its input features are the prompt representations, namely, PLM-Prompt-dense.
+
+\textbf{GIANT}. In Arxiv, we use the pre-trained model provided by the author\footnote{\url{https://github.com/amzn/pecos/tree/mainline/examples/giant-xrt}}. As the authors do not provide pre-trained models for Instagram and Reddit, we retrained GIANT on these two graphs using their provided code.
+
+\textbf{GIANT+prompt}. We do not modify the training pipeline of GIANT. During inference, all nodes' textual feature is augmented with the same prompts as in G-Prompt and then fed into the GIANT to obtain text features that include the prompts.
+
+\subsection{The pipeline of G-Prompt}
+\begin{algorithm}[H] %如果不能显示，这里要把[H]给加上就行了“H”是指定伪代码浮动体的位置
+  \caption{Training pipeline of G-Prompt}
+  \KwIn{Node textual feature $\mathbb{S}=\{S_i, i \in V\}$, graph $G = \{V,A\}$}
+  \KwOut{The trained parameters of the graph adapter $\Theta^*$}
+ 
+\tcp{Sample training token}
+  \For{$i:V$}{ 
+     $\hat{S}_i,C_i,Y_i = random\_mask(S_i,mask\_ratio)$\tcp{$C_i$ is the position set of masked tokens}
+     
+     $\hat{H}_i = \mathbf{PLM}(\hat{S}_i)$ \tcp{see Eq.(1)}
+  }
+  \tcp{Training}
+  \For{$epoch: range(max\_epoch)$}
+  {
+    \For{$i: V$}{
+        \For{$k: C_i$}{
+            \For{$j \in Sample(\mathcal{N}_i)$}{
+                $\tilde{h}_{i,k,j} = f_{\Theta}(\hat{h}_{i,k},z_j)$ \tcp{see Eq.(6)}
+                $\tilde{y}_{i,k,j} = f_{\mathrm{LM}}(\tilde{h}_{i,k,j})$ \\
+                $\mathcal{L}_{i,k,j} = CE(\tilde{y}_{i,k,j},y_{i,k})$\tcp{see Eq.(8)}
+                $backward(\mathcal{L}_{i,k,j}, \Theta)$
+            }
+        }
+    }
+  }
+  $\Theta^* = \Theta$ \; 
+  \textbf{return} $\Theta^*$
+\end{algorithm}
+
+\begin{algorithm}[H] %如果不能显示，这里要把[H]给加上就行了“H”是指定伪代码浮动体的位置
+  \caption{inferring pipeline of G-Prompt}
+  \KwIn{$\mathbb{S}=\{S_i, i \in V\}$, $G = \{V,A\}$, Prompts $P=\{p_1,p_2,...\}$, $\Theta^*$}
+  \KwOut{The node feature $\{x_{i|p},i\in V\}$}
+ 
+\tcp{Add prompts}
+  \For{$i:V$}{ 
+     $\tilde{S}_i = Concat(P,S_i)$ \;
+     $\hat{h}_{i|p} = \mathbf{PLM}(\tilde{S}_i)$ \tcp{see Eq.(3)}
+  }
+  \tcp{inferring}
+    \For{$i: V$}{
+            \For{$j \in \mathcal{N}_i$}{
+                $\tilde{h}_{i|p,j} = f_{\Theta^*}(\hat{h}_{i|p},z_j)$ \tcp{see Eq.(6)}
+                $\tilde{y}_{i|p,j} = f_{\mathrm{LM}}(\tilde{h}_{i|p,j})$ \\
+            }
+            $\tilde{y}_{i|p} = \mathbf{MeanPool}(\tilde{y}_{i|p,j}|j\in \mathcal{N}_i)$ \;
+            $x_{i|p} = \mathbf{Filter}(\tilde{y}_{i|p})$\;
+    }
+  \textbf{return} $\{x_{i|p},i\in V\}$\;
+\end{algorithm}
+
+\subsection{Implementation details}
+\textbf{Randomly mask sentences}. For each node in all datasets, we randomly replace 20\% of the tokens (textual features) with masked tokens during the training of the graph adapter.
+
+\textbf{Framework of the graph adapter}.
+In E.q (6), the hidden size of $a_{ij}$ is 256, and the MLP layer is set to 2. In the Arxiv, Instagram, and Reddit datasets, the hidden sizes of the MLPs are 7680, 3840, and 3840, respectively.
+
+\textbf{Training of the graph adapter}. During each epoch, every saved token will randomly select four neighbors for training. The batch size for the training stage is set to 10,000 pairs. The learning rate is set to 1e-6 and the weight decay is 0.01.
+
+All experiments are conducted on the PowerEdge T640, consisting of 46 Intel Xeon CPUs with 503GB of RAM and 2 Nvidia P100 GPUs with 16GB of memory each.
+
+\newpage
+\subsection{Table}
+\vspace{-20pt}
+\begin{table}[h]
+
+\caption{The performance in different shots on three datasets. Each row corresponds to a specific method. Every column lists the performance of the models in specific shot number per class of the dataset. Accuracy is used as evaluation metric for the task in Arxiv, while ROC-AUC is used as evaluation metric for the other two datasets.}
+\label{table:table}
+\setlength{\tabcolsep}{0.5mm} 
+\renewcommand{\arraystretch}{0.85}
+\centering
+\resizebox{0.7\textwidth}{!}{
+\begin{tabular}{c|ccc|ccc|ccc}
+
+\toprule
+{\textbf{Dataset}} & \multicolumn{3}{c|}{\textbf{Arxiv}} & \multicolumn{3}{c|}{\textbf{Instagram}} & \multicolumn{3}{c}{\textbf{Reddit}} \\
+%\cmidrule(r){1-5}
+\# shots per class & 10 & 50 &100 & 10 & 50 &100 & 10 & 50 &100 \\
+\midrule
+
+
+\renewcommand{\arraystretch}{0.85}
+
+
+     
+    \thead{ GIANT + prompt} & \thead{\underline{0.5140  \tiny{(0.0320)}} }& \thead{\underline{ 0.5809  \tiny{(0.0223)}}} & \thead{\underline{0.6126  \tiny{(0.0159)} }} &\thead{\underline{ 0.5239  \tiny{(0.0309)}}} & \thead{\underline{0.5721  \tiny{(0.0361)} }}& \thead{\underline{0.5949 \tiny{(0.0089)}}} & \thead{\underline{ 0.5661  \tiny{(0.0459)}} }& \thead{\underline{0.5968 \tiny{(0.0096)} }}& \thead{\underline{0.6145  \tiny{(0.0105)}}}\\
+    \hline
+    PLM-cls & \thead{0.4697  \tiny{(0.0577)} }& \thead{ 0.5414  \tiny{(0.0400)}} & \thead{0.5869  \tiny{(0.0300)} } &\thead{ 0.5165  \tiny{(0.0217)}} & \thead{0.5385  \tiny{(0.0344) }}& \thead{0.5690 \tiny{(0.0253)}} & \thead{ 0.4965  \tiny{(0.0373)} }& \thead{0.5236 \tiny{(0.0394)} }& \thead{0.5754  \tiny{(0.0348)}}\\
+
+    % \hline
+    % GLEM & \thead{0.1268  \tiny{(0.0302)} }& \thead{ 0.5642  \tiny{(0.0205)}} & \thead{ 0.4804 \tiny{(0.0342)} } &\thead{ 0.5050  \tiny{(0.0202)}} & \thead{0.5624  \tiny{(0.0224) }}& \thead{0.5646 \tiny{(0.0121)}} & \thead{ 0.5207  \tiny{(0.0424)} }& \thead{0.5396 \tiny{(0.0231)} }& \thead{0.5577  \tiny{(0.0552)}}\\
+   
+               \hline 
+             
+  
+      % \thead{G-Prompt \\ } & \thead{0.5232 \\ \scriptsize{$\pm$0.0348} }& \thead{ \underline{0.5909} \\ \underline{\scriptsize{$\pm$0.0159}}} & \thead{\textbf{0.6240$^*$} \\ \textbf{\scriptsize{$\pm$0.0156}} } &\thead{ \underline{0.5519} \\ \underline{\scriptsize{$\pm$0.0355}}} & \thead{\underline{0.5787} \\ \underline{\scriptsize{$\pm$0.0333}} }& \thead{\underline{0.6084} \\\underline{\scriptsize{$\pm$0.0127}}} & \thead{ \textbf{0.5794$^*$} \\ \textbf{\scriptsize{$\pm$0.0495}} }& \thead{\underline{0.6149} \\\underline{\scriptsize{$\pm$0.0270} }}& \thead{\underline{0.6427} \\ \underline{\scriptsize{$\pm$0.0185}}}\\
+      
+      \thead{G-Prompt} & \thead{\textbf{0.5248 \tiny{(0.0382)}} }& \thead{ \textbf{0.5927}  \textbf{\tiny{(0.0142)}}} & \thead{\textbf{0.6167  \tiny{(0.0138)}}}  &\thead{ \textbf{0.5576}  \textbf{\tiny{(0.0330)}}} & \thead{\textbf{0.5917} \textbf{\tiny{(0.0242)}} }& \thead{\textbf{0.6090} \textbf{\tiny{(0.0135)}}} & \thead{ \textbf{0.5728} \textbf{\tiny{(0.0491)}} }& \thead{\textbf{0.6167} \textbf{\tiny{(0.0289)}} }& \thead{\textbf{0.6472} \textbf{\tiny{(0.0224)}}}\\
+
+
+   
+    \bottomrule
+  \end{tabular}
+  }
+\end{table}
+\vspace{-20pt}
+\begin{table}[ht]
+\caption{The performance of G-Prompt based on different PLMs. Each row corresponds to a specific method. Every column lists the performance of the methods in a specific PLM of the dataset. The symbol "-" is used for formatting purposes only. The design of evaluation metrics for different datasets is consistent with Table 6.}
+\label{table:table}
+\setlength{\tabcolsep}{0.5mm} 
+\renewcommand{\arraystretch}{0.85}
+\centering
+\resizebox{0.7\textwidth}{!}{
+\begin{tabular}{c|ccc|ccc|ccc}
+
+\toprule
+\multirow{2}{*}{\textbf{}} & \multicolumn{3}{c|}{\textbf{Arxiv}} & \multicolumn{3}{c|}{\textbf{Instagram}} & \multicolumn{3}{c}{\textbf{Reddit}} \\
+%\cmidrule(r){1-5}
+ & \thead{Albert-L} & \thead{Roberta-L}
+ & \thead{GPT2-L} & \thead{Albert-L} & \thead{Roberta-L}
+ & \thead{GPT2-L}  & \thead{Albert-L} & \thead{Roberta-L}
+ & \thead{GPT2-L}  \\
+\midrule
+
+\renewcommand{\arraystretch}{0.85}
+\thead{Cls} & \thead{0.4297  \tiny{(0.0558)}} & \thead{0.5414  \tiny{(0.0400)}}&\thead{ - } & \thead{0.5407  \tiny{(0.0233)}}&\thead{0.5385   \tiny{(0.0344)}}&-&\thead{0.5366  \tiny{(0.0329)}}&\thead{0.5236  \tiny{(0.0394)}}&-\\
+
+
+\hline
+\thead{Prompt-sparse} & \thead{\underline{0.5466  \tiny{(0.0124)}}} & \thead{\underline{0.5784  \tiny{(0.0213)}}}&\thead{\underline{ 0.5580 \tiny{(0.0288)} }} & \thead{\underline{0.5511
+  \tiny{(0.0447)}}}&\thead{\underline{0.5721  \tiny{(0.0311)}}}&\thead{\underline{0.5580 \tiny{(0.0288)}}}&\thead{\underline{0.5681  \tiny{(0.0289)}}}&\thead{\underline{0.5761 \tiny{(0.0359)}}}&\thead{\underline{0.5809  \tiny{(0.0181)}}}\\
+\hline
+  
+\thead{G-Prompt} & \thead{\textbf{0.5589  \tiny{(0.0161)}}} & \thead{\textbf{0.5927  \tiny{(0.0142)}}}&\thead{\textbf{ 0.5863 \tiny{(0.0217)}}} & \thead{\textbf{0.5680  \tiny{(0.0266)}}}&\thead{\textbf{0.5917  \tiny{(0.0242)}}}&\thead{\textbf{0.5863 \tiny{(0.0217)}}}&\thead{\textbf{0.6010  \tiny{(0.0339)}}}&\thead{\textbf{0.6167  \tiny{(0.0289)}}}&\thead{\textbf{0.5956  \tiny{(0.0221)}}}\\
+
+    \bottomrule
+  \end{tabular}
+  }
+\end{table}
+\vspace{-20pt}
+\begin{table}[ht]
+\caption{The performance of G-Prompt based on different prompts. Each row corresponds to a specific prompt. Every column lists the performance of the prompt in a specific method of the dataset. The details of the different prompts can be found in Table 9. The design of evaluation metrics for different datasets is consistent with Table 6.}
+\label{table:table}
+\setlength{\tabcolsep}{0.5mm} 
+\renewcommand{\arraystretch}{0.85}
+\centering
+\resizebox{0.6\textwidth}{!}{
+\begin{tabular}{c|c|cc|cc|cc}
+
+\toprule
+\multirow{2}{*}{\textbf{Cate}} & \multirow{2}{*}{\thead{\textbf{Prompt}}}& \multicolumn{2}{c|}{\textbf{Arxiv}} & \multicolumn{2}{c|}{\textbf{Instagram}} & \multicolumn{2}{c}{\textbf{Reddit}} \\
+%\cmidrule(r){1-5}
+\ &  & \thead{Prompt-sparse} & \thead{+G-prompt} &  \thead{Prompt-sparse} & \thead{+G-prompt}  &  \thead{Prompt-sparse} & \thead{+G-prompt}  \\
+\midrule
+
+\renewcommand{\arraystretch}{0.85}
+\thead{Task specific} & \thead{Prompt 0} & \thead{\textbf{0.5784  \tiny{(0.0213)}}}&\thead{\textbf{ 0.5927  \tiny{(0.0142)}}} & \thead{\textbf{0.5721  \tiny{(0.0311)}}}&\thead{\textbf{0.5833 \tiny{(0.0338)}}}&\thead{\textbf{0.5761  \tiny{(0.0359)}}}&\thead{\textbf{0.6167  \tiny{(0.0289)}}}\\
+
+
+\hline
+\thead{\multirow{3}{*}{No task information}} & \thead{Prompt 1} & \thead{0.5485  \tiny{(0.0247)}}&\thead{ 0.5854  \tiny{(0.0205)}} &\thead{0.5522  \tiny{(0.0270)}}&\thead{0.5686  \tiny{(0.0456)}}&\thead{0.5516 \tiny{(0.0226)}}&\thead{0.5895 \tiny{(0.0151)}}\\
+
+
+& \thead{Prompt 2} & \thead{\underline{0.5648  \tiny{(0.0177)}}}&\thead{ 0.5868  \tiny{(0.0183)}} & \thead{0.5504 \tiny{(0.0363)}}&\thead{0.5710 \tiny{(0.0438)}}&\thead{\underline{0.5665  \tiny{(0.0243)}}}&\thead{0.5861  \tiny{(0.0138)}}\\
+
+               
+ & \thead{Prompt 3} & \thead{0.4944  \tiny{(0.0309)}}&\thead{ 0.5794  \tiny{(0.0254)}} & \thead{\underline{0.5587  \tiny{(0.0268)}}}&\thead{\underline{0.5804 \tiny{(0.0227)}}}&\thead{0.5552  \tiny{(0.0325)}}&\thead{\underline{0.5919 \tiny{(0.0256)}}}\\
+           \hline 
+         
+  
+  \thead{irrelevant}  & \thead{Prompt 4} & \thead{0.5550   \tiny{( 0.0227)}}&\thead{ \underline{0.5902  \tiny{(0.0184)}}}  &\thead{0.5444  \tiny{(0.0233)}}&\thead{0.5676  \tiny{(0.0397)}}&\thead{0.5546  \tiny{(0.0223)}}&\thead{0.5853  \tiny{(0.0197)}}\\
+
+    \bottomrule
+  \end{tabular}
+  }
+\end{table}
+\vspace{-20pt}
+\begin{table}[h!]
+\caption{Details of the different prompts on different datasets. [MASK] represents the masked token. All prompts are added before text features([text]) of node. }
+\label{table:table}
+\setlength{\tabcolsep}{0.5mm} 
+\renewcommand{\arraystretch}{0.85}
+\centering
+\resizebox{0.8\textwidth}{!}{
+\begin{tabular}{c|c|c|c|c}
+
+\toprule
+{\textbf{Cate}} & {\textbf{Prompt}}& {\textbf{Arxiv}} &{\textbf{Instagram}} & {\textbf{Reddit}} \\
+%\cmidrule(r){1-5}
+\midrule
+
+\renewcommand{\arraystretch}{0.85}
+\thead{Task specific} & \thead{Prompt 0} & \thead{This is a paper published on the \textbf{[MASK]}\\ subject of Arxiv, its abstract is: [text]}&\thead{Consider whether used for business, this is a \textbf{[MASK]} account\\ on Instagram because its profile says " [text]} & \thead{This user is a \textbf{[MASK]} user on Reddit, \\and his last 3 posts are: [text]}\\
+
+
+\hline
+\thead{\multirow{3}{*}{No task information}} & \thead{Prompt 1} & \thead{This is a \textbf{[MASK]} paper. [text]}&\thead{ This user is a \textbf{[MASK]} user on Instagram, his profile is: [text]} &\thead{This user is a \textbf{[MASK]} user. [text]}\\
+
+
+& \thead{Prompt 2} & \thead{This is \textbf{[MASK]}. [text]}&\thead{This user is a \textbf{[MASK]}. [text]} & \thead{This user is \textbf{[MASK]}. [text]}\\
+
+               
+ & \thead{Prompt 3} & \thead{\textbf{[MASK]}. [text]}&\thead{ \textbf{[MASK]}. [text]} & \thead{\textbf{[MASK]}. [text]}\\
+           \hline 
+         
+  
+  \thead{irrelevant}  & \thead{Prompt 4} & \thead{My favorite fruit is \textbf{[MASK]}. [text]}&\thead{My favorite fruit is \textbf{[MASK]}. [text]}&\thead{My favorite fruit is \textbf{[MASK]}. [text]}\\
+
+    \bottomrule
+  \end{tabular}
+  }
+\end{table}
+\vspace{-20pt}
+\begin{table}[h!]
+\caption{ The performance of different methods on three datasets. Each row corresponds to a specific method. Every column lists the performance in a specific method of the dataset. The design of evaluation metrics for different datasets is consistent with Table 6.}
+\label{table:table}
+\setlength{\tabcolsep}{0.5mm} 
+\renewcommand{\arraystretch}{0.85}
+\centering
+\resizebox{0.4\textwidth}{!}{
+\begin{tabular}{c|c|c|c}
+
+\toprule
+ & {\textbf{Arxiv}} & {\textbf{Instagram}} & {\textbf{Reddit}} \\
+%\cmidrule(r){1-5}
+
+\midrule
+
+\renewcommand{\arraystretch}{0.85}
+\thead{Prompt-sparse} & \thead{ 0.5784  \tiny{(0.0213)}}& \thead{ 0.5721  \tiny{(0.0311)}}&\thead{ 0.5761  \tiny{(0.0359)}} \\
+
+
+\hline
+\thead{Prompt-sparse-Flatten} & \thead{ \underline{0.5806  \tiny{(0.0184)}}} & \thead{0.5493  \tiny{(0.0204)}}&\thead{0.5577 \tiny{(0.0213)}} \\
+
+\hline
+\thead{Flatten neighbor} & \thead{ 0.5731  \tiny{(0.0201)}} & \thead{ \underline{0.5815  \tiny{(0.0215)}}}&\thead{ \underline{0.5844  \tiny{(0.0306)}}} \\
+
+
+ \hline
+     
+ \thead{G-prompt} & \thead{ \textbf{0.5927  \tiny{(0.0142)}}}& \thead{\textbf{0.5917  \tiny{(0.0242)}}} &\thead{ \textbf{0.6167  \tiny{(0.0289)}}}\\
+
+
+    \bottomrule
+  \end{tabular}
+  }
+\end{table}
+
+

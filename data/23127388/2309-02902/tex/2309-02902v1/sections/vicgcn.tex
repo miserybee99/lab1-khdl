@@ -1,0 +1,162 @@
+% SECTION Proposed PhoBERT-GCN model %
+\section{ViCGCN:  Contextualized Graph Convolution Networks for Vietnamese Social Media}
+\label{Proposed model}
+% Method body (Explain PhoBERT-GCN in detail)
+
+% PhoBERT\footnote{https://huggingface.co/vinai/phobert-base} (\cite{nguyen-tuan-nguyen-2020-phobert}), with its versions $\text{PhoBERT}_{base}$ and $\text{PhoBERT}_{large}$, respectively, is the first public large-scale monolingual language models for Vietnamese, designed for natural language processing (NLP) task. It is based on the popular Bidirectional Encoder Representations from Transformers\footnote{https://github.com/google-research/bert}, aslo called BERT, architecture, which uses a transformer network to encode the input text and generate high-quality representations of the text.
+
+% \begin{figure}[!h]
+%     \centering
+%     \includegraphics[width=\textwidth]{figures/ProposedModel/PhoBERT.pdf}
+%     \caption{The process of representing the input of PhoBERT model}
+%     \label{fig::Proposed/PhoBERT}
+% \end{figure}
+
+% More specifically PhoBERT's layers, it has 12 transformer layers, each with a hidden size of 768, and 12 attention heads. The total number of parameters in the model is around 125 million. The input to these layers is tokenized text, which is then converted into embeddings using the embedding layer. These embeddings are then processed through the transformer blocks to generate contextualized word representation.
+
+
+% In addition to the transformer layers, PhoBERT also includes a pre-processing layer which is responsible for tokenization, sentence segmentation, and special token handling. There is also a pooling layer at the end of the model that generates a fixed-size representation of the input text.
+
+% This architecture and pre-training allows PhoBERT to learn a deep understanding of the structure of Vietnamese language and to have a facility to handle downstream NLP tasks, such as text classification, named entity recognition, and machine translation. As a result, PhoBERT is considered a state-of-the-art NLP model. 
+
+% Generally, according to \cite{Graph-convolutional-networks}, Graph Convolutional Networks (GCN) are a type of graph neural network architecture that can leverage the graph structure of the data and aggregate node information from the neighborhoods in a convolutional fashion. There are two main types of GCN: spectral-based and spatial-based GCN. Spectral-based GCN operates by performing a Fourier transform on the adjacency matrix to obtain its spectrum. Spatial-based GCN, on the other hand, operate directly on the graph structure by propagating messages from node to node in each layer.
+
+% TextGCN\footnote{https://github.com/yao8839836/text{\_}gcn} (\cite{Graph-Convolutional-Networks-for-Text-Classification}) is a variant of spectral-based GCNs and designed specifically for text data. It uses the bag-of-words representation and term frequency-inverse document frequency (TF-IDF) weighting scheme to represent the text data as a weighted graph. 
+
+% TextGCN model consists of two main components: a graph convolutional network (GCN) and a multi-layer perceptron (MLP). The GCN operates on the graph representation of the documents and words to learn the node representations that capture the relationships between them. 
+
+% On the other hand, TextGCN, like other models, has a loss function. It use the cross-entropy loss, which is a multi-class classification loss function, measures the difference between predicted and actual class probabilities. The cross-entropy loss for a single instance is defined as:
+% \begin{equation}
+% \centering
+%     L = - \sum_{i=1}^{c} y_i \log(\hat{y_i})
+% \end{equation}
+
+% where $c$ is the number of classes, $y_i$ is the true class label (one-hot encoded), and $\hat{y_i}$ is the predicted probability of class $i$. TextGCN model is trained by minimizing the cross-entropy and the model parameters are learned by backpropagation through the GCN and MLP layers.
+
+% \begin{figure}[!htb] \label{fig::ProposedModel/TextGCN}
+%     \centering
+%     \includegraphics[width=\textwidth]{figures/ProposedModel/TextGCN.pdf}
+%     \caption{Schematic of Text GCN. Example taken from UIT-ViCTSD dataset}
+%     \label{fig::Proposed/TextGCN}
+% \end{figure}
+ 
+ % \textbf{Graph Neural Network with Contextualized Language Models}
+%%% day la phan cua pct
+%%% Ly do chon contextualized language models
+%%% Ly do chon PhoBERT
+
+Contextualized language models like BERT have shown impressive performance in a wide range of NLP tasks, especially in tasks that require a deep understanding of the meaning of language, such as text classification, sentiment analysis, and named entity recognition. The explanation for this phenomenon is contextual models can capture the contextual meaning of words based on their surrounding words, which is crucial for many NLP tasks. On the other hand, Graph Convolutional Networks (GCN) is a type of graph neural network that can handle graph-structured data, such as text-based dependency graphs, commonly used in Vietnamese language processing. Additionally, GCN is more suitable for semi-supervised learning tasks where the training data is limited and noisy. As a result, the combination of contextualized language model and GCN allows for better modeling of the text data, capturing the complex relationships between words and sentences in a text corpus, leading to improved or showed state-of-the-art (SOTA) performance on a variety of NLP tasks. In this study, we proposed ViCGCN Integrated model and evaluated its efficacy in social media processing for Vietnamese. The ViCGCN architecture consists of two layers, namely the PhoBERT layer and the GCN layer, respectively. Figure \ref{fig::ProposedModel/PhoBERT-GCN} presents an overview of our proposed approach's architecture.
+
+ \begin{figure}[!ht] 
+     \centering
+     \includegraphics[width=\textwidth]{PhoBERT-GCN.png}
+     \caption{An overview of our proposed approach ViCGCN architecture.}
+     \label{fig::ProposedModel/PhoBERT-GCN}
+ \end{figure}
+
+Firstly, we present the architecture of PhoBERT\footnote{\url{https://huggingface.co/vinai/phobert-base}} (\cite{nguyen-tuan-nguyen-2020-phobert}) and how the PhoBERT model performs as the first layer of our proposed approach. PhoBERT was chosen because PhoBERT is specifically designed for the Vietnamese language, making it highly effective for Vietnamese language processing tasks. 
+% PhoBERT with its versions $\text{PhoBERT}_{base}$ and $\text{PhoBERT}_{large}$, respectively, is the first public large-scale monolingual language models for Vietnamese, designed for natural language processing (NLP) task. 
+PhoBERT architecture is based on the popular Bidirectional Encoder Representations from Transformers\footnote{\url{https://github.com/google-research/bert}}, also called BERT, architecture, which uses a transformer network to encode the input text and generate high-quality representations of the text.
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=\textwidth]{PhoBERT.pdf}
+    \caption{The process of representing the contextualized language model's input. "Harry Maguire là một cầu thủ giỏi. Tôi rất thích anh ấy" is "Harry Maguire is a good player. I very like him" in English.}
+    \label{fig::Proposed/PhoBERT}
+\end{figure}
+
+% More specifically PhoBERT's layers, it has 12 transformer layers, each with a hidden size of 768, and 12 attention heads. The total number of parameters in the model is around 125 million. 
+The input to these layers is tokenized text, which is then converted into embeddings using the embedding layer as illustrated in Figure \ref{fig::Proposed/PhoBERT}. These embeddings are then processed through the transformer blocks to generate contextualized word representation. In addition to the transformer layers, PhoBERT also includes a pre-processing layer which is responsible for tokenization, sentence segmentation, and special token handling. In this study, PhoBERT is accountable for processing the input text. It takes in the raw text input and applies a series of transformer-based layers. This produces a contextualized embedding for each word in the input. Then, these contextualized embeddings are fed into the GCN layer. The output of the PhoBERT layer represents the contextualized embeddings for each word in the input.
+
+% \subsection{Graph Neural Networks}
+
+% Generally, according to \cite{Graph-convolutional-networks}, Graph Convolutional Networks (GCN) are a type of graph neural network architecture that can leverage the graph structure of the data and aggregate node information from the neighborhoods in a convolutional fashion. There are two main types of GCN: spectral-based and spatial-based GCN. Spectral-based GCN operates by performing a Fourier transform on the adjacency matrix to obtain its spectrum. Spatial-based GCN, on the other hand, operate directly on the graph structure by propagating messages from node to node in each layer.
+
+% TextGCN\footnote{https://github.com/yao8839836/text{\_}gcn} (\cite{Graph-Convolutional-Networks-for-Text-Classification}) is a variant of spectral-based GCNs and designed specifically for text data. It uses the bag-of-words representation and term frequency-inverse document frequency (TF-IDF) weighting scheme to represent the text data as a weighted graph. 
+
+% TextGCN model consists of two main components: a graph convolutional network (GCN) and a multi-layer perceptron (MLP). The GCN operates on the graph representation of the documents and words to learn the node representations that capture the relationships between them. 
+
+% On the other hand, TextGCN, like other models, has a loss function. It use the cross-entropy loss, which is a multi-class classification loss function, measures the difference between predicted and actual class probabilities. The cross-entropy loss for a single instance is defined as:
+% \begin{equation}
+% \centering
+%     L = - \sum_{i=1}^{c} y_i \log(\hat{y_i})
+% \end{equation}
+
+% where $c$ is the number of classes, $y_i$ is the true class label (one-hot encoded), and $\hat{y_i}$ is the predicted probability of class $i$. TextGCN model is trained by minimizing the cross-entropy and the model parameters are learned by backpropagation through the GCN and MLP layers.
+
+% \begin{figure}[!htb] \label{fig::ProposedModel/TextGCN}
+%     \centering
+%     \includegraphics[width=\textwidth]{figures/ProposedModel/TextGCN.pdf}
+%     \caption{Schematic of TextGCN. Example taken from UIT-ViCTSD dataset}
+%     \label{fig::Proposed/TextGCN}
+% \end{figure}
+ 
+ % In the first layer, a large language model - PhoBERT - is responsible for processing the input text. More specifically, it takes in the raw text input and applies a series of transformer-based layers. This produces a contextualized embedding for each word in the input. Then, these contextualized embeddings are fed into the GCN layer. The output of the PhoBERT layer represents the contextualized embeddings for each word in the input. 
+
+ The second layer, the GCN layer, on the other hand, takes the output of the BERT layer, which is a sequence of contextualized word embeddings, as input, and applies graph convolution operations to aggregate information from the surrounding words in a sentence. To be more specific, we create a heterogeneous graph that comprises both document nodes and word nodes, following the TextGCN\footnote{\url{https://github.com/yao8839836/text_gcn}} \cite{Graph-Convolutional-Networks-for-Text-Classification}. Figure \ref{fig::Proposed/TextGCN} schematically presents the overall GCN layer of our integrated model.
+
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=\textwidth]{TextGCN.pdf}
+    \caption{Schematic of GCN layer in ViCGCN. A social media example is taken from UIT-ViCTSD dataset. "Bu*i", "C*c", "Giỏi", "Hay", and "Tốt" are "D*ck", "C*ck", "excellent", "Good", and "Nice" in English, respectively.}
+    \label{fig::Proposed/TextGCN}
+\end{figure}
+
+% For more in-depth, the GCN layer uses the dependency parse tree of the sentence to construct a graph where the words' sentences are represented as nodes and their syntactic relationships are represented as edges. In the case of the ViCGCN model, the graph represents the relationship between words and sentences in a text document. To be more specific, we create a heterogeneous graph that includes nodes for both words and documents using the approach of TextGCN\footnote{\url{https://github.com/yao8839836/text_gcn}} \cite{Graph-Convolutional-Networks-for-Text-Classification}. To establish connections between word and document (sentences in our situation) nodes, we utilize the term frequency-inverse document frequency (TF-IDF) to define edges between word-document pairs and positive point-wise mutual information (PPMI) to define edges between word-word pairs. The weight of an edge
+% between two nodes, \textit{i} and \textit{j} defined as: 
+
+% For more in-depth, the GCN layer uses the dependency parse tree of the sentence to construct a graph where the words' sentences are represented as nodes and their syntactic relationships are represented as edges. In the context of the ViCGCN model, the graph depicts the associations between words and sentences within a textual document. To elaborate further, we construct a diverse graph encompassing nodes for both words and documents, drawing inspiration from the TextGCN\footnote{\url{https://github.com/yao8839836/text_gcn}} \cite{Graph-Convolutional-Networks-for-Text-Classification}. To establish links between word and document nodes, we employ the term frequency-inverse document frequency (TF-IDF) to define connections between word-document pairs. We also employ positive point-wise mutual information (PPMI) to define connections between word-word pairs. The weight of an edge linking two nodes, denoted as \textit{i} and \textit{j}, is defined as follows:
+
+To provide a more comprehensive understanding, the GCN layer in our approach utilizes the dependency parse tree of the sentence to create a graphical representation. In this graph, the sentences' words are represented as nodes, and their syntactic relationships are captured as edges. Within the ViCGCN model, this graph serves to illustrate the relationships among words and sentences within a given text document.
+
+To delve deeper into the methodology, we establish a diverse graph that encompasses nodes representing both words and entire documents, drawing inspiration from TextGCN\footnote{\url{https://github.com/yao8839836/text_gcn}} \cite{Graph-Convolutional-Networks-for-Text-Classification}. To establish connections between word and document nodes, we make use of the term frequency-inverse document frequency (TF-IDF) measure, which helps define the associations between word-document pairs. Additionally, we employ positive point-wise mutual information (PPMI) to establish connections between word-word pairs. The weight of an edge connecting two nodes, denoted as \textit{i} and \textit{j}, is defined as follows:
+\begin{equation}
+    A_{i, j} = 
+    \begin{cases}
+        PPMI(i, j), & \textit{i, j are words and i} \neq j \\
+        TF-IDF(i, j), & \textit{i is document, j is word} \\
+        1, & i = j \\
+        0, & otherwise
+    \end{cases}
+\end{equation}
+
+% In ViCGCN, the PhoBERT model obtains the document embeddings and treats them as input representations for document nodes.  Document node embeddings are denoted by $X_{doc} \in \mathbb{R}^{n_{doc} \times d}$, where $n_{doc}$ is is the number of document nodes, $n_{word}$ is the number of word nodes (including both training and testing), $d$ is the embedding dimensionality. As a result, the initial node feature matrix is given by:
+
+In ViCGCN, the contextual language model PhoBERT is responsible for acquiring document embeddings and considering them input representations for document nodes. These document node embeddings are represented as $X_{doc} \in \mathbb{R}^{n_{doc} \times d}$, where $n_{doc}$ signifies the count of document nodes, $n_{word}$ represents the count of word nodes (comprising both training and testing), and $d$ denotes the dimensionality of the embeddings. Consequently, the initial matrix of node features is formulated as follows:
+
+\begin{equation}
+    X = 
+    \begin{pmatrix}
+        X_{doc} \\
+        0
+    \end{pmatrix}_{(n_{doc}+n_{word}) \times d}
+\end{equation}
+
+ % Then X is fed into a series of Graph Convolutional Networks layers, where each layer aggregates information from the neighbors of each node to refine its representation. Specifically, the output feature matrix of the $i$-th GCN layer $L^{(i)}$ is computed as where $f$ is an activation function, $\tilde{A}$ is the normalized adjacency matrix and $W^{(i)} \in \mathbb{R}^{d_{i-1} \times d_i}$ is a weight matrix of the layer. $L^{(0)} = X$ is the input feature matrix of the model. 
+
+ Then X is fed into a series of Graph Convolutional Networks layers, where each layer aggregates information from the neighbors of each node to refine its representation. More precisely, the output feature matrix for the $i$-th GCN layer, denoted as $L^{(i)}$, is calculated as follows: it involves an activation function represented by $f$, utilizes the normalized adjacency matrix denoted as $\tilde{A}$, and incorporates a weight matrix $W^{(i)} \in \mathbb{R}^{d_{i-1} \times d_i}$ specific to that layer. The initial input feature matrix of the model is denoted as $L^{(0)} = X$.
+
+\begin{equation}
+    L^{(i)} = f(\tilde{A}L^{(i-1)}W^{(i})
+\end{equation}
+ 
+ The output of the GCN layer is a set of updated embeddings, which capture the interactions among the words in the sentence and pass through a softmax activation layer to obtain the final predictions, where $g$ represents the GCN model: 
+ \begin{equation}
+     \textbf{Z}_{\text{GCN}} = softmax(g(X, A))
+ \end{equation}
+
+Moreover, an auxiliary classifier on BERT embeddings is conducted by directly feeding document embeddings (denoted by $X$) to a dense layer with softmax activation.
+\begin{equation}
+    \textbf{Z}_{\text{BERT}} = softmax(WX)
+\end{equation}
+
+ To combine the output embeddings of the PhoBERT and GCN layers and obtain the best classification performance, we propose to use a hyperparameter $\lambda$ to control the trade-off between them in the final classification. Specifically, we compute a weighted sum of the two embeddings using the following equation:
+\begin{equation}
+    \mathbf{Z} = \lambda \mathbf{Z}_{\text{GCN}} + (1-\lambda) \mathbf{Z}_{\text{PhoBERT}}
+    \label{equa::lambda}
+\end{equation}
+ % $$\mathbf{Z} = \lambda \mathbf{Z}_{\text{GCN}} + (1-\lambda) \mathbf{Z}_{\text{PhoBERT}}$$
+
+ where $\mathbf{Z}_{\text{GCN}}$ is the output embedding of the GCN layer and $\mathbf{Z}_{\text{PhoBERT}}$ is the output embedding of the PhoBERT layer. The softmax function normalizes the output and produces class probabilities for text classification. Moreover, comprehensive experiments were conducted on the three benchmarks UIT-VSMEC, UIT-ViCTSD, and UIT-VSFC to determine the optimal lambda value for the ViCGCN model in Section \ref{imapactGCN}.
+
+ By combining the power of PhoBERT's contextualized embeddings with the ability of GCN to capture syntactic and semantic dependencies, the ViCGCN can achieve better performance on social media processing tasks, especially those that require an understanding of semantic relationships between words. Furthermore, the ViCGCN model can also handle a broader range of text inputs, including more extended and more complex sentences, due to its ability to capture the contextualized meaning of words and the syntactic and semantic dependencies between them. This makes it a highly effective tool for natural language processing tasks, especially text classification and social media processing tasks.

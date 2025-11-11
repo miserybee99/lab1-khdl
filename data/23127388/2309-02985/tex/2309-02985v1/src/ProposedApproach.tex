@@ -1,0 +1,321 @@
+
+To detect fault propagation (CH1) and verify FLA rules (CH2), we propose a \emph{Model-Based Test-Driven Safety Analysis} approach that allows engineers to identify potential failures and their propagation across components.
+%We propose to address this limitation with an empirical approach, exploiting testing to semi-automatically discover how failures propagate at the level of the individual components. Figure~\ref{fig:approach} shows our approach.
+%
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=.3\textwidth]{img/approach_1.pdf}
+    \vspace{-1mm}
+    \caption{Model-Based Test-Driven Safety Analysis.}
+    \label{fig:approach}
+\end{figure}
+%
+The proposed approach implements and extends the one shown in Figure \ref{fig:workflow} and consists of the three main phases shown in Figure~\ref{fig:approach}. The \emph{IoT System Modeling} phase proposes tool-supported modeling of the IoT system-level architecture and the modeling of the system failure logic behavior. The \emph{Fault-Tree Generation and Analysis} supports the analysis of failure propagation, with reference to the available rules. 
+Finally, the \emph{IoT System Testing} phase exploits the information in the model to execute the individual components while injecting failures on input ports and checking how they propagate to output ports. This phase can confirm or disprove the defined failure logic rules (correctness check) and discover new ones (completeness check). 
+%The updated rules can be used to find the system model. 
+The outcome of both analysis and testing can be used to refine the system, and its model, to finally achieve a more reliable IoT system. 
+
+In the following, the three phases of the process shown in Figure~\ref{fig:approach} are described in details.
+% The evolution of the system and the model shall trigger additional IoT System testing that may, in turn, discover new rules, which requires re-running the analysis until the resulting behavior of the system is satisfactory. %We describe below these three phases more in details.
+
+
+\subsection{IoT System Modeling} \label{sec:SM} In this phase, modelers specify the architecture of the IoT system and the failure-logic behaviour, as detailed below.
+
+\subsubsection{IoT system-level architecture}
+
+The proposed modeling approach runs on top of CHESSIoT \cite{thesisFelicien}, a model-driven environment to support the design and analysis of IoT systems. CHESSIoT provides a UML/SysML profile extension to reflect the constructs and semantics present in IoT system-level architectures. The CHESSIoT system-level modeling language was designed to satisfy the high-level specifications of a typical IoT system, supporting a multi-layered specification  from the low-level edge layer to the fog layer and the cloud.
+
+The language extends the SysML modeling language in terms of new IoT-specific stereotypes and their interrelations. Ports enable interactions among components and are fundamental for determining error propagation paths.
+Figure \ref{fig:CHESSIoTSystemMetamodel} presents the CHESSIoT system-level meta-model. It permits to specify IoT systems as 
+a collection of physical devices and entities connected to collect, process, send, receive, and store data. The \textit{IoTElement} represents physical entities, ranging from microcontrollers at the thing layer to cloud servers. The modeling layers can be grouped into \textit{edge}, \textit{fog}, and \textit{cloud}.
+
+\begin{figure}[t!]
+	\centering
+	\includegraphics[width=\linewidth]{img/CHESSIoTSystemMetamodel.jpg}
+	\caption{CHESSIoT System-level meta-model \cite{thesisFelicien}.}
+	\label{fig:CHESSIoTSystemMetamodel}
+\end{figure}
+
+\textit{OnDeviceElements} are low-level IoT devices that contribute to the system's functional behavior, while \textit{PhysicalBoard} represents hardware controllers and \textit{PhysicalEntity} is any physical object or environment. \textit{Fog devices} perform preliminary computations and convey results to on-device elements, with storage and processing capacities varying depending on the use case and hardware and software features.
+
+On the cloud layer, devices operate at the cloud level and contribute to the overall functionality of the system. \textit{Consumer entities} can be \textit{active} or \textit{passive}, with active consumer entities being computer-running software to monitor and control sensors remotely, and passive consumer entities being traffic light actuators.
+
+% From the metamodel in Figure \ref{fig:CHESSIoTSystemMetamodel}, the language represents an IoT system as a collection of physical devices and other entities connected to collect, process, send, receive, and store data. The \textit{IoTElement} represents things that can be physically represented in the IoT ecosystem, ranging from a tiny micro-controller at the thing layer to a cloud server when looked at from the cloud side.
+
+% The modeling constructs can be conceptually grouped concerning the main layers they define, i.e., edge, fog, and cloud layers. \textit{OnDeviceElement} represents any form of low-level IoT device that may contribute to the system's functional behavior at the edge layer. \textit{Sensor}, \textit{actuators}, and \textit{physical entity} blocks can be of any type depending on the layer from which such an element is regarded. \textit{PhysicalBoard} represents a hardware controller on which the software runs, and \textit{PhysicalEntity} on the other hand can be any physical object or environment on which an OnDeviceElement can act up.
+
+% At the \textit{Fog Layer}, a \textit{Fog device} can do preliminary computations and convey results to on-device elements, with storage and processing capacities varying depending on the use case and hardware and software features. On the \textit{Cloud Layer} any device that operates at the cloud level and contributes to the overall functionality of the system is defined. \textit{Consumer entities} can be active or passive, with active consumer entities being computer-running software to monitor and control sensors remotely and passive consumer entities being traffic light actuators that receive commands from the server to function.
+
+\subsubsection{Failure-Logic behavior modeling and analysis} \label{sec:flamodeling}
+
+Once the IoT system model is defined, the safety engineer derives and annotates the failure behavior rules for each modeled component by following the Failure Propagation Transformation Calculus (FPTC) \cite{WALLACE200553} notation. Based on its nature, a component can propagate a failure (carrying a failure from input to output), transform a failure (changing the nature of a failure from input to output), act as a source of failure (creating a failure despite no failure in input), or act as a sink (avoiding the failure to be either propagated or transformed). 
+
+The following three abstract categories of failure types are assessed: \textit{service provision failures}, such as the omission or commission of the output; \textit{timing failures}, such as the early or late delivery of the output; and \textit{value domain failures}, such as the output value being out of a valid range, stuck, or exhibiting erratic behavior. In addition, a \textit{noFailure} annotation is used to indicate a no-failure type at the input port.  Table \ref{tab:flatypes} shows different failure types and their descriptions.
+
+\begin{table}[h!]
+  \scriptsize
+  \centering
+\caption{Failure types.}
+\vspace{-2mm}
+  \begin{tabular}{|c|c|}\hline
+    \textbf{\texttt{Failure type}} & \textbf{\texttt{Description}}\\\hline
+    \texttt{Early} & \texttt{Output provided too early}\\
+    \texttt{Late} &  \texttt{Output provided too late}\\
+    \texttt{ValueCoarse} & \texttt{Output out of range}\\
+    \texttt{ValueSubtle} & 
+    \texttt{Output in-range but erroneous}\\
+    \texttt{Omission} & \texttt{Output expected but not provided}\\
+    \texttt{Commission} & \texttt{Output provided but not expected}\\\hline
+  \end{tabular}
+
+  \label{tab:flatypes}
+\end{table}
+
+As previously mentioned, component failures can be propagated or transformed:
+
+\begin{itemize}
+    \item \textbf{\textit{Failure propagation:}} It occurs in a component when a single input port failure condition is directly transferred to its output ports without changing its nature. For instance, Equation \ref{eqPropagation} shows a simple example of a failure propagation of $failure_1$ from port $p_{(in)}$ to port $p_{(out)}$ of a simple component. Propagation also occurs between two connected components when a failure condition at the output port of the preceding component is transferred to the input port of the following component. 
+    
+    \begin{equation} \small \label{eqPropagation}
+         p_{(in)}.failure_1 \rightarrow p_{(out)}.failure_1;
+    \end{equation}
+    
+    As an example from our specific scenario, this can happen when a board gets erroneous data from the sensors (i.e., \texttt{ValueCoarse}) and sends it directly to its output ports. This scenario would be expressed as in Equation \ref{ValueCoarseBD}, where $Bd_{(in)}$ and $Bd_{(out)}$ are the input and the output ports of the board, respectively.
+
+
+    %\begin{equation}\label{ValueCoarseBD}
+    %    \scriptsize{FLA:inMoisture2BD.\textbf{valueCoarse} \rightarrow \\ outDataBD.\textbf{valueCoarse};}
+    %\end{equation}
+    \begin{equation}\label{ValueCoarseBD}
+    Bd_{(in)}.valueCoarse \rightarrow Bd_{(out)}.valueCoarse;
+    \end{equation}     
+
+
+    % \textit{Where \(p_{(in)}\) to be the input port of a simple component while \(p_{(out)}\) is an output port.}
+    
+    \item \textbf{\textit{Failure transformation:}} It occurs within a component when a failure condition at the input port is converted into another type before reaching the output port. An example is shown in Equation  \ref{eqtransformation1}. A failure transformation can also occur when more than one failure expression of any type, except a \texttt{NoFailure} or \textit{wildcard} at multiple input ports, is transmitted on a single output port (see Equation \ref{eqtransformation2}). Even if the failure has the same type, the fact that the component converts two failures at its input ports to a single failure at the output port is regarded as a failure transformation.
+    
+    \begin{equation} \small \label{eqtransformation1}
+     p_{(in)}.failure_{(in)} \rightarrow p_{(out)}.failure_{(out)};
+    \end{equation}
+    \begin{multline} \small \label{eqtransformation2}
+        p_{(in_1)}.failure_1,..,p_{(in_N)}.failure_N \rightarrow \\ p_{(out)}.failure_{(out)};
+    \end{multline}
+\end{itemize}
+
+To make an example of failure propagations and transformations, let us consider the explanatory irrigation system with two motors controlled by a relay driver. The relay driver enables them to turn on and off depending on the location to be irrigated. To control the relay driver, the computer board sends the analog signal through two relay driver-controlling ports. To define the failure behavior of the irrigation unit, we must first understand the variety of failure scenarios that can occur with an irrigation unit. For example, two input ports may not get a signal from the board, causing the relay driver to be unable to switch on and off the motors. Another example is when the signal arrives at the input port later or earlier than anticipated. As a result, the relay will unexpectedly turn on and off the motors. 
+
+Table \ref{tab:IUFLAtypes} shows a sample of the failure rules that specify the number of failure situations for the irrigation unit, including the ones described above. Note, $Irr_{(in_1)}$ and $Irr_{(in_2)}$ are defined as input ports, while $Irr_{(out_1)}$ and $Irr_{(out_2)}$ are defined as output ports.
+
+
+\begin{table*}[h]
+    \centering
+    \scriptsize
+    \caption{Sample FLA rules of the irrigation unit.}
+    \begin{tabular}{|p{40em}|p{29em}|}\hline
+        \scriptsize{\textbf{Rule}} & \scriptsize{\textbf{Description}} \\\hline\hline
+        $Irr_{(in_1)}.omission, Irr_{(in_2)}.omission \rightarrow Irr_{(out_1)}.omission, Irr_{(out_2)}.omission$
+        & The input ports receive no signal, causing the relay driver to be unable to turn on/off the motors. \\\hdashline[1pt/1pt]
+        $Irr_{(in_1)}.early, Irr_{(in_2)}.early \rightarrow Irr_{(out_1)}.commission, Irr_{(out_2)}.commission
+        $
+        & The input ports receive the signal earlier than expected, causing the relay driver to unexpectedly turn on/off the motors.\\\hdashline[1pt/1pt]
+        $Irr_{(in_1)}.late, Irr_{(in_2)}.late \rightarrow Irr_{(out_1)}.commission, Irr_{(out_2)}.commission$& The input ports receive the signal later than expected, causing the relay driver to unexpectedly turn on/off the motors.\\\hdashline[1pt/1pt]
+        $Irr_{(in_1)}.valueSubtle, Irr_{(in_2)}.valueSubtle \rightarrow Irr_{(out_1)}.early, Irr_{(out_2)}.early$& The input ports receive an erroneous but in-range signal, causing the relay driver to turn on/off the motors earlier than expected.\\\hdashline[1pt/1pt]
+        $Irr_{(in_1)}.valueSubtle, Irr_{(in_2)}.valueSubtle \rightarrow Irr_{(out_1)}.late, Irr_{(out_2)}.late$& The input ports receive an erroneous but in-range signal, causing the relay driver to turn on/off the motors later than expected.\\\hline
+    \end{tabular}
+    \label{tab:IUFLAtypes}
+\end{table*}
+
+% The extensive individual rules, as well as their corresponding failure description of our use case, can be accessed at ----
+When modeling the IoT system's Failure-Logic behavior is finished, the FLA analysis can be executed. This analysis considers the annotated CHESSIoT model and transforms it into an FLA model \cite{Gallina}. The transformation calculates a complete system's failure behavior starting from the failure behavior rules of the system's composite components and their interconnections. This, in turn, means that the failure behaviors of composite elements are also determined by the failure behaviors of their individual simple components.
+
+\begin{figure}[t!]
+  \centering
+  \includegraphics[width=\linewidth]{img/flamm_class_diagram.png}
+  \vspace{-7mm}
+    \caption{FLA meta-model \cite{thesisFelicien}.}
+    \label{fig:flamm}
+\end{figure}
+
+As shown in the FLA meta-model in Figure \ref{fig:flamm},  FLA models consist of \textit{composite components}, representing sub-systems containing one or more sub-components. These components do not possess failure behavior by themselves; instead, they rely on their sub-components to determine their failure conditions. On the other hand, a simple component represents a functional component whose failure may contribute to a system failure. Each component contains input and output ports with their corresponding failure rules.
+
+% 
+% At this point, the FLA transformation can be launched, generating the FLA model and later being used for Fault-Tree generation and analysis. 2
+
+% \textbf{LEO:ADD CITATION} With reference to our smart irrigation system case study, we used the Proteus Design Suite\footnote{\url{https://www.labcenter.com/}} to model the system \textbf{[Felicien: I guess this is just for Testing purposes, I think it can be mentioned in the testing section]}. Components are finally annotated with failure propagation rules, using the language introduced in Section~\ref{sec:fta}. \textbf{Leo: Dovremmo dire qualcosa su come si scrivono queste regole nella prossima sezione oppure cambiare questa frase}
+
+
+%The proposed approach, sketched in Figure \ref{fig:approach}, exploits model-driven development and safety analysis techniques for modeling safety-critical
+%IoT systems and performing early-safety analysis. In particular, we rely on a Fault-Tree Analysis (FTA) \cite{Xing2008} approach enabling the modeling of the behavior of a system both with and without failures and a Failure Logic Analysis (FLA) process to analyze the propagation of a failure leading to an undesired state by means of propagation rules. 
+%The aim of the proposed approach is to support not only the monitoring of failures' propagation in the system but also the simulation of the impact of an architectural change in the system.
+
+%As seen in Section \ref{sec:casestudy}, IoT systems are subjected to different kinds of failures, either being internally generated from the system or coming from the surrounding environment, for this reason we asked ourselves the following questions to answer upon the proposed approach:
+%\begin{itemize}
+ %   \item[\textbf{RQ1}]  Are the existing set of rules correct w.r.t. the failure propagation? %[soundness check]
+ %   \item[\textbf{RQ2}] Does the existing set of rules cover enough/every possible behaviour? %[completeness check]
+%\end{itemize}
+%In order to answer these questions we are developing testing techniques to support the model-based approach in the generation of sound and complete failure propagation rules.
+%Indeed, in Figure \ref{fig:approach} we can see that after the two phases of modeling and FT generation/analysis, the testing phase gives a proof of the actual discovered failure propagation rules that can be exploited in the modeling phase. In this way we want to develop an iterative process of refinement of the system's model.
+
+
+\subsection{Fault-Tree Generation and Analysis} \label{sec:fta}
+
+The Fault-Tree Analysis (FTA) \cite{Xing2008} aims to graphically analyze the system's final failure behavior based on the FLA input. Fault trees depict the system failure logic outcomes in a tree structure, making it simple to navigate and trace influences from a system-level danger to specific failures from system components and sub-components. In addition to that, it is also possible to perform analyses on it to determine minimal failure events that are required to trigger such hazards 
+
+% as well as computing the chance that such a hazard could occur. An example of an fault tree is shown in Figure \ref{fig:fault_tree_example}.
+
+% \begin{figure}[h]
+%   \centering
+%   \includegraphics[width=.6\linewidth]{img/Fault_tree.png}
+%     \caption{An FT example}
+%     \label{fig:fault_tree_example}
+% \end{figure}
+
+The Fault-Tree generation is performed through a series of model-to-model transformations from the FLA model to a series of Fault-Tree (FT) models. %Normally, 
+An FT is generated for each of the failures that propagate to the targeted output port of the system, and contains logical networks of events and corresponding gates that together form a failure representation tree, reflecting the system's failure behavior set by the user and the system's functional architecture. Each FT event has its own unique identity in the tree and can be of type basic, intermediate, external, or undeveloped, depending on the stage at which it manifests.
+
+In the FT generation process, each FT is built recursively. A top event is initially generated due to the failure's propagation to the system output port. In terms of logical gates used in the FT, only \textbf{AND} and \textbf{OR} gates are adopted. The events gate is created systematically.  An \textbf{AND} gate is used to indicate a failure transformation from an input to an output port of a component. On the other hand, an \textbf{OR} gate is used to depict a failure propagation case. The \textbf{OR} gate can also depict a scenario in which one or more failure outputs from distinct components are passed to the input of the following component.
+
+The intermediate events are created and populated into the FT based on the failure expressions and the components they are assigned to. The FT population involves a recursive transformation process in which components, ports, and their corresponding rules are recursively parsed. So, at this stage, the only crucial stopping case is reached when the transformation hits a condition matching a basic failure, an underdeveloped failure (i.e., an insufficient source failure), or an externally injected failure.
+%
+\begin{figure}[b]
+  \centering
+  \includegraphics[width=.9\linewidth]{img/FLA2FTtransformationExample.png}
+    \caption{FT corresponding to Equation \ref{eqtransformation2}.}
+    \label{fig:eqtransformation2FT }
+\end{figure}
+%
+\begin{figure*}
+    \centering
+    \includegraphics[width=.8\textwidth]{img/testing_process.pdf}
+    \vspace{-5mm}
+    \caption{IoT System's testing process.}
+    \label{fig:testing_process}
+\end{figure*}
+%
+%
+For instance,  Figure \ref{fig:eqtransformation2FT } depicts a simple transformation example with indications showing a transformation mapping of Equation \ref{eqtransformation2}. From the example, each of the output expressions is mapped to an output event of a logical combination of the input expressions. Each input expression is mapped to an event, and the type of such event is determined by the expression condition. In addition to that, the logical gates are defined based on the nature of the input expressions to satisfy the failure propagation and transformation concepts.
+
+
+% \subsubsection{Fault-Tree Analayis process}
+As the system gets bigger and more complex, which in turn requires a large number of rules to better cover all possible failure scenarios, the generated FTs inevitably become even bigger and harder to grasp. To tackle such a challenge, different analysis mechanisms are used to systematically extract meaningful insight from the generated tree. CHESSIoT supports \textit{``Qualitative"} fault tree analysis mechanisms in which only the essential FT representations are kept. This process involves the removal of internal component failure propagations, external component-to-component failure propagations, and basic event redundancies. In addition, CHESSIoT also supports \textit{``Quantitative"} analysis that automatically calculates the failure probabilities of an entire system from its constituent parts’ failure probabilities. 
+
+% \begin{itemize}
+%     \item \textbf{\textit{Qualitative FTA:}} is carried out employing an FT2FT model-to-model transformation, enabling users to reuse both generated and analyzed FTs at the same time. The purpose is to create a new representation of the old FT that only contains the necessary representations. The transformation procedure preserves only paths in the tree that fulfill internal or external failure transformation, allowing users to focus on important details when tracing the failure's cause. For instance, the following actions are performed:
+%     \begin{enumerate}
+%         \item Removal of internal component failure propagation: FT helps users discover and trace down the source event of a system failure in a more intuitive fashion. This process reduces the vertical magnitude of a FT but does not change its nature.
+%         \item Removal of external component-to-component failure propagation: This refers to a condition where a component-to-component propagation is solicited from a single channel in the FT. This process mainly focuses on basic events, events involved in a failure transformation, and the top event.
+%         \item Removal of basic event redundancy: Typically, A failure is initiated from a single source and propagates over many propagation pathways until it reaches the output port(s). If no transformation occurred in all propagation channels, only one path is considered, and all intermediate propagation representations are removed accordingly.
+%     \end{enumerate}
+%     To enhance the effectiveness, the eliminated intermediate paths and gates are together replaced by feed-forward intermediate gates. fough the current qualitative analysis does not fully reflect the calculation of the minimal event sets needed for a system to fail (minimal cut-sets \cite{cutsets}), it does provide a much shorter and more readable FT that still reflects the goal for the analysis.
+
+%     \item \textbf{\textit{Quantitative FTA:}} is used to automatically calculate the system-level failure rate. The approach assigns failure probability rates of basic failure events, such as internal and injected failures, from device manufacturer data sheets and safety experts. The probability calculation follows a standard reliability probability calculation formula for conducting a logical output of an  ``AND" or ``OR" gate in the FT \cite{FERDOUS2009217}. 
+    
+%     The top event probability is estimated from the probabilities for intermediate events down to the basic events. The probability at the output port of a single input component is obtained by forwarding probability at an input port directly to the events at the output ports. This is also valid for component-to-component failure propagation, where the failure event probability associated with the previous component's output port is sent to the event associated with the immediate component's input port.
+    
+%     In the case of an undeveloped event, the branch probability is initially set to zero when fed into an ``OR" gate, whereas it is set to one when fed into an ``AND" gate. This is done to maintain neutrality during the probability calculation process.
+
+% \end{itemize}
+
+
+\subsection{IoT System Testing}\label{sec:fpr}
+
+The third phase of the approach shown in Figure~\ref{fig:approach} concerns testing the modeled IoT system to confirm or disprove the defined failure logic rules (correctness check) and discover
+new ones (completeness check). This phase is guided by the information collected from the system's model and consists of three main activities: the \emph{Isolation} of the components to be exercised, the \emph{Testing} of the isolated components to collect observations about how failures are propagated from inputs to outputs, and the \emph{Rules Generation} from the observations, as shown in Figure \ref{fig:testing_process}.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=.48\textwidth]{img/isolated_component.pdf}
+    \caption{Irrigation unit component isolated.}
+    \label{fig:isolated}
+\end{figure}
+
+%
+The \emph{Isolation} activity isolates the component under test from the rest of the system using stubs and probes. The stubs are connected to the input ports of the component while removing the original connections. The probes are connected to the output ports of the components, again removing the original connections. In this configuration, the stubs generate the input values in a controlled and coordinated way, whereas monitoring probes capture and record the output values produced by the component under test. Figure~\ref{fig:isolated} shows how the explanatory component \emph{Irrigation unit} is isolated to support the discovery of failure propagation patterns. Isolation is a simple activity performed visually on the model.
+
+The \emph{Testing} activity consists of exercising the isolated component through the stubs to log evidence about how failures are propagated through the probes. Since the inputs of an isolated component are fully controllable and its outputs can be fully observed, it is possible to systematically generate tests that include failures in the inputs and observe how and if they propagate to the outputs. 
+
+The strategy to observe how failures propagate is based on a variant of \emph{differential testing} \cite{Barany2018,Chen2023}. In differential testing, the same inputs are executed on two comparable implementations (e.g., two compilers for the same language), and the outputs are directly compared to discover possible faults. In this case, we start from a \emph{base execution} \texttt{t=(I,O)}, where \texttt{I} is a set of time series values, each one representing a sequence of input values for an input port, and \texttt{O} is a set of time series values, each one representing a sequence of output values observed for an output port. Figure \ref{fig:input-output} shows an example of a base execution of the Irrigation Unit component. The time series provided by the stub in input activates the component from second 15.00001 to second 30.00001, by sending 5 Volts to the circuits to turn on the water fans and the LED associated with that input port; instead, when the value is set to 0, the component is not active as not stimulated by any Volt. The time series in output reflects the behavior instrumented in input, as the component results active, for each output port, from second 15.00004 to second 30.00007 (differences with respect to input are minimal and depend on the precision of Proteus tool\footnote{\url{https://www.labcenter.com/iotbuilder/}}, which is used for this work as design and simulation environment). 
+
+\begin{figure}
+    \centering
+    \includegraphics[trim=0.0cm 0.0cm 0.0cm 0.0cm, clip=true, width=.47\textwidth]{img/input-output.pdf}
+    \vspace{-5mm}
+    \caption{Input \& output time series of Irrigation unit component.}
+    \label{fig:input-output}
+\end{figure}
+
+To discover how failures propagate, our approach automatically modifies the inputs $I$ used in a base execution $t$ by systematically injecting failures of the given types on the inputs. The approach then executes the modified inputs $I'$ and collects the outputs, namely $O'$. The comparison of the output produced by the base execution $O$ and the output generated by the mutated execution $O'$ reveals if and how the input failure(s) propagated to the output. 
+
+We need two main elements for each supported failure type to execute this process: a failure injector and a failure detector. The \emph{failure injector} is a function that, given an input time series, modifies its values to obtain a minimally modified time series that includes the failure of the given type. The \emph{failure detector} is a function that, given two time series, one obtained from the base execution and another obtained from a mutated execution, can tell if the failure of the given type is present in the output. 
+
+Table \ref{tab:failures_inj_det} summarizes the failure injectors and the failure detectors defined for the fault types currently supported by our implementation for IoT systems. 
+Note that both injectors and detectors can be parameterized with respect to the actual use case, to reflect the characteristics and volatility of the signals. $TS$ and $TS^{'}$ represent base and mutated time series, respectively, $\varepsilon_{t}$ and $\varepsilon_{v}$ determine the tolerance on timing and values variations, and $[v_{min}, v_{max}]$ are the range of accepted values for the considered use case.  As an example, an \texttt{Early} failure injector may mutate the base execution of Figure \ref{fig:input-output}, by changing the component activation time from second 15.00001 to 12.00001, whereas an \texttt{Early} detector may compare base and mutated executions to determine how this propagates in output.
+
+\begin{table*}[h]
+    \centering
+    \scriptsize
+    \caption{Failure Injectors \& Detectors.}
+    \begin{tabular}{|p{6em}|p{26em}|p{37em}|}\hline
+		\scriptsize{\textbf{Type}} & \scriptsize{\textbf{Injectors}} & \scriptsize{\textbf{Detectors}}\\\hline\hline
+        \texttt{Early} &  $(t_i, v_i) \in TS \rightarrow (t_i - x, v_i) \in TS^{'}$, where $(x > \varepsilon_{t})$
+				& $(t_i, v_i) \in TS, (t_j, v_j) \in TS^{'} \rightarrow 
+    true$, if $(v_i = v_j) \land (t_j < t_i - \varepsilon_{t})$ \\\hline
+    
+				\texttt{Late} & $(t_i, v_i) \in TS \rightarrow (t_i + x, v_i) \in TS^{'}$, where $(x > \varepsilon_{t})$  
+				& $(t_i, v_i) \in TS, (t_j, v_j) \in TS^{'} \rightarrow 
+    true$, if $(v_i = v_j) \land (t_j > t_i + \varepsilon_{t})$ \\\hline
+    
+			  \texttt{ValueCoarse} & $(t_i, v_i) \in TS \rightarrow  (t_i, v_i \pm x) \in TS^{'}$, where $ (x > \varepsilon_{v}) \land ((v_i - x <v_{min}) \lor (v_i + x >v_{max}))$ 
+				& $(t_i, v_i) \in TS, (t_j, v_j) \in TS^{'} \rightarrow 
+    true$, if $(t_i = t_j) \land ((v_j < v_{min}) \lor (v_j > v_{max}))$ \\\hline
+
+				\texttt{ValueSubtle} & $(t_i, v_i) \in TS \rightarrow (t_i, v_i \pm x) \in TS^{'}$, where 
+                $ (x > \varepsilon_{v}) \land (v_{min} \leq \lvert v_i \pm x \rvert \leq v_{max})$ 
+				& $(t_i, v_i) \in TS, (t_j, v_j) \in TS^{'} \rightarrow 
+    true$, if $(t_i = t_j) \land (\lvert v_i - v_j \rvert > \varepsilon_{v}) \land (v_{min} \leq  v_j \leq v_{max})$ \\\hline 
+    \end{tabular}
+    \label{tab:failures_inj_det}
+    \vspace{-2mm}
+\end{table*}
+
+These elements are combined into a fully automated testing process that repeatedly instantiates the isolated component, generates the mutated execution (using the failure injectors), runs the component with the mutated execution, collects observations checking for the presence of failures (using the failure detectors), and destroys the instance of the isolated component. This process is repeated multiple times for all the combinations of failures to be investigated.   
+
+%More in details, $I=(I_1, \ldots, I_n$ consists of $n$ time series of input values, one for each input of the component under test. $I$ is the base execution that is exploited to study failure propagation. Given $k$ failure types to be investigated, all combinations of up to $m$ simultaneous failures present in the inputs are studied. For instance, if $m=1$ only cases with a single failure in input are considered, for a total of $k^n$ casess. For eexample, if the only \texttt{Late} failure is studied, $n$ variants of $I$ with a late failure presents in a different input are generated. To obtain the modified version of $I$ with the failure, for each failute type we define a failure injector that generates a variant of $I_i$ with the failure encoded in the inputs. Table summarizes the failure injector asssociated with each failure type currently supported by our prototype implementation.\textbf{add table}
+
+Additional data can be collected by considering multiple base executions. In particular, we envision the possibility to start from a set of base executions that cover the various possible states of the components under test, so that the propagation of failures can be studied in multiple contests (i.e., states). For the moment, we assume the user of the approach shall define the states that must be used in this process, and thus provide a set of base executions that cover the relevant states. In the future, we would like to explore the automatic generation of the base executions.
+
+At the end of this process, for each combination of input failures $p_{(in1)}.failure^{i_1}_{(in1)},..,p_{(inN)}.failure^{i_N}_{(inN)}$, a set of observations $Obs_i$ where $Obs_i \in \{failure^1 \ldots failure^k\} \cup NoFailure$, are available. %, that is, for each execution the failure detectors either detact a failure of a given type or not failure.
+
+This testing phase can be configured to work in two different modes: (i) \textit{validation} of existing failure propagation rules (validation mode) or (ii) \textit{discovery} of new failure propagation rules (discovery mode). 
+
+
+The \emph{validation mode} provides a cost-effective targeted exploration of the combinations of failures, and their propagation. In particular, for each failure propagation rule $p_{(in1)}.failure_{(in1)},..,p_{(inN)}.failure_{(inN)} \rightarrow p_{(out)}.failure_{(out)}$, the validation mode investigates how failures propagate to the output when the failures in the input ports are consistent with the left-hand side of the rule, i.e., $failure_{(in1)},..,failure_{(inN)}$. The final set of derived rules will either confirm or disprove the existing rules.
+
+The \emph{discovery mode} is a more expensive but systematic exploration of the possibile combinations of failures to derive rules about their propagation. Given a set of $k$ failure types $failure^1 \ldots failure^k$ and $N$ input ports, this mode investigates how, and if, failures propagate for every combination of input failures $p_{(in1)}.failure^{i_1}_{(in1)},..,p_{(inN)}.failure^{i_N}_{(inN)}$, where each tuple indicates the failures present in the input ports, and $failure^i$ is any of the considered failure types or \texttt{NoFailure}. For instance, if the \texttt{Late (L)}, and \texttt{Early (E)} failure types are investigated for two input ports, six combinations of inputs failures ($\langle L, - \rangle, \langle -, L\rangle, \langle R, -\rangle, \langle -, R\rangle, \langle L, R\rangle, \langle R, L\rangle $, where $-$ represents \texttt{NoFailure}),  obtained by every possible permutation of the considered failures, are considered. The final set of rules will provide a comprehensive view about how failures are propagated by the considered component.
+
+
+In practice, the validation mode constraints the discovery to the subset of failures used in the rules to be validated, while the discovery mode considers every possible combination of failures. %In both modes, the isolated component under test is simulated thanks to the stubs sending inputs, and probes, capturing the outputs.  %Our tool implementation supports the injection of stubs and probes in Proteus\footnote{\url{https://www.labcenter.com/}}. 
+%%%%%%%
+
+
+Finally, the \emph{Rules Generation} activity of Figure \ref{fig:testing_process} consists of the generation of the actual set of failure propagation rules. This is done by extracting the set of failures types $f_1, \ldots f_p$ present in a set of observations $Obs_i$ associated with a same pattern of failures $p_{(in1)}.failure^{i_1}_{(in1)},..,p_{(inN)}.failure^{i_N}_{(inN)}$ and generating the rule $p_{(in1)}.failure^{i_1}_{(in1)},..,p_{(inN)}.failure^{i_N}_{(inN)} \rightarrow f_1 or \ldots or f_p$, which is finally encoded in the failure analysis tool as a set of $p$ non-deterministc rules $p_{(in1)}.failure^{i_1}_{(in1)},..,p_{(inN)}.failure^{i_N}_{(inN)} \rightarrow f_i$, where $i=1\ldots p$.  
+
+%Our tool implementation currently supports Proteus IoT components\footnote{\url{https://www.labcenter.com/}}.
+
+The discovered rules may confirm or disprove the existing failure propagation rules and discover new ones. This phase may thus trigger an evolution of the system's model by refining the system failure logic behaviour definition.
+From this evolution, the whole process may be re-triggered to achieve satisfactory reliability for the candidate IoT system.
+
+%Systematically injecting different types of failures on the input ports, for different base executions and different components, is thus exploited to systematically discover failure propagation rules. More rigorously, every component $C$ is tested against $FT=N^I$ failures, where $N$ is the number of supported failure types and $I$ is the number of input ports where these failures can be injected. Moreover, to consider the case failure propagation may depend on the state of the component, the $FT$ failures are executed against $S$ possible states.
+%Our implementation currently supports the injection and detection of \textit{timing failures} and \textit{value domain failures}.
+%The set of states $S$ to be used for failure discovery can be defined by the user or can be automatically extracted from an existing test suite by selecting those states that produce observable differences in the output generated by a component. %This feature is currently supported for Proteus components.
+ 
+
+
+% The IoT
+% System Testing phase exploits the information in the model
+% to execute the individual components, while injecting failures
+% on input ports, and checking how they propagate to output
+% ports. This phase can both confirm/disprove existing failure
+% propagation rules (soundness check) and discover new ones
+% (completeness check).

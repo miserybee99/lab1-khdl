@@ -1,0 +1,601 @@
+% This is samplepaper.tex, a sample chapter demonstrating the
+% LLNCS macro package for Springer Computer Science proceedings;
+% Version 2.20 of 2017/10/04
+%
+\documentclass[runningheads]{llncs}
+%
+\usepackage{graphicx}
+\usepackage{tabu}
+\usepackage{bbm}
+\usepackage{amsmath}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{color}
+\usepackage{colortbl}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+% Used for displaying a sample figure. If possible, figure files should
+% be included in EPS format.
+%
+% If you use the hyperref package, please uncomment the following line
+% to display URLs in blue roman font according to Springer's eBook style:
+\renewcommand\UrlFont{\color{blue}\rmfamily}
+
+\begin{document}
+%
+\title{MAD: Modality Agnostic Distance Measure for Image Registration}
+%
+\titlerunning{MAD: Modality Agnostic Distance Measure for Image Registration}
+% If the paper title is too long for the running head, you can set
+% an abbreviated paper title here
+%
+% \author{Anonymous}
+\author{
+Vasiliki {Sideri-Lampretsa}\inst{1, 2} \and Veronika A. Zimmer\inst{1} \and Huaqi Qiu\inst{4} \and Georgios Kaissis\inst{1, 2, 3} \and Daniel Rueckert \inst{1, 2, 4}}
+
+\authorrunning{Vasiliki Sideri-Lampretsa et al.}
+% First names are abbreviated in the running head.
+% If there are more than two authors, 'et al.' is used.
+% \institute{Anonymous Organisation}
+\institute{Technical University of Munich \\
+\email{\{vasiliki.sideri-lampretsa, veronika.zimmer, g.kaissis, daniel.rueckert\}@tum.de} \\
+\and Klinkum rechts der Isar, Munich, Germany \and
+Helmholtz Zentrum Munich, Germany \and Department of Computing, Imperial College London, London, UK 
+\email{huaqi.qiu15@imperial.ac.uk}
+}
+% \url{http://www.springer.com/gp/computer-science/lncs} \and
+% ABC Institute, Rupert-Karls-University Heidelberg, Heidelberg, Germany\\
+% \email{\{abc,lncs\}@uni-heidelberg.de}}
+%
+\maketitle              % typeset the header of the contribution
+%
+\begin{abstract}
+Multi-modal image registration is a crucial pre-processing step in many medical applications. However, it is a challenging task due to the complex intensity relationships between different imaging modalities, which can result in large discrepancy in image appearance. The success of multi-modal image registration, whether it is conventional or learning based, is predicated upon the choice of an appropriate distance (or similarity) measure. Particularly, deep learning registration algorithms lack in accuracy or even fail completely when attempting to register data from an "unseen" modality. In this work, we present Modality Agnostic Distance (MAD), a deep \textit{image distance} measure that utilises random convolutions to learn the inherent geometry of the images while being robust to large appearance changes. Random convolutions are geometry-preserving modules which we use to simulate an infinite number of synthetic modalities alleviating the need for aligned paired data during training. We can therefore train MAD on a mono-modal dataset and successfully apply it to a multi-modal dataset. We demonstrate that not only can MAD affinely register multi-modal images successfully, but it has also a larger capture range than traditional measures such as Mutual Information and Normalised Gradient Fields. Our code is available at: \href{https://github.com/ModalityAgnosticDistance/MAD}{https://github.com/ModalityAgnosticDistance/MAD}.
+
+\keywords{Image registration, mutli-modality, distance measure}
+\end{abstract}
+
+\section{Introduction}
+
+Multi-modal image registration is a crucial and challenging application in medical image processing. It generally refers to the process in which two images acquired from different imaging systems, governed by different physics principles, are aligned into the same coordinate space. Fusing the different modalities can result in more informative content. However, this is not a trivial problem due to the highly non-linear relationships between the shapes and the appearance present in different modalities \cite{Sotiras2013DeformableMI}.
+
+In order to tackle this challenging issue, several multi-modal image similarity/distance measures have been proposed \cite{Haber2006IntensityGB,Heinrich2012MINDMI,Studholme1999AnOI}. The widely used multi-modal intensity-based measures, Mutual Information (MI) \cite{Loeckx2010NonrigidIR,Studholme1999AnOI,Wells1996MultimodalVR}, operates on intensity histograms and is therefore agnostic to the underlying geometry of the image structures. Although MI excels in aligning images that are relatively close in space, it shows limited ability to recover large misalignments without a multi-resolution framework. Other metrics such as Normalised Gradient Fields (NGF), measure the image similarity using edge maps \cite{Haber2006IntensityGB,Wachinger2012EntropyAL} while the Modality Independent Neighborhood Descriptor (MIND) measures the image similarity using hand-crafted local descriptors \cite{Heinrich2012MINDMI,Woo2015MultimodalRV}. However, these measures make only restrictive assumptions on the intensity relationships between multi-modal images which affect their performance. Apart from the hand-crafted measures, many learning-based distance measures have also been proposed \cite{Cheng2015DeepSL,Czolbe2020DeepSimSS,Haskins2018LearningDS,Lee2009LearningSM,Simonovsky2016ADM,Wachinger2012EntropyAL}. Most of these, however, are either used only for mono-modal registration only or require ground truth transformation or pre-aligned paired multi-modal images for training which is very challenging to obtain in a real-world scenario. In this work, we propose Modality Agnostic Distance (MAD), a self-supervised contrast-agnostic geometry-informed deep distance measure that demonstrates a wider capture range than the traditional measures without using a multi-resolution scheme. We overcome the limited assumptions of intensity relations in the intensity-based distance measures by learning geometry-centric relationships with a neural network. This is achieved by using random convolutions to create complex appearance changes, which also enables us to synthesise infinite aligned image pairs of different modalities, alleviating the need for aligned multi-modal paired data in the existing learning-based distance measures. To the best of our knowledge, our work is the first that explores random convolutions as data augmentation in the context of medical imaging and medical image registration. Our contribution can be summarised as follows:
+\begin{itemize}
+\item[$\bullet$] We introduce learning a general geometry-aware contrast-agnostic deep \textit{image distance} measure for multi-modal registration, formulating an effective self-supervised task that allows the network to assess the \textit{image distance} by grasping the underlying geometry independent of its appearance. 
+
+\item[$\bullet$] We propose to use random convolutions to obtain infinite aligned image pairs of different appearances and parametric geometry augmentation to learn a modality-invariant distance measure for image registration. 
+
+\item[$\bullet$] We perform a detailed study about the capture range and evaluate the effectiveness of the proposed measure through extensive ablation analysis on two challenging multi-modal registration tasks, namely multi-modal brain registration and Computed Tomography (CT) - Magnetic Resonance (MR) abdominal image registration.
+
+\end{itemize}
+
+%
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{images/pipeline.png}
+\caption{An overview of our method. We synthesise modalities from a mono-modal dataset using random convolutions (left). Random affine transformations are used as geometric augmentation (middle). Patches are sampled at corresponding locations as input to a CNN to regress the distance between patch centres (right). We compute the MSE between ground truth (\(d_{gt}\)) and predicted (\(d_{gt}\)) distance.} \label{fig1}
+\end{figure}
+%
+
+% To address these limitations, we propose MAD, a self supervised deep distance measure for multi-modal registration that can be used both in conventional and learning-based registration. Our key idea is to employ random convolutions as data augmentation that allow us to create infinite image pairs of synthetic modalities. We extend \cite{Xu2021RobustAG} by making the convolutions 3D and we also introduce a non-linearity in order to be able to generate domain pairs that are not linearly related. In this way, our network learns to be appearance-agnostic using patches (illustrated in fig.\ref{fig1}). We demonstrate state of the art results training our distance measure utilising only T1-weighted Magnetic Resonance (MR) images and testing it in the challenging scenarios of multi-modal registration T1-weighted to T2-weighted, Proton Density (PD) and Computed Tomography (CT) brain images. Our loss function  manages to outperform popular multi-modal similarity measures, such as Normalized MI (NMI) and NGF, for large deformation estimation without the usage of a multi-resolution strategy, while remaining on par with them when estimating relatively small deformations. 
+
+
+
+% Our key idea is to employ random convolutions as data augmentation \cite{Xu2021RobustAG}. Random convolutions help us focus visual representations on global shape information rather than local texture and enable us to create an infinite number of image pairs of synthetic modalities. To our knowledge, this is the first time that random convolutions are explored as data augmentation  in the context of medical imaging. We use these synthesised images to pre-train our MAD using a very simple, yet effective self-supervised task. First, we randomly transform affinely one image relative to the other. Then, we sample patches at corresponding locations from both synthesised modalities and we are training our MAD to predict the euclidean distance between the patch centres. \blue{Not sure you have to describe it here in such detail} In this way, we manage to teach our network to learn the structure inherent in the images ignoring the difference in the appearance. We demonstrate state of the art results training our loss on T1w images and testing it in the challenging scenarios of T1w-PD, T1w-CT and T1w-T2w image registration. Our loss function is comparable to popular multi-modal similarity measures, such as Normalized Mutual Information (NMI) and Normalized Gradient Fields (NGF), for estimating relatively small deformations. It outperforms large deformations in a single-resolution approach, in cases where the other measures fail.
+
+
+\section{Related Works}
+
+% MI \cite{Loeckx2010NonrigidIR,Studholme1999AnOI,Wells1996MultimodalVR} is the most common intensity-based distance measure for multi-modal image registration. It operates on intensity histograms and therefore it is agnostic to the underlying geometry of the image structures. Although it is very effective in aligning images that are relatively close in space, it shows limited ability to recover large misalignments, especially if it is not used in a multi-resolution framework. Other metrics, such as Normalised Gradient Field (NGF), measure the image similarity using edge maps \cite{Haber2006IntensityGB,Wachinger2012EntropyAL} while metrics such as the Modality Independent Neighborhood Descriptor (MIND) measure the image similarity using hand-crafted local descriptors \cite{Heinrich2012MINDMI,Woo2015MultimodalRV}. These measures might fail to generalise when the intensity changes do not occur at the same locations.
+
+Besides the hand-crafted measures described in the introduction, learning-based methods were also proposed to learn an inter-modal loss function \cite{Cheng2015DeepSL,Czolbe2020DeepSimSS,Haskins2018LearningDS,Lee2009LearningSM,Simonovsky2016ADM,Wachinger2012EntropyAL}. A recent work, DeepSim~\cite{Czolbe2020DeepSimSS} proposes to pre-train a feature extractor on an auxiliary segmentation task and then use the semantic features to drive the optimisation of a learning-based registration model. Moreover, Pielawski et al. \cite{Pielawski2020CoMIRCM} proposed CoMIR that uses supervised contrastive learning and paired data to learn affine registration on 2D images. Dey et al. \cite{Dey2022ContraRegCL} proposed a method that involves unsupervised contrastive learning to maximise the mutual information between features. Hoffman et al. \cite{Hoffmann2020SynthMorphLC} proposed a data augmentation pipeline based on labels to simulate synthetic images and assess the image similarity in them. Similar to our work, \cite{Simonovsky2016ADM} proposes to learn a metric from patches through a patch-matching classification task. However, the training process relies on aligned paired data which is difficult to acquire for any modality and the model is specifically trained on T1w-T2w images, limiting its generalisability across different domains such as MR-CT. 
+
+
+% However, the modality-specific feature extractor limits the method to mono-modal registration only. Other methods are applied to multi-modal registration, but require the ground truth transformations to learn a similarity metric~\cite{Haskins2018LearningDS}, or focus more on finding common structural representations, instead of learning the similarity measure, e.g. using Laplacian eigenmaps~\cite{Wachinger2012EntropyAL}. 
+
+
+% Apart from the hand-crafted metrics more recent methods attempted to learn an inter-domain objective function or assess the semantic similarity using simulated data \cite{Dey2022ContraRegCL,Haskins2018LearningDS,Hoffmann2020SynthMorphLC,Pielawski2020CoMIRCM,Qin2019UnsupervisedDR,Simonovsky2016ADM}. 
+
+
+% \subsection{Learning-based similarity metrics.}
+% Apart from the hand-crafted metrics more recent methods attempted to learn an inter-domain objective function \cite{Wachinger2012EntropyAL,Simonovsky2016ADM,Pielawski2020CoMIRCM,Haskins2018LearningDS,Dey2022ContraRegCL,Qin2019UnsupervisedDR,Hoffmann2022SynthMorphLC}. In Simonovsky et al. \cite{Simonovsky2016ADM} similar to \cite{Zagoruyko2015LearningTC}a deepmetric is learned from pre-aligned T1w, T2w image patches, by classifying if the patches match or not. Haskins et al. \cite{Haskins2018LearningDS} proposed a similarity metric limited to TRUS-MR affine registration by predicting Landmark errors.  Pielawski et al. \cite{Pielawski2020CoMIRCM} proposed CoMIR that uses supervised contrastive learning and paired data to learn affine registration on 2D images. Lastly, Dey et al. \cite{Dey2022ContraRegCL} proposed a method that involves unsupervised contrastive learning to maximise the mutual information between patches. 
+
+% Other approaches \cite{Arar2020UnsupervisedMI,Pielawski2020CoMIRCM,Qin2019UnsupervisedDR} rely on image-to-image translation, i.e. they simulate one modality from the other, so that mono-modal metrics can be used. These methods rely on networks that are complicated to train and might result in images that have the appearance of one modality, but the also hallucinate.  Lastly, SynthMorph \cite{Hoffmann2022SynthMorphLC} proposes a method that utilised synthetic appearances and deformations to train a general-purpose multi-modal deformable registration network.
+
+
+
+\section{Methods}\label{sec:Methods}
+\textbf{Problem formulation.}\label{sec:registration}
+In this paper, we are focusing on affine registration between 3D images. Affine image registration is the task of estimating the best transformation \(\mathcal{A}:\Omega_{F} \rightarrow \Omega_{M}\),  between a fixed \(F: \Omega_F\subseteq \mathbbm{R}^n \rightarrow \mathbbm{R}\) and a moving image \(M:\Omega_M\subseteq \mathbbm{R}\rightarrow \mathbbm{R}^n\) ($n=3$ in our case).
+%
+In conventional registration, the transformation parameters $\mu$ that parameterise the affine matrix, here denoted by \(\mathcal{A}_{\mu}\), are estimated by solving the following optimisation problem:
+%
+\begin{equation} \label{eq:1}
+  \mu^*= \arg \min_{\mu} [\mathcal{D}(F, M(\mathcal{A}_{\mu}))],
+\end{equation}
+%
+\noindent where \(\mathcal{D}\) is a distance measure which measures how well the images are aligned and \(M(\mathcal{A}_{\mu})\) is the affinely transformed moving image resampled to \(\Omega_{F}\).
+
+In learning-based registration, this problem is solved by optimising the weights of a neural network instead of the parameters of the transformation:
+%
+\begin{equation} \label{eq:2}
+  \phi^*= \arg \min_{\phi}  \mathbbm{E}[\mathcal{D}(F, M(\mathcal{A}_{{g}_{\phi}}))],
+\end{equation}
+%
+\noindent where \(g_{\phi}(F,M)\) is a neural network that predicts the parameters of the affine transformation which aligns the images $F$ and $M$. In both conventional and learning-based approaches, selecting an appropriate measure \(\mathcal{D}\) is crucial.
+
+\noindent\textbf{Learning modality-agnostic distance measure.}
+ Instead of using an analytically formulated distance measure, we propose to formulate $\mathcal{D}$ as a geometry-aware convolutional neural network that estimates the dissimilarity between images by aggregating the distance between their patches, while remaining contrast agnostic. In other words, we are training the network to estimate the distance between the patch centres sampled from the different images after augmenting using random convolutions. Intuitively, the centre point difference can serve as a similarity indicator, i.e. if the points are close in space that means that the patches should also be close in space and vice versa. The whole process can be schematically outlined in Fig.~\ref{fig1}.
+
+% \begin{equation}\label{eq:3}
+% f_{\theta}(P_{F}, P_{M}) = \hat{d}
+% \end{equation}
+
+% \begin{equation}\label{eq:3}
+% d_{pred} = \frac{1}{N}\sum_{i=1}^{N}f_{\theta}(P_{{F}_i}, P_{{M}_i})
+% \end{equation}
+
+
+% % TODO: remove omegas?
+% \noindent where $N$ is the number of patches, $\theta$ are the network parameters, \(P_F:\Omega^P_F\subset\Omega_F \subseteq \mathbbm{R}^3\rightarrow \mathbbm{R}^3\) and  \(P_M:\Omega^P_M\subset\Omega_M \subseteq \mathbbm{R}^3\rightarrow \mathbbm{R}^3\) are patches of the same size sampled from the fixed and moving image respectively.
+
+% Consequently, we are formulating an effective self-supervised task that allows the network to assess the image similarity by understanding the image geometry independent of its appearance. In other words, we are training the network to estimate the distance between the patch centres sampled from the different images after augmenting using random convolutions. Intuitively, the centre point difference can serve as a similarity indicator, i.e. if the points are close in space that means that the patches should also be close in space and vice versa. The whole process can be schematically outlined in Fig.~\ref{fig1}. \\
+
+% In this work, our aim is to design a generic objective function. Thus, given one volume from one modality \(I \in \Omega \), we construct a random multi-modal pair using random convolutions \cite{Xu2021RobustAG}. Random convolutions help us focus visual representations on global shape information rather than local texture and enable us to create an infinite number of image pairs of synthetic modalities. We use these synthesised images to pre-train our MAD using a very simple, yet effective self-supervised task. First, we randomly transform affinely one image relative to the other. Then, we sample patches at corresponding locations from both synthesised modalities and we are training our MAD to predict the euclidean distance between the patch corner points. In this way, we manage to teach our network to learn the structure inherent in the images ignoring the difference in the appearance. Here the straightforward approach would be to calculate the distance between the patch centres. With this sub-optimal approach, though, we would self-supervise our network using only the translation component of the transformation.
+
+\noindent\textbf{Modality augmentation.}\label{sec:RandConv} In order to reliably achieve multi-modal registration, we would like to devise a dissimilarity measure which is modality-agnostic, removing the need for retraining for every modality pairing. To achieve that, we propose to employ randomly initialised convolutional layers as data augmentation~\cite{Xu2021RobustAG}. These layers have the desirable trait that they maintain the underlying geometry of the images, only transforming the local intensity and texture.
+
+% In the following we choose to represent the images as discrete matrices, in contrast to continuous function as in Section~\ref{sec:registration}. Let \(\mathbf{\Theta} \in \mathbbm{R}^{h \times w \times d \times C_{in} \times C_{out}}\) be a convolutional layer with randomly initialised weights using Xavier normal initialisation, $h$, $w$ and $d$ to be the height, width and depth of the layer's filter and \(C_{in}\), \(C_{out}\) the numbers of feature channels for input and output and \(\mathbf{I} \in \mathbbm{R}^{H \times W \times D \times C_{in}}\) to be an image, where $H$, $W$ and $D$ are the height, width and depth of the image. Since we are dealing with grayscale images the \(\{C_{in}, C_{out}\} = 1\). By convolving \(\mathbf{I} * \mathbf{\Theta}\) we obtain the output \(\mathbf{g} \in \mathbbm{R}^{H \times W \times D \times C_{out}}\).
+
+Our first task is to extend the formulation presented in \cite{Xu2021RobustAG} to 3D. Convolution is a linear operator, as a result the intensities are linearly mapped to the range \([0, 255]\). This is rather unrealistic as we are often dealing with modality pairs with non-linear intensity relationships. Therefore, we introduce non-linearity in the intensity mapping by performing clamping, taking the absolute value of the result of the random convolutions and passing it through a leaky ReLU with a variable negative slope. This simulates more sophisticated intensity relationships between the augmented domains.
+The geometric-preserving augmentation enforces identical structure, but different appearance enabling us to generate infinite pairs of aligned modalities only from one mono-modal image, removing the need for paired and pre-aligned multi-modal data.
+
+%  :
+%  \(\text{LeakyReLU}(\left|g\right|)\), where g=RandConv(I).\\
+
+
+\noindent\textbf{Geometric augmentation.}\label{sec:DataAug} Let $F = \text{RandConv}(I)$, $M = \text{RandConv}(I)$ be the fixed and moving image volumes which are the same image mapped to different augmented modalities via random convolutions. To train the learned distance metric, we synthetically transform the moving image to generate controlled geometric misalignment. Following the notation suggested by \cite{Mok2022AffineMI}, we sample a random rotation, translation, scaling and shearing parameter from a range of possible configurations and we construct an affine matrix $\mathcal{A}$. Formally, we can write the affine matrix \(\mathcal{A}(\mathbf{t}, \mathbf{r}, \mathbf{s}, \mathbf{h})\) where \(\mathbf{t}, \mathbf{r}, \mathbf{s}, \mathbf{h} \in \mathbbm{R}^3\) are the translation, rotation, scaling and shearing parameters. The affine matrix $\mathcal{A}$ can be composed by a set of geometric transformation matrices: \(A = \mathcal{T} \cdot \mathcal{R} \cdot \mathcal{S} \cdot \mathcal{H}\), where $\mathcal{T}$, $\mathcal{R}$, $\mathcal{S}$ and $\mathcal{H}$ denote the translation, rotation, scaling and shearing transformation matrices parameterised by the corresponding geometric transformation parameters.
+
+Finally, we sample $N$ patches of the same size at the same locations in the fixed and transformed moving image resulting in $N$ patch pairs that differ both in appearance and geometry. We are denoting the patches that are sampled from the fixed image  by \(P_{F}\) and the patches that are sampled from the moving image by \(P_{M}\). Since we synthetically transform the moving image with a known affine transformation relative to the fixed, we can also obtain the ground truth deformation field which effectively denote the distance between the patch centres.
+
+\noindent\textbf{MAD.}\label{sec:MAD} 
+To construct an alignment distance measure from the patches, we employ a convolutional neural network (ResNet~\cite{he2016deep}) \(f_{\theta}\) which is trained to determine the Euclidean distance between the centres of a patch pair from their appearances. The distance measure between the images can be thus calculated by aggregating the distances between all patches: 
+%
+\begin{equation}\label{eq:3}
+\mathcal{D}_{MAD}(F, M) = \frac{1}{N}\sum_{i=1}^{N}f_{\theta}(P_{F}^{i}, P_{M}^{i}),
+\end{equation}
+%
+\noindent where $\theta$ are the network parameters, $N$ is the number of patches, \(P_F^i:\Omega^P_F\subset\Omega_F \subseteq \mathbbm{R}^3\rightarrow \mathbbm{R}^3\) and \(P_M^i:\Omega^P_M\subset\Omega_M \subseteq \mathbbm{R}^3\rightarrow \mathbbm{R}^3\) are patches of the same size sampled at the same location from the fixed and moving image respectively.
+
+% Intuitively, the corner point difference can serve as a similarity indicator, i.e. if the points are close in space that means that the patches should also  be close in space and vice versa. 
+
+
+% \begin{equation}\label{eq:3}
+% f_{\theta}(P_{F}, P_{M}) = \hat{d}
+% \end{equation}
+
+
+% The patch pairs are given as input to a convolutional neural network, which is trained to regress the euclidean distance between their corner points.  We are designing a CNN \(f_{\theta}\) parametrised by $\theta$ to encode the distance between patches. Using the Eq. \ref{eq:3}, the distance between the images can be calculated by taking the mean of the distances between all patches:
+
+% \begin{equation}\label{eq:4}
+% d_{pred} = \frac{1}{N}\sum_{i=1}^{N}f_{\theta}(P_{{F}_i}, P_{{M}_i})
+% \end{equation}
+
+% \noindent where $N$ is the number of patches, \(P_F\) and  \(P_M\) are patches of the same size sampled from the fixed and moving image respectively.
+
+
+
+% \begin{equation}\label{eq:3}
+% f_{\theta}(P_{F}, P_{M}) = \hat{d}
+% \end{equation}
+
+% \noindent where \(\hat{d} \in \mathbbm{R}\) is the distance between the patch centres and $\theta$ are the network parameters.
+
+We are supervising the training of the patch distance CNN using the patches we generated from the modality and geometric augmentations. Concretely, we optimise the network using a loss function which calculates the Mean Square Error (MSE) between the ground truth and predicted centre point distances:
+%
+\begin{equation}
+    \theta^*= \arg \min_{\theta} \mathbbm{E} [(d_{gt} - \hat{d}_{pred})^2]
+\end{equation}
+%
+\noindent where $\theta^*$ denotes the optimal network parameters, \(\hat{d}_{pred}\) denotes the patch distances predicted by the network and \(d_{gt}\) denotes the ground truth distances derived from the known affine transformation \(\mathcal{A}(\mathbf{t}, \mathbf{r}, \mathbf{s}, \mathbf{h})\) that we sampled.
+
+
+% \begin{equation}
+%     \theta^*= \arg \min_{\theta} [\mathbbm{E}_{(P_{F}, P_{D})}\mathcal{L}_{MSE}(P_{F}, P_{M})]
+% \end{equation}
+% \begin{equation}
+% MSE = \frac{1}{N}\sum_{i=1}^{N}(d_{gt} - \hat{d}_{pred})^2
+% \end{equation}
+% \noindent where $\theta$ is denoting the network parameters,  $\mathcal{L}$ is the Mean Square Error:
+% \begin{equation}\label{eq:4}
+% MSE = \frac{1}{N}\sum_{i=1}^{N}(d_{gt} - \hat{d}_{pred})^2
+% \end{equation}
+
+% \noindent where $N$ is the number of patches, $d_{gt}$ are the ground truth distances and \(\hat{d}_{pred}\) are the predicted ones. 
+
+% Intuitively, the corner point difference can serve as a similarity indicator, i.e. if the points are close in space that means that the patches should also  be close in space and vice versa. 
+Intuitively, by presenting the network with a large number of augmented modality pairs with varying intensity relationships, we encourage it to focus on evaluating the difference between image shapes according to their inherent geometric transformations, while placing less emphasis on image appearance. 
+%
+Given that our distance measure is differentiable by construction, it can be optimised using gradient-based optimisation techniques and used as a cost function in both conventional or learning-based registration algorithms.
+
+% TODO implementation at appendix?
+% \noindent\textbf{Implementation.} We implement MAD in PyTorch 1.12.1 using a ResNet10 architecture obtained from \cite{chen2019med3d}. During training we use ADAM \cite{Kingma2015AdamAM} as an optimiser with an initial learning rate of \(1e^{-4}\). A learning rate decay of \(0.1\) per 100 epoch was used. Finally, we implement conventional affine registration in Airlab \cite{Sandkhler2018AirLabAI}. For NMI and NGF we use implementations by \cite{Vos2019ADL} and \cite{Sandkhler2018AirLabAI}, respectively. We are writing \cite{Simonovsky2016ADM} ourselves as DeepLoss. TODO. All experiments were performed on a workstation with an AMD Ryzen\textsuperscript{TM} Threadrippe 3960X CPU and NVIDIA Quadro RTX 8000 GPU.
+
+
+\section{Experiments \& Discussion}
+
+% To demonstrate the effectiveness of our novel, learning based similarity measure MAD we are performing a series of experiments. First, we are inspecting 3D loss landscapes to compare the capture range and the convexity of our learned similarity measure compared to commonly used multi-modal measure, which we consider the state of the art. Second, we compare the registration performance of our measure to state-of-the-art in various challenging single-level global registration scenarios. Third, we are performing an ablation study showing the effectiveness of utilising random convolutions, and exploring the optimal patch size and number of patches. 
+
+% In order to perform the registration we are using Airlab \cite{Sandkhler2018AirLabAI} as a conventional method. 
+% Although, we do not demonstrate any results with a deep learning approach here, the incorporation of our loss function in a deep learning registration framework should be straight forward. 
+% % We also decided to use the AffineNet presented in \cite{Vos2019ADL} to perform the deep learning registration.
+
+%\subsection{Implementation}
+
+
+\noindent\textbf{Datasets.} We are evaluating the effectiveness of the proposed measure using three datasets: the Cambridge Centre for Ageing and Neuroscience project (CamCAN) \cite{Shafto2014TheCC,Taylor2017TheCC}, the Retrospective Image Registration Evaluation Project (R.I.R.E.) \cite{West1996ComparisonAE} and the arguably challenging MR-CT dataset of Learn2Reg\cite{Hering2021Learn2RegCM}. 
+We normalise all the brain images to a common MNI space using affine registration, ensuring an isotropic spatial resolution with a voxel size of \(1\rm{mm}^3\). We perform skull-stripping using ROBEX \cite{Iglesias2011Robex} and bias-field correction using the N4 algorithm in SimpleITK \cite{Lowekamp2013TheDO}. For the pre-processing of the CT images in R.I.R.E, we use the steps proposed in \cite{Muschelli2015ValidatedAB}. We utilise the $310$ 3D T1w brain images of the CamCAN project to train MAD (80\% training - 20\% validation) and we test it on 6 subjects of R.I.R.E. that have uncorrupted T1w, T2w, PD MR and CT brain images.
+Regarding the abdominal images, we use the 90 unpaired, affinely aligned MR and CT scans for training (80\% training - 20\% validation) and the 16 paired scans for evaluation. All the images have isotropic spatial resolution with a voxel size of \(2\rm{mm}^3\).
+
+
+% For training we use the Cambridge Centre for Ageing and Neuroscience project \cite{Shafto2014TheCC,Taylor2017TheCC} of $310$ 3D T1w brain images. All the images have isotropic spatial resolution with voxel size of \(1\rm{mm}^3\), are spatially normalised to MNI152 coordinate system using affine registration, skull-stripped using ROBEX \cite{Iglesias2011Robex} and bias-field corrected using the N4 algorithm in SimpleITK \cite{Lowekamp2013TheDO} . 
+% % The second one is OASIS \cite{Marcus2007OpenAS} obtained from the Learn2Reg challenge \cite{Hering2022Learn2RegCM}. It contains 416 3D T1w brain MR scans affinely normalised, conformed to a  \(1mm^3\) isotropic grid space, bias-corrected, and skull-stripped using FreeSurfer \cite{Franceschi2018BilevelPF}. All the images are cropped to the size of \(256 \times 256 \times 256\). For training we are using the T1w images from both datasets combined, spliting it to 580 data for training, 146 for validation. 
+% The second one is the arguably challenging MR-CT dataset of learn2reg \ citation needed. The dataset is comprised by 90 unpaired MR/CT scans which we use for training and 16 paired ones that we use for evaluation. All the images have isotropic spatial resolution with voxel size of \(2\rm{mm}^3\) and are affinely pre-aligned in a canonical space.
+
+% For testing we use the multi-modal Retrospective Image Registration Evaluation Project (R.I.R.E.) \cite{West1997ComparisonAE,West1996ComparisonAE} choosing 6 subjects that have uncorrupted data from T1w, T2w, PD MR images and CT brain images. We resample the images to have isotropic spatial resolution with voxel size of \(1\rm{m}m^3\), we affinely normalise them to MNI152 space and we perform skull stripping. Particularly, for the preprocessing of the CT images we use the steps proposed in \cite{Muschelli2015ValidatedAB}. Finally, in all the experiments we choose a patch size of \(64\times 64 \times 64\). 
+
+% We are affinely normalising the images to a common MNI space to be able to assess the accuracy of the registration algorithms quantitatively. We start with images from different modalities that are affinely aligned in space. Then, we are transforming one relative to the other with a synthetic affine transformation using Airlab \cite{Sandkhler2018AirLabAI}. Since we know the synthetic transformation that we are trying to recover, we can also obtain the ground truth deformation field.\\
+
+\noindent\textbf{Evaluation.}
+We compare MAD to two widely used image similarity measures: NMI introduced by \cite{Studholme1999AnOI}, NGF \cite{Haber2006IntensityGB} and ClassLoss (CL) which is a learning-based measure based on patch classification \cite{Simonovsky2016ADM} and most relevant to our work. We start with images from different modalities that are affinely aligned in space. Then, we transform them with a synthetic affine transformation. The intuition behind this is that by controlling the applied transformation parameters we can evaluate the measures' performance quantitatively. I.e. as we know the synthetic transformation that we are trying to recover, we can also know the ground truth deformation field. As a result, we can evaluate the accuracy of the registration by calculating the Mean Average Error (MAE) and its standard deviation (std) in \rm{mm} between the ground truth deformations and the predicted ones. We also test if the differences in the reported errors between competing methods are statistically significant (\( p < 0.05\)) with a t-test \cite{Efron2016ComputerAS}. Lastly, we calculate the effect size $es$ considering it small when \(es \leq 0.3\), moderate when \(0.3 \leq es \leq 0.5\) and strong when \(es \leq 0.5\) \cite{Cohen1969StatisticalPA}. 
+%
+We incorporate the baselines and the proposed measure with image registration implemented with Airlab, a conventional registration framework introduced in \cite{Sandkhler2018AirLabAI}. 
+% \begin{equation}\label{eq:5}
+% MAE = \frac{\sum_{i=1}^{n}|d_i - \hat{d}_i|}{n}
+% \end{equation}
+% \noindent where \(d\) is the ground truth deformation field, \(\hat(d)\) is the calculated deformation field and n is the number of pixels in the image.
+
+% \noindent \textbf{Baseline Measures.}
+
+
+% To demonstrate the effectiveness of our novel, learning based similarity measure MAD we are performing a series of experiments. 
+% First, we are inspecting 3D loss landscapes to compare the capture range and the convexity of our learned similarity measure compared to commonly used multi-modal measure, which we consider the state of the art. Second, we compare the registration performance of our measure to state-of-the-art in various challenging single-level global registration scenarios. Third, we are performing an ablation study showing the effectiveness of utilising random convolutions, and exploring the optimal patch size and number of patches. 
+
+
+% We also decided to use the AffineNet presented in \cite{Vos2019ADL} to perform the deep learning registration. 
+
+% \subsection{Experiments and Results}
+
+\subsection{Experiment 1: Loss Landscapes}\label{sec:loss_landscape}
+
+\noindent\textbf{Setup.} We generate the measure landscapes to inspect and compare the convexity and the capture range by translating a CT image relative to a T1w image from the R.I.R.E. dataset. The translations \(\mathbf{t} = [t_x, t_y, t_z]\) are in the range of \([-60, 60]\,\rm{mm}\) with a step size of 10\rm{mm} and the resulting image distances are normalised for better comparison.
+%
+% \begin{figure}
+%     \centering
+%         \begin{subfigure}[b]{0.16\textwidth}
+%         \includegraphics[width=\textwidth]{images/t1ct_ngf_translation_x.png}
+%         \caption{MAD}
+%         \end{subfigure}
+%         \begin{subfigure}[b]{0.16\textwidth}
+%         \includegraphics[width=\textwidth]{images/t1ct_pl_translation_x.png}
+%         \caption{NGF}
+%         \end{subfigure}
+%         \begin{subfigure}[b]{0.16\textwidth}
+%         \includegraphics[width=\textwidth]{images/NMI_top.png}
+%         \caption{NMI}
+%         \end{subfigure}
+%         \begin{subfigure}[b]{0.16\textwidth}
+%         \includegraphics[width=\textwidth]{images/t1ct_ngf_translation.png}
+%         \caption{MAD}
+%         \end{subfigure}
+%         \begin{subfigure}[b]{0.16\textwidth}
+%         \includegraphics[width=\textwidth]{images/t1ct_pl_translation.png}
+%         \caption{NGF}
+%         \end{subfigure}
+%         \begin{subfigure}[b]{0.16\textwidth}
+%         \includegraphics[width=\textwidth]{images/NMI.png}
+%         \caption{NMI}
+%         \end{subfigure}
+%     % \subfigure[MAD ]{\includegraphics[width=0.16\textwidth]{images/t1ct_ngf_translation_x.png}} 
+%     % \subfigure[NGF ]{\includegraphics[width=0.16\textwidth]{images/t1ct_pl_translation_x.png}}
+%     % \subfigure[NMI ]{\includegraphics[width=0.16\textwidth]{images/NMI_top.png}}
+%     % \subfigure[MAD]{\includegraphics[width=0.16\textwidth]{images/t1ct_ngf_translation.png}} 
+%     % \subfigure[NGF]{\includegraphics[width=0.16\textwidth]{images/t1ct_pl_translation.png}}
+%     % \subfigure[NMI]{\includegraphics[width=0.16\textwidth]{images/NMI.png}}
+%     \caption{The loss 2D landscapes for translation. MAD (MAD) [a, d], Normalised Gradient Fields (NGF) [b, e] and Normalised Mutual Information (NMI) [c, f].}\label{fig2}
+% \end{figure} 
+\begin{figure}
+    \centering
+        \begin{subfigure}[b]{0.16\textwidth}
+        \includegraphics[width=\textwidth]{images/MAD_top.png}
+        \caption{MAD}
+        \end{subfigure}
+        \begin{subfigure}[b]{0.16\textwidth}
+        \includegraphics[width=\textwidth]{images/NGF_top.png}
+        \caption{NGF}
+        \end{subfigure}
+        \begin{subfigure}[b]{0.16\textwidth}
+        \includegraphics[width=\textwidth]{images/NMI_top.png}
+        \caption{NMI}
+        \end{subfigure}
+        % \begin{subfigure}[b]{0.20\textwidth}
+        % \includegraphics[width=\textwidth]{images/DL_top.png}
+        % \caption{CL}
+        % \end{subfigure}
+        \begin{subfigure}[b]{0.16\textwidth}
+        \includegraphics[width=\textwidth]{images/MAD.png}
+        \caption{MAD}
+        \end{subfigure}
+        \begin{subfigure}[b]{0.16\textwidth}
+        \includegraphics[width=\textwidth]{images/NGF.png}
+        \caption{NGF}
+        \end{subfigure}
+        \begin{subfigure}[b]{0.16\textwidth}
+        \includegraphics[width=\textwidth]{images/NMI.png}
+        \caption{NMI}
+        \end{subfigure}
+        % \begin{subfigure}[b]{0.20\textwidth}
+        % \includegraphics[width=\textwidth]{images/DL.png}
+        % \caption{CL}
+        % \end{subfigure}
+    % \subfigure[MAD ]{\includegraphics[width=0.16\textwidth]{images/t1ct_ngf_translation_x.png}} 
+    % \subfigure[NGF ]{\includegraphics[width=0.16\textwidth]{images/t1ct_pl_translation_x.png}}
+    % \subfigure[NMI ]{\includegraphics[width=0.16\textwidth]{images/NMI_top.png}}
+    % \subfigure[MAD]{\includegraphics[width=0.16\textwidth]{images/t1ct_ngf_translation.png}} 
+    % \subfigure[NGF]{\includegraphics[width=0.16\textwidth]{images/t1ct_pl_translation.png}}
+    % \subfigure[NMI]{\includegraphics[width=0.16\textwidth]{images/NMI.png}}
+    \caption{The loss 2D landscapes for translation in the range of \([-60, 60] \rm{mm}\). MAD (MAD) [a, d], Normalised Gradient Fields (NGF) [b, e] and  Normalised Mutual Information (NMI) [c, f]}\label{fig2}
+\end{figure} 
+%
+
+\noindent\textbf{Results.} Figure~\ref{fig2} demonstrates that despite NMI, NGF and MAD landscapes being smooth with minima at 0, MAD leads to the largest capture range (further validated by registration results in Table \ref{tab:results}) compared to NGF and NMI. This could be explained by the fact that MAD network is trained on complex appearance patches and therefore it is able to capture the underlying geometry better than NGF that is operating on edge maps. NMI is known to perform poorly for large misalignment without the usage of a multi-resolution scheme, showing weak gradients towards the optimal alignment when the translations are large.
+%
+\subsection{Experiment 2: Recover random transformations}
+\noindent\textbf{Setup.} We assess the performance of our \textit{image distance} measure in recovering synthetic affine transformations. We repeat the experiment $100$ times for all test subjects and we compute the MAE between the ground truth and the predicted deformation fields. We evaluated the performance on a small and a large range of transformations (Table \ref{tab:results} right) in order to examine the capacity of MAD to restore synthetic transformations without requiring a multi-resolution approach. For the large transformations, we employ a multi-resolution scheme for both NGF and NMI, given the small capture range these measures exhibit in Sec.~\ref{sec:loss_landscape}.
+%
+\begin{figure}[tbp]
+% \centering
+% \includegraphics[width=0.8\textwidth]{images/qualitative.png}
+% \caption{Qualitative registration results. Although registration with NMI and NGF use multi-resolution scheme, the registration results in a local minimum.} \label{fig:qualitative}
+\centering
+\includegraphics[width=\textwidth]{images/qualitative_abd.png}
+\caption{Qualitative registration results for the MR-CT abdominal dataset using the different measures.} \label{fig:qualitative_comp}
+\end{figure} 
+%
+\begin{table}[btp]
+    \caption{Registration performance measured using the Mean Absolute Error (mean(std)) in \rm{mm} between the ground truth and the predicted deformation fields for small and large affine misalignment (left). Grey boxes indicate significance compared to MAD with a \(p < 0.05\) and effect sizes small, moderate ($\ast$) and strong ($\ast\ast$). Affine parameter ranges: Translation (T.), Rotation (R.), Scaling (Sc.), Shearing (Sh.) (right).}
+    \begin{subtable}[h]{0.35\textwidth}
+    
+        % \centering
+       \begin{tabular}{l c c c c}
+        \hline
+        \multicolumn{5}{c}{Small misalignment setting} \\
+        \hline
+        {} & T1w-PD & T1w-CT & T1w-T2w & CT-MR\\
+        \hline
+        NMI & \(4.79(3.22)\) & \(\mathbf{4.15(4.32)}\)  & \(\mathbf{4.07(3.51)}\)  & \(7.65(6.28)\)\\
+        NGF &  $4.92(3.81)$ & $5.38(5.26)$  & $4.89(3.76)$  & \(8.81(4.29)\)\\
+        CL &\(5.32(5.11)\) &\(5.46(4.38)\) & \(4.75(4.71)\)  & \(9.63(9.51)\)\\
+        MAD & \(\mathbf{4.56(3.8)}\) & \(4.27(4.17)\) & \(4.15(4.12)\)  & \(\mathbf{7.06(2.07)}\)\\
+        \hline
+        \multicolumn{5}{c}{Large misalignment setting} \\
+        \hline
+        {} & T1w-PD & T1w-CT & T1w-T2w & CT-MR\\
+        \hline
+        NMI & \(17.79(14.41)\) & \cellcolor{gray!25} \(20.21(12.32)^{*}\)  & \(15.63(15.78)\) &\cellcolor{gray!25} \(22.93(19.72)^{*}\)\\
+        NGF &\cellcolor{gray!25}$23.86(12.74)^{*}$ & \cellcolor{gray!25} $29.98(22.64)^{**}$  &\cellcolor{gray!25}  $27.88(25.15)^{*}$ & \cellcolor{gray!25} \(25.87(21.56)^{*}\)\\
+        CL & \cellcolor{gray!25} \(63.24(48.28)^{**}\) & \cellcolor{gray!25} \(67.13(41.79)^{**}\) & \cellcolor{gray!25} \(55.84(49.36)^{**}\) & \cellcolor{gray!25} \(94.12(83.52)^{**}\)\\
+        MAD & \(\mathbf{13.34(7.59)}\) & \(\mathbf{17.09(9.03)}\) & \(\mathbf{13.21(7.64)}\) & \(\mathbf{20.47(15.63})\)\\
+        \hline
+        \end{tabular}
+       % \caption{Quantitative Results}
+       \label{tab:results}
+    \end{subtable}
+    \hfill
+    \begin{subtable}[h]{0.2\textwidth}
+        \centering
+        \begin{tabular}{l c }
+            \hline
+            \multicolumn{2}{c}{Parameter ranges} \\
+            \hline
+            \multicolumn{2}{c}{Small} \\
+            \hline
+            T. & \([-30, 30]\)\rm{mm}  \\
+            R. & \([-25, 25]\)\(^{\circ}\) \\
+            Sc. & \([90, 110]\)\%  \\
+            Sh. & \([90, 110]\)\%  \\
+            \hline
+            {} & {} \\
+            % {} & {} & {} \\
+            \multicolumn{2}{c}{Large} \\
+            \hline
+            T. & \(\pm[30, 60]\)\rm{mm}  \\
+            R. & \(\pm[25, 45]\)\(^{\circ}\) \\
+            Sc. & \([90, 110]\)\%  \\
+            Sh. & \([90, 110]\)\%  \\
+            \hline
+            % {} & {} & {} \\
+            \end{tabular}
+        % \caption{Parameter ranges}
+        \label{tab:ranges}
+     \end{subtable}
+    % \begin{subtable}[h]{\textwidth}
+    %     \centering
+    %     \begin{tabular}{l c c c c}
+    %         {} & {} & {} & {} & {} \\
+    %         \hline
+    %         \multicolumn{5}{c}{Affine Parameters} \\
+    %         \hline
+    %         {} & Translation & Rotation & Shearing & Scaling \\
+    %         \hline
+    %         small range & \([-30, 30]\) \rm{mm}  & \([-25, 25]\) \(^{\circ}\)  & \([90, 110]\) \% & \([90, 110]\) \%\\
+    %         large range & \([-60, -30] \cup [-60, 30]\) \rm{mm} & \([-45, -25] \cup [25, 45]\) \(^{\circ}\)  & \([90, 110]\) \% & \([90, 110]\) \%\\
+
+
+    %         \hline
+    %         \end{tabular}
+    %     % \caption{Parameter ranges}
+    %     \label{tab:ranges}
+    %  \end{subtable}
+    
+     \label{tab:results}
+\end{table}
+% \vspace{-30pt} 
+
+\noindent\textbf{Results.} Table~\ref{tab:results} shows that, for smaller ranges, MAD is superior to the state-of-the-art learned CL measure and on par with the conventional metrics for all datasets. This is unsurprising given that NGF and NMI are effective at recovering small misalignments, as we observe in Fig.~\ref{fig2}. The conclusion of the comparison changes for the large misalignment case, where MAD demonstrates significantly superior performance in all cases, even when NMI and NGF are used in a multi-resolution scheme (Fig.~\ref{fig:qualitative_comp}). Furthermore, we observe that recovering the larger transformations results in larger errors for all image distance measures. This could be caused by the optimisation not converging or converging in a local minimum. This issue is particularly severe for the learned CL measure which demonstrates very large errors, potentially due to the fact that the classification categorical signal is not able to quantify how large the patch mismatch is. Qualitative results can be found in the Supplementary material.
+
+% the geometric transformations that Simonivsky et al. \cite{Simonovsky2016ADM} propose for training are not large enough to capture the large transformations. Qualitative results of the registration can be found in the Supplementary material.
+
+\subsection{Experiment 3: Ablation Study}
+To demonstrate the performance of the design choices, namely the random convolution modality augmentation, patch size and the number of patches sampled, we perform a series of ablation experiments on T1w-CT of R.I.R.E. dataset. The results are demonstrated in Table \ref{tab:ablation}. It can be seen that MAD with random convolution modality augmentation showed a lower registration error (3.69mm) than MAD without random convolution (5.07mm). We also found that a higher number of patches leads to better performance as expected. Finally, we demonstrate the method is rather robust to the choice of patch size, with slightly better results from using larger patch sizes.
+ 
+% With this experiments we are testing our hypotheses and we are demonstrating how each of our structural choice is contributing to making our loss function more robust to intensity changes and more accurate. First we are going to demonstrate how the MAE is affected by the incorporation of the Random Convolutions. Then are reporting results using different patch sizes during inference and lastly we are commenting on the patch size and its significance.
+%
+\begin{table}[tbp]
+        \caption{Ablation study that demonstrates the performance of each structural element: number of patches, patch size and the utility of data augmentation.
+        % Registration performance measured using the Mean Absolute Error (mean (std)) in \rm{mm} between the ground truth and the predicted deformation fields for various number of patches, patch sizes and the incorporation or not of data augmentation.
+        }
+        \centering
+       \begin{tabular}{c c c | c c c | c c}
+        \hline
+        \multicolumn{3}{c|}{\textbf{\# Patches}} & \multicolumn{3}{c|}{\textbf{Patch Size}} & \multicolumn{2}{c}{\textbf{Rand. Conv.}}\\
+        \hline
+        \textbf{10} & \textbf{100} & \textbf{300} & \textbf{16} & \textbf{32} & \textbf{64} & \textbf{yes} & \textbf{no}\\
+        \hline
+        \(4.44(2.61)\) & \(4.22(2.68)\) & \(3.69(2.33)\) & \(4.39(3.09)\) & \(3.96(2.00)\)& \(3.69(2.33)\) & \(3.69(2.33)\) & \(5.07(2.64)\)\\
+        \hline
+        \end{tabular}
+     \label{tab:ablation}
+\end{table}
+%
+
+% \begin{table}
+% \centering
+% \caption{Registration performance measured using the Mean Absolute Error (mean $\pm$ std) in \rm{mm} between the ground truth and the predicted deformation fields for different number of patches during testing only and both during training and testing (Right) and with and without the incorporation or random convolutions (Left) using $100$ patches both during training and testing.}\label{tab5}
+% \fontsize{7.9pt}{10pt}
+% % \captionsetup{font=scriptsize}
+% \begin{tabu}{|l|c|c|c|c|c|[3pt]c|c|}
+% \hline
+% \bfseries{\# Patches}  & $\mathbf{10}$ &  $\mathbf{50}$ & $\mathbf{100}$ & $\mathbf{200}$ & $\mathbf{300}$ & \bfseries{Aug} & \bfseries{Error {\rm{mm}}}\\
+% \hline
+% \bfseries{Train \& Test} & \(5.48\pm4.92\) & \(3.86\pm2.65\)& \(1.46\pm0.38\)& \(1.22\pm0.87\)& \(\mathbf{1.16\pm0.78}\) & \bfseries{Yes} & \(\mathbf{1.46\pm0.38}\)\\ 
+% \bfseries{Only Test}  & \(1.65\pm0.825\)& \(1.36\pm0.74\)  & \(1.46\pm0.38\) & \(1.32\pm0.95\) & \(1.58\pm0.68\)& \bfseries{No} & \(3.48\pm1.42\)\\
+
+% \hline
+% \end{tabu}
+
+% \end{table}
+
+\section{Conclusion}
+In this work, we design a learned contrast-agnostic geometry-focused learning-based dissimilarity measure for multi-modal image registration. Using the elegant concept of random convolutions as modality augmentation and synthetic geometry augmentation, we are able to address the challenge of learning an image distance measure for multi-modal registration without the need for aligned paired multi-modal data. We carefully study the loss landscape, the capture range and registration accuracy quantitatively in two multi-modal registration scenarios. Evaluation results demonstrate that the proposed framework outperforms established multi-modal dissimilarity measures, especially for large deformation estimation. In future works, we plan to plug the proposed measure in a deep learning registration framework, perform more tests on other multi-modal applications and adapt the framework for multi-modal deformable registration.
+
+
+%
+% ---- Bibliography ----
+%
+% BibTeX users should specify bibliography style 'splncs04'.
+% References will then be sorted and formatted in the correct style.
+%
+\bibliographystyle{splncs04}
+\bibliography{mybibliography}
+
+% \clearpage
+% \appendix
+
+% \title{Appendix}
+
+% \section{Qualitative Results}
+
+% \begin{figure}
+%     \centering
+%         \begin{subfigure}[b]{0.7\textwidth}
+%         \includegraphics[width=\textwidth]{images/pl_worse.png}
+%         \caption{MAD}
+%         \end{subfigure}
+%         \begin{subfigure}[b]{0.7\textwidth}
+%         \includegraphics[width=\textwidth]{images/mi_better.png}
+%         \caption{NMI}
+%         \end{subfigure}
+%     \caption{Successfull registration with NMI and MAD for a small deformation. Quantitatively, NMI presents a lower MAE \((1.2\pm2.21)\) compared to MAD \((1.46\pm0.38)\).}\label{fig5}
+% \end{figure} 
+
+
+% \begin{figure}
+%     \centering
+%         \begin{subfigure}[b]{0.8\textwidth}
+%         \includegraphics[width=\textwidth]{images/pl_90.jpeg}
+%         \caption{MAD}
+%         \end{subfigure}
+%         \begin{subfigure}[b]{0.8\textwidth}
+%         \includegraphics[width=\textwidth]{images/mi_90.png}
+%         \caption{NMI}
+%         \end{subfigure}
+%     \caption{Registration results of MAD and NMI (using a multi-resolution approach) trying to recover a \(90^{\circ})\) rotation. While MAD is able to recover the transformation correctly, the optimisation of the registration driven by NMI is stuck in a local minimum not managing to recover this large rotation.}\label{fig6}
+% \end{figure} 
+
+
+% \begin{figure}
+% \centering
+%   {
+%   {\includegraphics[width=0.8\linewidth]{images/initial_alignment.png}
+%   \caption{Example of the initial alignment of a T1w image (first column) with a CT image (second column). The third column demonstrates the difference image}}
+%   }
+% \end{figure}
+
+
+
+
+
+
+
+% \begin{table}
+% \centering
+% \caption{Uniform hyperparameter sampling ranges for
+% sampling the synthetic affine transformations for small and large ranges.}\label{tabA1}
+
+% \begin{tabular}{l c c c c}
+% \hline
+% \textbf{Hyperparameter} & Unit & Value Range \\
+% \hline
+% \multicolumn{3}{c}{small range} \\
+% \hline
+% Translation & \rm{mm} & \([-30, 30]\)  \\
+% Rotation & \(^{\circ}\)& \([-25, 25]\) \\
+% Scaling & \% & \([90, 110]\) \\
+% Shear & \% & \([90, 110]\) \\
+% \hline
+% \multicolumn{3}{c}{large range} \\
+% \hline
+% Translation & \rm{mm} & \([-60, -30]\cup[30, 60]\)  \\
+% Rotation & \(^{\circ}\)& \([-45, -25]\cup[25, 45]\) \\
+% Scaling & \% & \([90, 110]\) \\
+% Shear & \% & \([90, 110]\) \\
+% \hline
+% \end{tabular}
+% \end{table}
+
+
+%
+% \begin{thebibliography}{8}
+% \bibitem{ref_article1}
+% Author, F.: Article title. Journal \textbf{2}(5), 99--110 (2016)
+
+% \bibitem{ref_lncs1}
+% Author, F., Author, S.: Title of a proceedings paper. In: Editor,
+% F., Editor, S. (eds.) CONFERENCE 2016, LNCS, vol. 9999, pp. 1--13.
+% Springer, Heidelberg (2016). \doi{10.10007/1234567890}
+
+% \bibitem{ref_book1}
+% Author, F., Author, S., Author, T.: Book title. 2nd edn. Publisher,
+% Location (1999)
+
+% \bibitem{ref_proc1}
+% Author, A.-B.: Contribution title. In: 9th International Proceedings
+% on Proceedings, pp. 1--2. Publisher, Location (2010)
+
+% \bibitem{ref_url1}
+% LNCS Homepage, \url{http://www.springer.com/lncs}. Last accessed 4
+% Oct 2017
+% \end{thebibliography}
+\end{document}

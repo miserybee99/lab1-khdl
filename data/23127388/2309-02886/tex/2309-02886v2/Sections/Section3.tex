@@ -1,0 +1,66 @@
+\section{Generalization without a Thru Standard}
+\label{sec:3}
+
+In the previous section, we explained how to calculate the error terms using at least three symmetric one-port standards, a thru standard, and a match standard. The thru standard can cause difficulties, as it is not always possible to physically achieve such a standard. 
+
+The equations derived in the previous section can be used without changes if we obtain an equation similar to that of a thru standard, as given in \eqref{eq:2.2}. Therefore, this section aims to derive what we will refer to as a virtual thru standard by using additional one-port standards.
+
+The necessary standards, excluding the match standard, for the generalized SRM calibration are shown in Fig.~\ref{fig:3.1}. The network standard is an unknown transmissive two-port standard. This standard does not need to be reciprocal for deriving only one-port error terms. The additional network-load standard uses the same two-port network standard and the same one-port symmetric standards. As mentioned in the previous section, we require at least $M\geq3$ one-port symmetric standards. Hence, we also need a corresponding network-load standard for every symmetric one-port load standard. Generally, we only need the network-load standard from one port, which could be from either ports.
+\begin{figure}[th!]
+	\centering
+	\includegraphics[width=0.95\linewidth]{Figures/generalized_mLRM.pdf}
+	\caption{Two-port VNA error box model illustrating the standards used to create a virtual thru standard. All matrices are provided as T-parameters. The index $i$ indicates the measured standard, where $i=1,2,\ldots, M$, with $M \geq 3$.}
+	\label{fig:3.1}
+\end{figure}
+
+Based on the network standard, the following measurement is available:
+\begin{equation}
+	\bs{M}_\mathrm{net} = k\bs{A}\underbrace{\begin{bmatrix}
+		\frac{-\det\left(\bs{S}\right)}{S_{21}} & \frac{S_{11}}{S_{21}}\\[5pt]
+		\frac{-S_{22}}{S_{21}} & \frac{1}{S_{21}}
+	\end{bmatrix}}_{\bs{N}}\bs{B}
+	\label{eq:3.1}
+\end{equation}
+where $\det\left(\bs{S}\right) = S_{11}S_{22}-S_{12}S_{21}$.
+
+A similar expression to the matrix $\bs{H}$ in \eqref{eq:2.13} can be obtained using the network-load standard from the left port and the load standards from the right ports. This results in an expression similar to \eqref{eq:2.13}, but with $\bs{A}$ replaced by $\bs{A}\bs{N}$ and with an adjustment to the scaling factor. The scaling factor is unknown and does not need to be equal to the constant in \eqref{eq:2.13}. We can also achieve the same result by considering the network-load standards from the right port and symmetric load standards from the left port. As a result, combining the network-load standards with the symmetric load standards, we obtain the following result for each port depending on where the network-load was implemented:
+\begin{subequations}
+	\begin{align}
+		\bs{F}_a &= \eta\bs{A}\bs{N}\bs{P}\bs{B}\bs{P}, \qquad \forall\,\eta \neq 0,\label{eq:3.3a}\\
+		\bs{F}_b &= \zeta\bs{A}\bs{P}\bs{N}\bs{B}\bs{P}, \qquad \forall\,\zeta \neq 0\label{eq:3.3b}
+	\end{align}
+	\label{eq:3.3}
+\end{subequations}
+
+Using the results of $\bs{M}_\mathrm{net}$, $\bs{H}$, and $\bs{F}$ from \eqref{eq:3.1}, \eqref{eq:2.13}, and \eqref{eq:3.3}, respectively, we can create a virtual thru standard by combining them in the following manner:
+\begin{subequations}
+	\begin{align}
+		\bs{M}_\mathrm{thru} &= \bs{H}\bs{F}_a^{-1}\bs{M}_\mathrm{net} =\frac{\nu}{\eta}k\bs{A}\bs{B}\\
+		\bs{M}_\mathrm{thru} &= \bs{M}_\mathrm{net}\bs{P}\bs{F}_b^{-1}\bs{H}\bs{P} =\frac{\nu}{\zeta}k\bs{A}\bs{B}
+	\end{align}
+	\label{eq:3.4}
+\end{subequations}
+
+Therefore, we can obtain a thru measurement without measuring a thru standard using the results of \eqref{eq:3.4}. We simply use the results from the previous section and substitute \eqref{eq:3.4} in place of the thru measurements. The only difference we obtain are the eigenvalues, which result in $\pm k/\eta$ or $\pm k/\zeta$. However, this change does not affect anything, as $\nu$, $\eta$, and $\zeta$ are the result of the normalization choice of the Möbius transformation and are assumed regardless unknown.
+
+To complete the two-port calibration, we must solve for the transmission error term $k$. We can use the same method as in SOLR calibration \cite{Ferrero1992} by calculating $k$ through the determinate of the one-port corrected measurement of the network standard, given that it is reciprocal (i.e., $S_{21}=S_{12}$). Assuming the network standard is indeed reciprocal, we can solve for $k$ by first applying the one-port error boxes to the measurement of the network standard as follows:
+\begin{equation}
+	\bs{A}^{-1}\bs{M}_\mathrm{net}\bs{B}^{-1} = k\bs{N}
+	\label{eq:3.5}
+\end{equation}
+
+Afterward, by taking the determinant from both sides, we obtain the following:
+\begin{equation}
+	\det\left(\bs{A}^{-1}\bs{M}_\mathrm{net}\bs{B}^{-1}\right) = k^2\underbrace{\det\left(\bs{N}\right)}_{=1}
+	\label{eq:3.6}
+\end{equation}
+
+Hence, $k$ is solved as follows:
+\begin{equation}
+	k = \pm\sqrt{\det\left(\bs{A}^{-1}\bs{M}_\mathrm{recip}\bs{B}^{-1}\right)}
+	\label{eq:3.7}
+\end{equation}
+where the selection of the appropriate sign is determined by comparing it to a known estimate of the network.
+
+
+% EOF

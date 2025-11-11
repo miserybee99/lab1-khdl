@@ -1,0 +1,74 @@
+\section{Introduction}
+
+Text-Attributed Graphs (TAGs) are a type of graph that have textual data as node attributes. 
+These types of graphs are prevalent in the real world, such as in citation networks \cite{hu2020open} where the node attribute is the paper's abstract. TAGs have diverse potential applications, including paper classification \cite{chien2021node} and user profiling\cite{kim2020multimodal}. 
+However, studying TAGs presents a significant challenge: how to model the intricate interplay between graph structures and textual features. 
+This issue has been extensively explored in several fields, including natural language processing, information extraction, and graph representation learning. 
+
+% Text-Attributed Graphs (TAGs) are a type of graph that is widely present in the real world. 
+% In practical applications, many node features can be composed of text. For example, in citation networks, the node feature is the abstract of a paper, and in social networks, the node feature is the user's profile. 
+% TAGs have broad potential application values, such as paper classification and user identification. 
+% Modeling TAGs involves techniques from multiple fields, including information extraction, natural language processing, and graph representation learning, making it a hot academic topic currently.
+
+An idealized approach involves combining pre-trained language models (PLMs) \cite{he2020deberta,liu2019roberta} with graph neural networks and jointly training them \cite{zhao2022learning,mavromatis2023train}. Nevertheless, this method requires fine-tuning the PLMs, which demands substantial computational resources. Additionally, trained models are hard to be reused in other tasks because finetuning PLM may bring catastrophic forgetting\cite{chen2020recall}. 
+
+Therefore, a more commonly used and efficient approach is the two-stage process \cite{yang2021bert,zhang2022stance,malhotra2020classification}: (1) utilizing pre-trained language models (PLMs) for unsupervised modeling of the nodes' textual features. 
+(2) supervised learning using Graph Neural Networks (GNNs). 
+Compared to joint training of PLMs and GNNs, this approach offers several advantages in practical applications. 
+For example, it can be combined with numerous GNN frameworks or PLMs, and this approach does not require fine-tuning PLMs for every downstream task.
+However, PLMs are unable to fully leverage the wealth of information contained in the graph structure, which represents significant information. 
+To overcome these limitations, some works propose self-supervised fine-tuning PLMs using graph information to extract graph-aware node features \cite{chien2021node}. Such methods have achieved significant success across various benchmark datasets\cite{hu2020open}. 
+% Unsupervised modeling of nodes' textual features by language models (LM) and subsequent supervised learning of the graph feature by Graph Neural Networks (GNNs) is a classical and effective approach for processing TAGs. 
+% However, the generated node representation is untrainable in downstream tasks, a unsuitable representation may affect the performance of subsequent GNNs learning. 
+% To address limitations, many works merged recently, which investigate how to better utilize pre-trained language models in TAGs modeling. 
+% A method is joint PLMs with GNNs by knowledge distillation. 
+% and self-supervised fine-tuning PLMs to adapt graph data.   
+% First, PLMs are fine-tuned by self-supervised tasks related to graphs, enabling them to capture and comprehend graph information. Then, the fine-tuned PLM is used to generate node representations.
+% This approach has achieved significant results in numerous public datasets.
+
+
+% However, these SSL-based node feature extraction methods suffer from the few-shot challenge. are based on graphs with over 100,000 nodes. 
+% This means that during the self-supervised training phase, there are enough samples, and downstream task training samples are also abundant. 
+% For example, in Ogbn-arxiv, there are over 70,000 training samples (60\%). 
+% However, this situation poses a significant gap from the real world. 
+% Firstly, training labels are often expensive, and secondly, there exist many small graphs in the real world.  
+
+However, both self-supervised methods and using language models directly to process TAG suffer from a fundamental drawback. They cannot incorporate downstream task information, which results in identical representations being generated for all downstream tasks. This is evidently counterintuitive as the required information may vary for different tasks. For example, height is useful information in predicting a user's weight but fails to accurately predict age. This issue can be resolved by utilizing task-specific prompts combined with language models \cite{petroni2019language} to extract downstream task-related representations. For example, suppose we have a paper's abstract $\{\mathbf{Abstract}\}$ in a citation network, and the task is to classify the subject of the paper. We can add some prompts to a node's sentence:
+$
+    \{This, is, a, paper, of, [\mathbf{mask}], subject, its, abstract, is,:, \mathbf{Abstract}\}
+$. And then use the embedding corresponding to the [mask] token generated by PLMs as the node feature. Yet this approach fails to effectively integrate graph information. 
+
+To better integrate task-specific information and knowledge within graph structure, this paper proposes a novel framework called G-Prompt. G-Prompt combines a graph adapter and task-specific prompts to extract node features. Specifically, G-Prompt contains a graph adapter that helps PLMs become aware of graph structures. This graph adapter is self-supervised and trained by fill-mask tasks on specific TAGs. G-Prompt then incorporates task-specific prompts to obtain interpretable node representations for downstream tasks.
+
+
+
+% However, we observe the SSL-based methods are in the small-sample scenario and found that: \\
+% 1. The representations generated by large-scale language models perform similarly to word2vec in small-sample situations. This is clearly counterintuitive, as numerous experiments have shown that pre-trained language models can learn rich knowledge from massive text. \\
+% 2. The representation of entire BERT models finetuned on graph self-supervised tasks such as GIANT performs similarly to the frozen language model's representation through GAE pre-training in extremely small sample sizes. However, overall, it outperforms graph-free representations. \\
+% 3. Since using PLM-generated representations did not yield good results, we experimented with RoBERTa-based representations with task prompts, which performed the best in small-sample scenarios.
+
+% This implies that both Graph-aware and Task-aware representations are crucial for node representation. 
+% However, current methods \textbf{can not effectively combine} the two because current unsupervised node feature generation methods do not consider downstream tasks. 
+% Meanwhile, pre-trained models cannot be task-specifically transformed. 
+% There is a significant gap between self-supervised tasks and BERT's own pre-training tasks. 
+% Directly finetuning BERT would destroy the prior knowledge learned from massive text data.
+
+% Furthermore, current methods generate node features that \textbf{lack interpretability}. 
+% The features generated by current methods are continuous and lack interpretability. 
+% It is challenging to explain why a particular representation works, and it is difficult to manually select a few features for downstream tasks.
+% Meanwhile, the current state-of-the-art methods require finetuning of pre-trained language models (PLMs). However, with the increasing size of PLMs, the computational cost of finetuning has become prohibitively high, often requiring a substantial amount of data to achieve good performance. Thus, it is challenging to integrate these methods with even more powerful language models.
+
+% Therefore, this paper aims to explore the possibility of generating task-aware and graph-aware representations with BERT without finetuning. For the former, a naive method is to use prompts, which are manually input task-related hints, along with text features to generate corresponding words using a language model. For example, for citation networks, we can add prompt information before the abstract: "This is a paper published on <mask> subject, its abstract is [content]." We then use the word distribution after decoding the <mask> as a node feature. However, incorporating graph information into the prompt is challenging. To address this issue, we propose a new framework called GPrompt. This framework combines graph adapters and prompts to extract node features. The graph adapter operates on the last linear transformation layer that predicts words in the LM, i.e., a learnable graph neural network is added to that layer. The goal of the GNN is to help the language model perceive neighbor information of nodes and better predict the masked word. The graph adapter is trained through the language model's native fill-mask task. After the adapter is trained, GPrompt incorporates task-related prompts based on the fill-mask framework of the language model, combined with the graph adapter, to generate task-related representations that are interpretable and perceive graph information.
+
+
+% pithc on parameter-efficient tuning, cite lora/adaptor
+% However, replacing the linear transformation with GNN imposes huge computational costs, and it is not feasible to aggregate neighbors once for each token of every word. To speed up the training process, we adopt DecoupleGNN and use geometric mean to aggregate information from each neighbor. The geometric mean is equivalent to training neighbor nodes with the target node's label in the cross-entropy loss function, so there is no need to globally aggregate neighbor information during GraphAdapter training. This strategy accelerates training effectively through global edge sampling.
+
+We conduct extensive experiments on three real-world datasets in the domains of few-shot and zero-shot learning, in order to demonstrate the effectiveness of our proposed method. The results of our experiments show that G-Prompt achieves state-of-the-art performance in few-shot learning, with an average improvement of \textit{avg.} 4.1\% compared to the best baseline. Besides, our G-Prompt embeddings are also highly robust in zero-shot settings, outperforming PLMs by \textit{avg.} 2.7\%. Furthermore, we conduct an analysis of the representations generated by G-Prompt and found that they have high interpretability with respect to task performance.
+
+
+
+
+
+
+

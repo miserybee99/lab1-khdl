@@ -1,0 +1,188 @@
+\section{Experiments}
+\label{sec:exp}
+
+In this section, we first introduce basic settings in 3D dense captioning, including the datasets, metrics, and implementation details in section \ref{subsec:datasets,metric,implementation}.
+% 
+Then, we compare the two proposed methods with previous state-of-the-art approaches in section \ref{subsec:comparison with existing}.
+% 
+After that, we provide ablation studies on Vote2Cap-DETR and Vote2Cap-DETR++ 
+ in section \ref{subsec:ablations-vote2cap} and section \ref{subsec:ablations-vote2cap++}.
+% 
+Finally, we provide some qualitative results in section \ref{subsec:viz}.
+
+
+
+
+
+\subsection{Datasets, Metrics, and Implementation Details}
+\label{subsec:datasets,metric,implementation}
+
+\myparagraph{Datasets}.
+% 
+We conduct experiments on two widely used datasets for 3D dense captioning, namely ScanRefer\cite{chen2020scanrefer} and Nr3D\cite{achlioptas2020referit3d}.
+% 
+ScanRefer/Nr3D contains 36,665/32,919 human-annotated natural language descriptions on 7,875/4,664 objects from 562/511 out of 1201 3D scenes in ScanNet\cite{dai2017scannet} for training, and 9,508/8,584 descriptions on 2,068/1,214 objects from 141/130 out of 312 3D scenes from the ScanNet validation set for evaluation.
+
+
+
+\myparagraph{Evaluation Metrics}.
+% 
+Though our proposed method is robust to NMS\cite{neubeck2006nms}, we follow the same procedure in \cite{chen2021scan2cap,chen2023vote2cap} to obtain the final predictions by applying NMS on the model's box-caption predictions for a fair comparison.
+%
+After that, we assign each instance annotation with an object-caption proposal from the remaining set with the largest IoU.
+%
+Here, we use $(b_i, C_i)$ to represent the annotation for each instance, where $b_i$ is an instance's box corner label, and $C_i$ is the corpus containing all caption annotations for this instance.
+%
+To jointly evaluate the model's localization and caption generation capability, we adopt the $m@kIoU$ metric\cite{chen2021scan2cap}:
+\begin{equation}
+    m@kIoU=\frac{1}{N}\sum_{i=1}^{N} m\left(\hat{c}_i, C_i\right) \cdot \mathbb{I}\left\{IoU\left(\hat{b}_i, b_i\right) \ge k\right\}.
+\label{eq:m@kIoU}
+\end{equation}
+%
+Here, $N$ is the number of all annotated instances in the evaluation dataset, and $m$ could be any metric among CIDEr\cite{vedantam2015cider}, METEOR\cite{banerjee2005meteor}, BLEU-4\cite{papineni2002bleu}, and ROUGE-L\cite{lin2004rouge}.
+
+
+
+\input{sections/tables/scanrefer}
+\input{sections/tables/nr3d}
+
+\myparagraph{Implementation Details}.
+%
+We provide details for different baseline implementations. 
+%
+``w/o additional 2D'' refers to the case that the input point cloud $\mathcal{PC}\in \mathbb{R}^{40,000 \times 10}$ contains the absolute spatial location as well as \textit{color}, \textit{normal} and \textit{height} for $40,000$ points representing a 3D scene.
+%
+``additional 2D'' replaces the \textit{color} information in the above case with a $128$-dimensional \textit{multiview} feature extracted by ENet\cite{chen2020hgnet} from multi-view images following \cite{chen2021scan2cap}.
+
+
+We first pre-train the whole network without the caption head on the ScanNet\cite{dai2017scannet} training set for $1,080$ epochs, which is about 163k iterations ($\sim$34 hours).
+% 
+To train the model, we use an AdamW optimizer\cite{loshchilov2017AdamW} with a learning rate decaying from $5\times 10^{-4}$ to $10^{-6}$ by a cosine annealing scheduler, a weight decay of $0.1$, a gradient clipping of $0.1$, and a batch size of $8$ following \cite{misra2021-3detr}.
+%
+Then, we load the pre-trained weights and jointly train the full model with the MLE caption loss in Equation \ref{eq:cap-mle} for another 720 epochs, which is about 51k and 46k iterations for ScanRefer ($\sim$11 hours) and Nr3D ($\sim$10 hours) respectively.
+%
+To prevent overfitting, we fix the learning rate of all parameters in the backbone as $10^{-6}$ and set that of the caption head decaying from $10^{-4}$ to $10^{-6}$ with a cosine annealing scheduler.
+%
+During SCST, we tune the caption head with a batch size of 2 for 180 epochs with a frozen backbone because of a high memory cost.
+% 
+This training procedure takes 50k and 46k iterations for ScanRefer ($\sim$14 hours) and Nr3D respectively ($\sim$11 hours) with a fixed learning rate of $10^{-6}$.
+%
+We evaluate the model every $2,000$ iterations during training for consistency with existing works\cite{chen2021scan2cap,wang2022spacap3d}, and all experiments mentioned above are conducted on a single RTX3090 GPU.
+
+
+
+\subsection{Comparison with Existing Methods}
+\label{subsec:comparison with existing}
+%
+We compare both of our proposed methods, Vote2Cap-DETR and Vote2Cap-DETR++, with prior arts on two widely used datasets, namely ScanRefer\cite{chen2020scanrefer} and Nr3D\cite{achlioptas2020referit3d}.
+% 
+We use \textbf{C}, \textbf{B-4}, \textbf{M}, \textbf{R} as abbreviations for CIDEr\cite{vedantam2015cider}, BLEU-4\cite{papineni2002bleu}, METEOR\cite{banerjee2005meteor}, and Rouge-L\cite{lin2004rouge}, respectively.
+% 
+We mainly compare the C@0.5 metric on both ScanRefer (Table \ref{tab:scanrefer}) and Nr3D (Table \ref{tab:nr3d}) and sort the results in both tables accordingly. 
+% 
+In Table \ref{tab:scanrefer}, ``-'' indicates that neither the paper nor any other follow-up works have provided such results.
+% 
+Since different supervisions have a dramatic influence on the captioning performance, we make separate comparisons for MLE training and \textbf{S}elf-\textbf{C}ritical \textbf{S}equence \textbf{T}raining (SCST).
+% 
+Among all the listed methods, D3Net\cite{chen2021d3net} and Unit3D\cite{chen2022unit3d} adopt an instance segmentation model, PointGroup\cite{jiang2020pointgroup}, for object localization other than conventional 3D detectors.
+% 
+3DJCG\cite{cai20223djcg} improves VoteNet's localization performance with an FCOS\cite{tian2019fcos} head, which generates box estimations by predicting spatial distance from a voting point to each side of a 3D bounding box.
+% 
+Other works all adopt the vanilla VoteNet\cite{qi2019votenet} as their object localization backbone.
+% 
+Additionally, since prior works including 3DJCG\cite{cai20223djcg}, D3Net\cite{chen2021d3net}, Unit3D\cite{chen2022unit3d} and 3D-VLP\cite{jin2023context} shift their attention to the mutual promotion of different 3DVL tasks and train their models on various tasks, we report their fine-tuned performance on 3D dense captioning in both tables.
+
+
+\whatsnew{
+The evaluations on the ScanRefer validation set (Table \ref{tab:scanrefer}) show that Vote2Cap-DETR and Vote2Cap-DETR++ surpass prior arts.
+% 
+For example, under MLE training with additional 2D inputs, Vote2Cap-DETR achieves 59.32\% C@0.5 while 3D-VLP\cite{jin2023context} achieves 54.94\% with additional training data. 
+% 
+Additionally, under SCST, our Vote2Cap-DETR achieves 70.63\% C@0.5, which is \textcolor{mygreen}{+7.99}\% higher than the current state-of-the-art model D3Net\cite{chen2021d3net} (62.64\% C@0.5).
+% 
+Our advanced model, Vote2Cap-DETR++ further achieves 64.32\% C@0.5 (\textcolor{mygreen}{+5.00}\%) under MLE training and 74.44\% C@0.5 (\textcolor{mygreen}{+3.81}\%) under SCST.
+}
+
+
+\whatsnew{
+We also present the evaluation results on the Nr3D validation set in Table \ref{tab:nr3d}.
+% 
+The reported results for Scan2Cap\cite{chen2021scan2cap} comes from the best-reported
+results from \cite{cai20223djcg}. 
+% 
+Training the model MLE, our proposed Vote2Cap-DETR achieve 43.84\% C@0.5, which is \textcolor{mygreen}{+5.78}\% higher than the current art, 3DJCG (38.06\% C@0.5).
+% 
+The advanced Vote2Cap-DETR++ further achieves an improvement of \textcolor{mygreen}{+3.24}\% and reaches 47.08\% C@0.5 under the exact same setting.
+% 
+Under SCST, Vote2Cap-DETR also surpasses the current art (D3Net, 38.42\% C@0.5) by \textcolor{mygreen}{+7.11}\% and reaches 43.84\% C@0.5, while the advanced Vote2Cap-DETR++ further achieves another absolute improvement of \textcolor{mygreen}{+2.09}\% C@0.5 (47.62\% C@0.5).
+}
+
+
+\input{sections/exp-ablations}
+
+
+
+
+
+
+
+\subsection{Qualitative Results}
+
+\label{subsec:viz}
+
+In this section, we mainly provide some qualitative results to visualize the effectiveness of our proposed methods.
+
+
+
+\begin{figure*}[htbp]
+	\centering
+	\includegraphics[width=\linewidth]{exp-fig/vote-refinement.pdf}
+	\caption{
+    	\textbf{Visualization of the queries' spatial locations in different decoder layers.}
+        % 
+        We visualize the input point clouds as well as the spatial locations of queries in each decoder layer.
+        % 
+        As the decoder goes deeper, the queries get more concentrated to the object centers.
+    }
+	\label{fig:viz-vote-refinement}
+\end{figure*}
+
+
+\begin{figure*}[htbp]
+	\centering
+	\includegraphics[width=\linewidth]{exp-fig/detection.pdf}
+	\caption{
+    	\textbf{Visualization of box estimations.}
+        % 
+        We showcase the localization results for different input scenes.
+        % 
+        Our proposed methods, Vote2Cap-DETR and Vote2Cap-DETR++, can generate tight bounding boxes close to the ground truth.
+    }
+	\label{fig:viz-localization}
+\end{figure*}
+
+
+
+\myparagraph{Qualitative Results on ScanRefer and Nr3D.}
+% 
+We showcase several localization results and the captions generated in Figure \ref{fig:qualitative}.
+% 
+One can see that our proposed methods are able to generate tight bounding boxes close to the object surfaces and accurate descriptions.
+
+
+
+\myparagraph{Visualization for the Queries' Spatial Locations.}
+% 
+\whatsnew{
+We have visualized the spatial location of vote queries in different decoder layers in Figure \ref{fig:viz-vote-refinement}.
+% 
+The deeper the decoder layer is, the closer the vote queries are to the box centers.
+}
+
+
+
+\myparagraph{Visualization of Object Localization Results.}
+% 
+We also showcase several object localization results of different methods in Figure \ref{fig:viz-localization}.
+% 
+Both of our proposed methods, Vote2Cap-DETR and Vote2Cap-DETR++, are able to generate tight bounding boxes close to the ground truth.

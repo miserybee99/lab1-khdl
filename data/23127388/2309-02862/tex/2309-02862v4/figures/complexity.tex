@@ -1,0 +1,27 @@
+\begin{figure}
+\centering
+\begin{tikzpicture}[state/.style={},
+    xscale=2.35,yscale=-2
+]
+    \node[state] at (0.75,0)(qi)    {$(\state, \pos)$};
+    \node[state] at (2,0)   (qibB)  {$(\state, \pos, \sym)^B$};
+    \node[state] at (3,1)   (qibA)  {$(\state, \pos, \sym)^A$};
+    \node[state] at (3,-1)  (qibDA) {$(\state', \pos, \sym', \atmD)^A$};
+    \node[state] at (4,0)   (qibDB) {$(\state', \pos, \sym', \atmD)^B$};
+    \node[state] at (5.5,0) (qiD)   {$(\state', \pos + \atmD)$};
+
+    \draw[->] (qi) -- node[above] {$\rd(\pos, \sym)$} (qibB);
+    \draw[->] (qibB) -- node[above right] {$\nop$} (qibA);
+    \draw[->] (qibB) -- node[below right] {$\nop$} (qibDA);
+    \draw[->] (qibA) -- node[above left] {$\nop$} (qibDB);
+    \draw[->] (qibDA) -- node[below left] {$\nop$} (qibDB);
+    \draw[->] (qibDB) -- node[above] {$\wr(\pos, \sym')$} (qiD);
+
+    \draw[decoration={brace},decorate] (qibDA.north -| qibB.east) -- node[above,align=left]
+        {if $\state \in \stateset_\exists$: for all $\tuple{\state,\sym,\state',\sym',\atmD}\in \transition$} (qibDA.north -| qibDB.west);
+    \draw[decoration={brace},decorate] (qibA.south -| qibDB.west) -- node[below,align=left]
+        {if $\state \in \stateset_\forall$: for all $\tuple{\state,\sym,\state',\sym',\atmD}\in \transition$} (qibA.south -| qibB.east);
+\end{tikzpicture}
+\caption{Construction of a program $\program$ that simulates an ATM $\atm$. The states and transitions shown are added to $\process$ for all $\state \in \stateset$ and $-p(n) \leq \pos \leq p(n)$. We set $\atmL := -1$ and $\atmR := 1$ in the expression $\pos + \atmD$.}
+\label{fig:complexity}
+\end{figure}

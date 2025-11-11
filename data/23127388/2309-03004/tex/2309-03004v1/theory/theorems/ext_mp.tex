@@ -1,0 +1,377 @@
+\ifdefstring{\StateSpectralOfAccumulated}{display}{
+
+\begin{restatable}[Spectral concentration of accumulated steps]{theorem}{SpectralOfAccumulated}
+    \label{theorem:spectral_of_accumulated}
+    Let $X^p = X^{p, b T} \in \reals^{p \times b T}$ be a random matrix that forms a Batch Dependence Model as in \cref{def:batch_model} with batch size $b$ and step count $T$, whose columns are $x^p_j = X^{p, b T}_{\cdot, j} \in \reals^{p}$. 
+    Columns in $X^p = X^{p, b T} \in \reals^{p \times b T}$ are \emph{not} necessarily independent.
+        
+    Let $x_k^p \defeq X^{p}_{\cdot, k}$ be the $k$-th column of $X^p$ and $x_{t, l}^p \defeq X^{t}_{\cdot, l}$ be the $l$-th column of batch $t$ or equivalently the $k=\left((t-1)*b + l\right)$-th column $x_k$ in $X^{p}$. Superscription $p$ may be dropped for convenience.
+
+    Let $S^{p} \defeq \frac{1}{b T} X^p \left(X^p\right)^\transpose = \frac{1}{b T} \sum_{k=1}^{b T} x_k x_k^\transpose$ be the empirical covariance matrix of all random vectors, and $I_p$ be the compatible identity matrix.
+    Assume $x_{t, l}$s' norm is bounded, say by $1$, and scale it with 
+    \begin{align}
+        u^p_{t, l} \defeq \sqrt{\alpha} x^p_{t, l},
+    \end{align}
+    obtaining $U^p = U^{p, b} \defeq \begin{bmatrix} U^1 & \cdots &  U^t & \cdots  & U^T \end{bmatrix} = \sqrt{a} \cdot X^p$, where $a \defeq \frac{\trace{S^p}}{\trace{S^p S^p}}$. Let 
+    \begin{align}
+        T^{p} \defeq \frac{1}{b T} U^p \left(U^p\right)^\transpose = \frac{1}{b T} \sum_{k=1}^{b T} u_{k} u_{k}^\transpose = a \cdot S^{p}
+    \end{align}
+    be the empirical covariance matrix of all $u^p_{k}$s. 
+
+    Assume $a$ is bounded by $\alpha(p)$ and $\ex{\sqrt{p \trace{\left(T^{p} - I^p\right)\left(T^{t} - I^p\right)}}}$ is also upperbounded by $\beta(p)$.
+
+    Further assume that the following function of $z \in \positivecomplex$ and $p, b, T \in \nats^+$
+    \begin{align}
+        \ex{\sum_{i} \frac{1}{\lambda_i\left(U U^\transpose\right) - z}}
+    \end{align}
+    is always continuous w.r.t. $z$ for any $p, b, T$.
+
+    If the above assumptions are satisfied, the non-zero eigenvalue concentrates. To be more specific, let $\overline{\lambda^{>0}}$ be the mean of non-zero eigenvalues of $\frac{1}{b T} U^p \left(U^p\right)^\transpose$ and use $\ex{\overline{\lambda^{>0}}}^2$ to represent the overall situation of non-zero eigenvalues. Then there is
+    \begin{align}
+        \ex{\frac{\ex{\overline{\lambda^{>0}} / \sqrt{v}}^2}{\left(\frac{\lambda}{\sqrt{v}}\right)^2 + v}}
+        \le&    \frac{\sqrt 2}{c \sqrt{v}} \frac{\alpha^2}{v \cdot \min(b T, p)^2}  \sqrt{c + \frac{\left(2 \sqrt{2} + 2\right) c \alpha}{v p} + \frac{c \beta}{v p} + \frac{c}{v p}} \label{eq:im_bound},\\
+        \ex{\frac{\ex{\overline{\lambda^{>0}}}}{\lambda + \frac{v^2}{\lambda}}}
+        \le&    \frac{\sqrt 2}{c \sqrt{v}} \frac{\alpha}{\min(b T, p)}  \sqrt{c + \frac{\left(2 \sqrt{2} + 2\right) c \alpha}{v p} + \frac{c \beta}{v p} + \frac{c}{v p}} \label{eq:re_bound}.
+        \end{align}
+    for any $v \ge v_0$, where $\lambda$ is a randomly selected eigenvalue of $T^p \defeq \frac{1}{b T} U^p \left(U^p\right)^\transpose$ and $c = p / b T \in [0, 1]$, and $v_0 \ge 2 c$ satisfying 
+    \begin{align}
+        \frac{v_0 + (1 - c)}{\sqrt{2}} > \frac{\tau}{v_0} + 2 \sqrt{c v_0} + 2 \sqrt{\tau} \label{eq:hard_condition}
+    \end{align}
+    with $\tau \defeq \frac{c}{p} \left(1 + \beta + 2\left(\sqrt{2} + 1\right) \alpha\right)$.
+\end{restatable}
+
+}{
+
+% \arxivonly{\SpectralOfAccumulated*}
+\begin{proof}[Proof of \cref{theorem:spectral_of_accumulated}]\label{proof:spectral_of_accumulated}
+
+The proof is adapted from \citet{mp_quadratic_form} where independence conditions are replaced with Batch Dependence model and new regularities.
+
+
+Cauchy-\sti{} transform method is used. 
+When applied to empirical spectral density, by definition there is
+\begin{align}
+    s^{F^A}(z) = \trace{A - z I}^{-1} / p \defeq \trace{\left(A - z I\right)^{-1}} / p.
+\end{align}
+for positive semi-definite $A \in \reals^{p \times p}$.
+Specifically, $\frac{1}{b T} U^p \left(U^p\right)^\transpose = \frac{1}{b T} U U^\transpose$'s \sti{} transform is
+\begin{align}
+    s_p(z) = \trace{\frac{1}{b T} U U^\transpose - z I}^{-1} / p = b T / p \trace{U U^\transpose - z b T I}^{-1}.
+\end{align}
+% By \sti{} continuity theorem \citep{RMT_book}, it is sufficient to show that $s_p(s) \asto s(z)$ for all $z \in \positivecomplex$, where $s$ is the \sti{} transform of Marchenko-Pastur distribution with parameter $p$ and $n$. To this end, typical steps include the following steps \citep{mp_proof_sketch}:
+% \begin{itemize}
+    % \item $s_p(z) - \ex{s_p(z)} \asto 0$, by a martingale argument;
+    % \item $\ex{s_p(z)} \to s(z)$.
+% \end{itemize}
+
+\NewDocumentCommand{\boundedby}{m}{\varXi\left(#1\right)}
+To ease presentation, we define $\boundedby{g}$ to indicate (complex) functions whose magnitudes are bounded by positive real function $g$, i.e.,
+\begin{align}
+    h \in \boundedby{g} \iff \forall x, y, \abs{h(x, y)} \le g(x),
+\end{align}
+where $y$ indicates variables other than $x$ that $h$ relies.
+$\boundedby{\cdot}$ will be used combined with ``$=$'' imitating $O(\cdot)$. Since $\boundedby{\cdot}$ does not hide constant scaling factors and biases in it, unlike $O(\cdot)$ it can be freely added, averaged, multiplied and divided, i.e.,
+\begin{align}
+    \boundedby{g_1} + \boundedby{g_2} \in& \boundedby{g_1 + g_2},
+    \frac{1}{n} \sum_{i=1}^n \boundedby{g_i} \in \boundedby{\frac{1}{n}\sum_{i=1}^n g_i},\\
+    \boundedby{g_1} \cdot \boundedby{g_2} \in& \boundedby{g_1 \cdot g_2},
+    \frac{\boundedby{g_1}}{g_2} \in \boundedby{\frac{g_1}{g_2}}.
+\end{align}
+
+% For $s_p(z) - \ex{s_p(z)}$'s almost sure convergence, \citet{mp_quadratic_form} refer to \citet{mp_proof_sketch}, which we will repeat here to examine and replace independence assumptions within.
+
+% \NewDocumentCommand{\condiex}{O{k} m}{\ex[#1]{#2}}
+% Let $\condiex[k]{\cdot} \defeq \ex{\cdot \mid U^p_{\cdot, 1: k}}$ denote the conditional expectation given $U^p_{\cdot, 1}, \dots, U^p_{\cdot, k}$. Then $s_p(z) = \condiex[b]{s_p(z)}$ and $\ex{s_p(z)} = \condiex[0]{s_p(z)}$, and there is
+% \begin{align}
+    % s_p(z) - \ex{s_p(z)}
+    % =&  \sum_{k=1}^{b} \left(\condiex[k]{s_p(z)} - \condiex[k-1]{s_p(z)}\right)
+    % =  \sum_{k=1}^{b} \gamma_k,
+% \end{align}
+% where $\gamma_k \defeq \condiex[k]{s_p(z)} - \condiex[k-1]{s_p(z)}$. Note that $\set{\condiex[k]{s_p(z)}}_k$ is already a Doob martingale, so $\set{\gamma_k}_k$, as its difference, is a sequence of martingale differences.
+        
+% \NewDocumentCommand{\invR}{O{1}}{\left(R^p_k\right)^{-#1}}
+% Let $R^p_{k} \defeq \frac{1}{b T} \sum_{k'} \uut[k'] - z I - \frac{1}{b T}u_k u_k^\transpose$. By \cref{lemma:3.1_from_mp_quadratic_form}(1), $R^p_{k}$ is invertible, and by Sherman-Morrison formula there is
+% \begin{align}
+    % s_p(z)
+    % =&  \trace{R^p_k + \frac{1}{b T} u_k u_k^\transpose }^{-1} / p
+    % =  \frac{1}{p} \trace{\invR - \frac{\invR u_k u_k^\transpose \invR / b T}{1 + u_k^\transpose \invR u_k / b T}}\\
+    % =&  \frac{1}{p} \left(\trace{\invR} - \frac{u_k^\transpose \invR[2] u_k}{b T + u_k^\transpose \invR u_k}\right).
+% \end{align}
+% By minor single sample assumption, $\condiex[k]{\trace{\invR}} = \condiex[k-1]{\trace{\invR}}$ is bounded by $\beta(z)$. Regarding the second term,
+% \begin{align}
+    % &   \abs{\frac{u_k^\transpose \invR[2] u_k}{b T + u_k^\transpose \invR u_k}}\\
+    % =&      \frac{\abs{\trace{u_k u_k^\transpose \invR \invR}}}{\abs{b T + u_k^\transpose \invR u_k}}
+    % \le    \frac{\norm{u_k u_k^\transpose \invR \invR}_1}{b T + u_k^\transpose \invR u_k}\\
+    % \le&   \frac{\norm{u_k u_k^\transpose \invR}_1 \norm{\invR}_{\infty}}{b T + u_k^\transpose \invR u_k}
+    % \le    \frac{1}{v} \frac{u_k^\transpose \invR u_k}{b T + u_k^\transpose \invR u_k}
+    % \le \frac{1}{v},
+% \end{align}
+% where the third inequality follows \cref{lemma:3.1_from_mp_quadratic_form}(1).
+% Therefore $\gamma_k$ can be bounded by
+% \begin{align}
+    % \gamma_k \le& \frac{2}{v} \frac{1}{p} + \beta(z) < \infty.
+% \end{align}
+% By Azuma's inequality, there is
+% \begin{align}
+    % \prob{\abs{s_p(z) - \ex{s_p(z)}} > \epsilon} \le 2 \exp\left(-\frac{\epsilon^2}{2 p \left(\frac{2}{v} \frac{1}{p}\right)^2}\right) \le 2 \exp\left(-\epsilon^2 v^2 p / 8\right).
+% \end{align}
+% Given that $\prob{\abs{s_p(z) - \ex{s_p(z)}}}$ decays exponentially with $p$, for every $\epsilon > 0$, there is
+% \begin{align}
+    % \sum_{p=0}^\infty \prob{\abs{s_p(z) - \ex{s_p(z)}} > \epsilon} < \infty
+% \end{align}
+% which implies $s_p(z) - \ex{s_p(z)} \asto 0$ (Theorem 7.5 by \citet{exponential_decay_to_as}).
+
+Consistent with final conclusion, fix $z = 0 + v i$ ($v \in \reals^+$) such that $v \ge v_0$ throughout the proof.
+Define $A^p \defeq \sum_{k} \uut$.
+Sample an auxiliary vector $u_{T, b+1} = u_{b T  + 1} \in \reals^p$ so that it is sampled from the conditional distribution given the first $T-1$ batches but it is conditionally independent with other samples in $U^T$, i.e., an extra sample for the last batch. This dependence relation can be expressed by only adding edges $U^{1: T-1} \to u_{T, b+1}$ to the SCMs of the Batch Dependence Model. With the auxiliary vector, define $B^p \defeq A^p +  \uut[T, b+1]$. %Define $C^b_t \defeq B^p - u^t \left(u^t\right)^\transpose$
+
+By \cref{lemma:3.1_from_mp_quadratic_form}(1), $B^p - z b T I$ is non-degenerate and
+\begin{align}
+    p 
+    =&  \trace{\left(B^p - z b T I\right) \left(B^p - z b T I\right)^{-1}}\\
+    =&   \sum_{t=1}^{T} \sum_{l=1}^{b + \indic{t = T}} u_{t, l}^\transpose \left(B^p - z b T I\right)^{-1} u_{t, l} - z b T \trace{B^p - z b T I}^{-1}.
+\end{align}
+Taking expectations and using the exchangeability within each batch give
+\begin{align}
+    p = \sum_{t=1}^{T} (b + \indic{t = T}) \ex{u_t^\transpose \left(B^p - z b T I\right)^{-1} u_t} - z b T \ex{\trace{B^p - z b T I}^{-1}} \label{eq:a3}.
+\end{align}
+
+Define $S_p(z) \defeq \trace{A^p - z b T I}^{-1}$ and note that $S_p(z) = (p / b T) s_p(z)$. 
+
+By \cref{lemma:3.1_from_mp_quadratic_form}(2), there is
+\begin{align}
+    \ex{\trace{B^p - z b T I}^{-1}} =& \ex{S_p(z)} + \boundedby{1/ v b T} = \ex{S_p(z)} + \boundedby{c / v p} \label{eq:a1}.
+\end{align}
+
+\NewDocumentCommand{\approxmatrix}{O{\boundedby} O{2}}{#1{\frac{#2 \sqrt{2} c \alpha}{v p}}}
+We now prove
+\begin{align}
+    \frac{1}{T} \sum_{t=1}^{T} \ex{u_t^\transpose \left(B^p - z b T I\right)^{-1} u_t} = \frac{\ex{S_p(z)}}{1 + \ex{S_p(z)}} + t \label{eq:claim}, 
+\end{align}
+where $\abs{t}$ is bounded by a function of $c, \alpha, \beta, v, p$.
+
+\NewDocumentCommand{\approxfunction}{O{\boundedby}}{#1{1}}
+A complex function $\frac{x}{1 + x} = 1 - \frac{1}{x + 1}$ emerges many times. We will approximate it to the first order so its complex derivative should be computed and bounded.
+\begin{align}
+    \abs{\left(\frac{x}{1 + x}\right)'}
+    =&  \abs{\frac{1}{(x+1)^2}} 
+    = \frac{1}{\abs{x + 1}^2}
+\end{align}
+Therefore, if $x_1, x_2$ both stay away from $-1$, then $\abs{\left(\frac{x'}{1 + x'}\right)'} = \approxfunction$ on the line connecting $x_1, x_2$ and we can approximate $\frac{x_2}{1 + x_2}$ by $\frac{x_1}{1 + x_1} + \boundedby{1} \cdot \Delta x = \frac{x_1}{1 + x_1} + \boundedby{\Delta x}$, where $\Delta x = x_2 - x_1$.
+In latter application, $x$, both the start and the end of approximation, is often of form $\frac{1}{n} \sum_{i=1}^n \ex{u_i^\transpose \left(C - z b T I\right)^{-1} u_i}$ possibly with averaging or expectation missing, where $C$ is real symmetric positive semi-definite and $u_i$ is a real vector. The eigenvalues in $\left(C - z b T I\right)^{-1}$ are
+\begin{align}
+    \frac{1}{\lambda_i(C) - v b T i}
+    =&  \frac{\lambda_i(C) + v b T i}{\lambda_i(C)^2 + (v b T)^2},
+\end{align}
+whose real part is
+\begin{align}
+    \rpart{\frac{1}{\lambda_i(C) - v b T i}}
+    =&  \frac{\lambda_i(C)}{\lambda_i(C)^2 + (v b T)^2} \ge 0.
+\end{align}
+As a result, the real part of inner products is always non-negative and $x$ stays away from $-1$, and the magnitude of derivatives is $\approxfunction$.
+
+Another approximation is done between $C^p_k$ and $A_p$, whose difference is the outer products of a constant number of random vectors, and it should be minor considering there are $b T$ of them. Formally, for real symmetric positive semi-definite $C$ with eigenvalue decomposition $C = V \Lambda V^\transpose$ by real matrices $V$ and $\Lambda$, $(C - z I)$ can be decomposed to $(C - z I) = V \left(\Lambda - z I\right) V^\transpose$, and non-degenerate $\left(C - z I\right)^{-1}$ to $\left(C - z I\right)^{-1} = V \left(\Lambda - z I\right)^{-1} V^\transpose \defto V \Sigma \Sigma V^\transpose$ where $\Sigma \defeq \sqrt{\left(\Lambda - z I\right)^{-1}}$. Let $S \defeq V \Sigma V^\transpose$ to have $S^\transpose S = S S = \left(C - z I\right)^{-1}$. After that, there is
+\begin{align}
+    &   \abs{y^\transpose \left(C + x x^\transpose - z I\right)^{-1}y - y^\transpose \left(C - z I\right)^{-1} y}
+    =  \abs{y^\transpose \left(\left(C + x x^\transpose - z I\right)^{-1} - \left(C - z I\right)^{-1} \right) y}\\
+    =&  \abs{\frac{
+            y^\transpose \left(C - z I\right)^{-1} x x^\transpose \left(C - z I\right)^{-1} y
+        }{1 + x^\transpose \left(C - z I\right)^{-1} x}}
+    =   \abs{\frac{
+            \left(y^\transpose S^\transpose S x\right) \left(x^\transpose S^\transpose S y\right)
+        }{1 + x^\transpose \left(C - z I\right)^{-1} x}}
+    =  \abs{\frac{
+            \left(a^{\transpose} \bar{b}\right) \left(\bar{b}^\transpose a\right)
+        }{1 + x^\transpose \left(C - z I\right)^{-1} x}}\\
+    =&   \frac{
+            \abs{a^* b} \abs{a^* b}
+        }{\abs{1 + x^\transpose \left(C - z I\right)^{-1} x}}
+    \le \frac{
+            \norm{a^*}_2 \norm{b}_2 \norm{a^*}_2 \norm{b}_2
+        }{\abs{1 + x^\transpose \left(C - z I\right)^{-1} x}}
+    =   \frac{
+            \abs{a^* a} \abs{b^* b}
+        }{\abs{1 + x^\transpose \left(C - z I\right)^{-1} x}}\\
+    =&  \frac{
+            \abs{\trace{y y^\transpose S^* S}} \abs{b^* b}
+        }{\abs{1 + x^\transpose \left(C - z I\right)^{-1} x}}
+    \le \frac{
+            \norm{y y^\transpose S^* S}_1 \abs{b^* b}
+        }{\abs{1 + x^\transpose \left(C - z I\right)^{-1} x}}
+    \le \frac{
+            \norm{y y^\transpose}_1 \norm{S^* S}_\infty \abs{b^* b}
+        }{\abs{1 + b^\transpose b}}
+    =   \frac{\norm{y}_2^2}{\ipart{z}} \frac{
+            \abs{b^* b}
+        }{\abs{1 + b^\transpose b}},
+\end{align}
+where $a \defeq S y, b \defeq \bar{S} \bar{x} = \bar{S} x$, the second step is from Sherman-Morrison formula, and the second last inequality is due to \cref{lemma:abs_trace_and_schatten_1}. The fact, that $S^* S$ is positive semi-definite whose largest eigenvalue is smaller than the upperbound $\frac{1}{v}$ of $S^\transpose S$'s eigenvalue magnitude, is also used.  To bound the fraction between $\abs{b^* b}$ and $\abs{1 + b^\transpose b}$, recall the eigenvalue decomposition on $\left(C - z I\right)^{-1}$ 
+\begin{align}
+    \left(C - z I\right)^{-1} = V \Sigma \Sigma^\transpose V^\transpose
+\end{align}
+and $S = V \Sigma^\transpose V^\transpose$. Then 
+\begin{align}
+    b^\transpose b &= v^\transpose \Sigma \Sigma v,
+    b^* b = v^\transpose \bar{\Sigma} \Sigma v,
+\end{align}
+where $v \defeq V^\transpose x$ is a real vector. Notice that $\Sigma \Sigma = \diag{\frac{1}{\lambda_i(C) - v i}} = \diag{\frac{\lambda_i(C) + v i}{\lambda_i(C)^2 + v^2}}$ where both real and imaginary parts are non-negative, and that $\Sigma^* \Sigma = \diag{\frac{\abs{\lambda_i(C) + v i}}{\lambda_i(C)^2 + v^2}}$. With this, the inner products are simplified to
+\begin{align}
+    b^\transpose b &= \sum_{i} \frac{v_i^2 \lambda_i(C)}{\lambda_i(C)^2 + v^2} + i \sum_{i} \frac{v_i^2 v}{\lambda_i(C)^2 + v^2},
+    b^* b = \sum_{i} \abs{\frac{v_i^2}{\lambda_i(C)^2 + v^2} \lambda_i(C) + i \frac{v_i^2 v}{\lambda_i(C)^2 + v^2}}
+\end{align}
+Representing complex numbers by 2-dimensional vectors $w_i \defeq \begin{bmatrix} \frac{v_i^2 \lambda_i(C)}{\lambda_i(C)^2 + v^2} & \frac{v_i^2 v}{\lambda_i(C)^2 + v^2} \end{bmatrix}^\transpose$, there are
+\begin{align}
+    \abs{b^\transpose b} &= \norm{\sum_i w_i}_2,
+    \abs{b^* b} = \sum_i \norm{w_i}_2.
+\end{align}
+Noting that all entries of $w_i$'s are non-negative, there is
+\begin{align}
+    \abs{b^* b}
+    &=  \sum_i \norm{w_i}_2
+    \le \sum_{i} \norm{w_i}_1 
+    =   \norm{\sum_i w_i}_1 
+    \le \sqrt{2} \norm{\sum_i w_i}_2 = \sqrt{2} \abs{b^\transpose b}.
+\end{align}
+So $\frac{\abs{b^* b}}{\abs{b^\transpose b}} \le \sqrt{2}$. Given that the real part of $b^\transpose b$ is non-negative, adding $1$ will only increase its magnitude. As a result, there is
+\begin{align}
+    &   \abs{y^\transpose \left(C + x x^\transpose - z I\right)^{-1}y - y^\transpose \left(C - z I\right)^{-1} y}
+    \le  \frac{\sqrt{2} \norm{y}_2^2}{\ipart{z}},
+\end{align}
+
+When $z b T$ is substituted, there is
+\begin{align}
+    &   \abs{y^\transpose \left(C + x x^\transpose - z b T I\right)^{-1}y - y^\transpose \left(C - z b T I\right)^{-1} y}
+    =  \frac{\sqrt{2} \norm{y}_2^2}{v b T}.
+\end{align}
+In later use, $y$ is instantiated by $u_k$ and there is $\norm{u_k}_2^2 = a \norm{x}_2^2 \le \alpha$ for any $t$, so by assumption the approximation error is always bounded by 
+\begin{align}
+    \abs{u_k^\transpose \left(C + x x^\transpose - z b T I\right)^{-1} u_k - u_k^\transpose \left(C - z b T I\right)^{-1} u_k} \le \approxmatrix[\boundedby][].
+\end{align}
+
+\NewDocumentCommand{\innersum}{}{\frac{1}{b T}\sum_{k}}
+\NewDocumentCommand{\outersum}{}{}
+\NewDocumentCommand{\innerapproximator}{O{\left(A^p - z b T I\right)^{-1}} O{k}}{ u_{#2}^\transpose #1 u_{#2} }
+\NewDocumentCommand{\innerouterproduct}{O{}}{u_{k} #1 u_{k}^\transpose}
+\NewDocumentCommand{\biasapproximator}{}{\frac{\ex{\innersum \innerapproximator}}{1 + \ex{\innersum \innerapproximator}}}
+\NewDocumentCommand{\diffapproximator}{}{\innerapproximator - \ex{\innersum \innerapproximator}}
+With these two approximation techniques, we first approximate the LHS of \cref{eq:claim}.
+To this end, let $C^p_k \defeq B^p - u_k u_k^\transpose$ and by Sherman-Morrison formula there is
+\begin{align}
+    &   u_k^\transpose \left(B^p - z b T I\right)^{-1} u_k
+    =   u_k^\transpose \left(C^p_k + u_k u_k^\transpose - z b T I\right)^{-1} u_k\\
+    =&  u_k^\transpose \left(\left(C^p_k - z b T I\right)^{-1} - \frac{\left(C^p_k - z b T I\right)^{-1} u_k u_k^\transpose \left(C^p_k - z b T I\right)^{-1}}{1 + u_k^\transpose\left(C^p_k - z b T I\right)^{-1} u_k}\right) u_k\\
+    =&  \frac{u_k^\transpose \left(C^p_k - z b T I\right)^{-1}u_k}{1 + u_t^\transpose\left(C^p_k - z b T I\right)^{-1} u_k}
+    =  \frac{u_k^\transpose \left(A^p - z b T I\right)^{-1}u_k}{1 + u_k^\transpose\left(A^p - z b T I\right)^{-1} u_k} + \approxfunction \cdot \approxmatrix.
+\end{align}
+After that, there is
+\begin{align}
+    &   \frac{1}{T} \sum_{t=1}^T \ex{u_t^\transpose (B^p - z b T I)^{-1} u_t}\\
+    =&  \frac{1}{T} \sum_{t=1}^T \frac{1}{b} \sum_{l=1}^b \ex{\frac{u_{t, l}^\transpose \left(A^p - z b T I\right)^{-1} u_{t, l}}{1 + u_{t, l}^\transpose \left(A^p - z b T I\right)^{-1} u_{t, l}}} + \approxfunction \cdot \approxmatrix\\
+    =&  \outersum \innersum  \ex{\biasapproximator} + \approxmatrix \\
+        &+ \outersum \innersum \ex{\approxfunction \abs{\diffapproximator}}\\
+    =&  \outersum \biasapproximator + \approxmatrix\\ 
+        &+ \approxfunction  \outersum \innersum \ex{\abs{\diffapproximator}}\\
+    =&  \outersum \biasapproximator \label{eq:term1}\\ 
+        &+ \approxfunction  \ex{\abs{u_r^\transpose \left(A^p - z b T I\right)^{-1} u_r - \ex{u_r^\transpose \left(A^p - z b T I\right)^{-1} u_r}}}  \label{eq:term2} \\&+ \approxmatrix,
+\end{align}
+where $r$ in the last line is a uniformly randomly selected index from $\set{1, \dots, b T}$ independently to the training process.
+
+\NewDocumentCommand{\approxbias}{O{\boundedby}}{#1{\frac{c \beta}{v p}}}
+Note that $S_p(z) = \trace{A^p - z b T I}^{-1}, \ex{S_p(z)} = \ex{\trace{A^p - z b T I}^{-1}}$. So for the term in \cref{eq:term1} we proceed by proving $\frac{1}{b} \sum_{l=1}^{b} \ex{u_{t, l}^\transpose \left(A^p - z b T I\right)^{-1} u_{t, l}}$ approximates $\ex{\trace{A^p -z b T I}^{-1}}$. For convenience let $D \defeq b T\left(A^p - z b T I\right)^{-1}$ be an alias to it, whose spectral norm satisfies $\norm{D}_{\infty} \le b T \frac{1}{ v b T} = \frac{1}{v}$, then
+\begin{align}
+    &       \abs{\ex{\innersum \innerapproximator} - \ex{S_p(z)}}\\
+    =&      c\abs{\frac{\ex{\innersum \innerapproximator[b T \left(A^p - z b T I\right)^{-1}]}}{p} - \frac{ \ex{b T S_p(z)}}{p}}\\
+    =&      \frac{c}{p} \abs{\innersum \ex{\innerapproximator[D]} - \ex{\trace{D}}}
+    =      \frac{c}{p} \abs{\ex{\trace{\left(\innersum \innerouterproduct - I\right) D}}}\\
+    \le&    \frac{c}{p} \ex{\norm{\left(\innersum \innerouterproduct - I\right) D}_1}
+    \le    \frac{c}{p} \ex{\norm{\left(\innersum \innerouterproduct - I\right)}_1 \norm{D}_{\infty}}\\
+    \le&    \frac{c}{v p}\ex{\norm{\left(\innersum \innerouterproduct - I\right)}_1}
+    \le    \frac{c}{v p}  \ex{\sqrt{p \trace{\left(T^p_t - I\right)^\transpose \left(T^p_t - I\right)}}}\\
+    =&      \approxbias,
+\end{align}
+where the last inequality is because
+\begin{align}
+    \norm{A}_1 =& \sum_{i=1}^{p} \abs{\lambda_i(A)} = \norm{\begin{bmatrix}
+        \lambda_1(A) & \cdots & \lambda_i(A) & \cdots \lambda_p(A)
+    \end{bmatrix}^\transpose}_1\\
+    \le&    \sqrt{p} \norm{\begin{bmatrix}
+        \lambda_1(A) & \cdots & \lambda_i(A) & \cdots \lambda_p(A)
+    \end{bmatrix}^\transpose}_2\\
+    =&  \sqrt{p} \norm{A}_2 = \sqrt{p \trace{A^\transpose A}},
+\end{align}
+given that $A = \left( \left(\innersum \innerouterproduct - I\right) \right)$ is symmetric so that its singular values are absolute eigenvalues.
+With approximation on complex function $\frac{x}{1 + x}$, this $\approxbias$-boundedness implies $\approxfunction \cdot \approxbias = \approxbias$ approximation of in \cref{eq:term1}.
+
+\NewDocumentCommand{\approxvariance}{O{\boundedby}}{#1{\frac{c \alpha}{v p}}}
+\NewDocumentCommand{\utdu}{}{u_t^\transpose D u_t}
+\NewDocumentCommand{\xtdx}{}{x_r^\transpose D x_r}
+For the difference term in \cref{eq:term2}, we prove its diminishment by $\frac{1}{v}$-bounded variance of $u_{t, l}^\transpose (A^p - z b T I)^{-1} u_{t, l}$, or formally
+\begin{align}
+    \ex{\abs{X - \ex{X}}^2} - \ex{\abs{X - \ex{X}}}^2 =& \ex{\left(\abs{X - \ex{X}} - \ex{\abs{X - \ex{X}}}\right)^2} \ge 0\\
+    \ex{\abs{X - \ex{X}}} \le&  \sqrt{\ex{\abs{X - \ex{X}}^2}} = \sqrt{\var{X}},
+\end{align}
+and 
+\begin{align}
+    &   \var{\innerapproximator[\left(A^p - z b T I\right)^{-1}][r]}
+    =  \frac{c^2}{p^2} \var{\innerapproximator[D][r]}\\
+    =&  \frac{c^2}{p^2} \left(\ex{\trace{\innerapproximator[D][r] \innerapproximator[D][r]}} - \ex{\trace{\innerapproximator[D][r]}}^2\right)
+    \le    \frac{c^2}{p^2} \alpha^2 \left(\ex{\trace{\xtdx \xtdx}}\right)\\
+    \le&   \frac{c^2 \alpha^2}{p^2} \ex{\trace{\xtdx \xtdx}}
+    \le    \frac{c^2 \alpha^2}{p^2} \ex{\norm{x^p}_2^4 \norm{D}_\infty^2}
+    =  \frac{c^2 \alpha^2}{v^2 p^2},
+\end{align}
+where the last step follows that $x^p$'s norm is bounded and that $\norm{D}$ is also uniformly bounded. 
+
+\NewDocumentCommand{\approxlargest}{O{\boundedby}}{#1{\approxmatrix[] + \approxbias[] + \approxvariance[]}}
+To sum up, we have obtained 
+\begin{align}
+    \frac{1}{T} \sum_{t=1}^T \ex{u_t^\transpose \left(B^p - z b T I\right)^{-1} u_t} = \frac{\ex{S_p(z)}}{1 + \ex{S_p(z)}} + t,
+\end{align}
+where $\abs{t} = \approxlargest$.
+
+\NewDocumentCommand{\approxall}{O{\boundedby}}{#1{\approxlargest[] + \frac{c}{v p} + \frac{c \alpha }{v p}}}
+
+With \cref{eq:claim}, \cref{eq:a1}, one can reduce \cref{eq:a3} to
+\begin{align}
+    p =& T (b + O(1)) \left(\frac{\ex{S_p(z)}}{1 + \ex{S_p(x)}} + t\right) - z b T \left(\ex{S_p(z)} + \boundedby{c / v p}\right),
+\end{align}
+and
+\begin{align}
+    \frac{\ex{S_p(z)}}{1 + \ex{S_p(x)}} - z \ex{S_p(z)} =& \frac{p}{b T} + s = c + s,
+\end{align}
+where $s = \approxall$.
+
+
+$\ex{S_p(p)}$ always have a non-negative real part because real parts of eigenvalues of $\left(U U^\transpose - z b T I\right)$ are always non-negative by an argument similar to previous ones. Since $\alpha, \beta, c$ and $p$ depend only on $p, b, T$ instead of $v$, $s = \approxall$ is bounded by $\tau / v$ which satisfies $\tau$ is constant w.r.t $v$, $\frac{v_0 + (1 - c)}{\sqrt{2}} > \frac{\tau}{v_0} + 2 \sqrt{c v_0} + 2 \sqrt{\tau}$ and $v \ge v_0 \ge 2 c$. Given $c \in [0, 1]$, by \cref{lemma:bound_of_sti}, there is
+\begin{align}
+    &   \abs{\ipart{\ex{S_p(v i)}}} \le \abs{\ex{S_p(v i)}} \\
+    \le& \approxquadratic{\approxall[]}
+\end{align}
+for $v \ge v_0$. Bounds using the real part are similarly obtained.
+
+The similar bound for $s_p(z) = (b T / p) S_p(z) = \frac{1}{c} S_p(z)$ is
+\begin{align}
+    \abs{\ipart{\ex{s_p(v i)}}}
+    \le& \frac{1}{c}\approxquadratic{\approxall[]}.
+\end{align}
+
+The expected mean $\ex{\overline{\lambda^{ > 0}}}$ of $\frac{1}{b T} U^p \left(U^p\right)^\transpose$'s non-zero eigenvalue is
+\begin{align}
+    &   \ex{\frac{\trace{\frac{1}{b T} U^p \left(U^p\right)^\transpose}}{\min(b T, p)}}
+    =  \frac{\frac{1}{b T}\sum_{k=1}^{b T}\ex{\trace{u_{k} u_k^\transpose}}}{\min(b T, p)}
+    =  \frac{\frac{1}{b T}\sum_{k=1}^{b T}\ex{\norm{u_k}_2^2}}{\min(b T, p)}
+    \le   \frac{\alpha}{\min(b T, p)}.
+\end{align}
+
+Finally, the desired conclusion is obtained through \cref{lemma:sti_and_eigenvalue_ratio} by
+\begin{align}
+        \ex{\frac{\ex{\overline{\lambda^{>0}} / \sqrt{v}}^2}{\left(\frac{\lambda}{\sqrt{v}}\right)^2 + v}}
+    \le    \frac{1}{v} \ex{\overline{\lambda^{>0}}}^2 \abs{\ipart{s_p(v i)}},
+    % \le&    \frac{1}{v c} \frac{\alpha^2}{\min(b T, p)^2}  \approxquadratic{\approxall[]},\\
+        \ex{\frac{\ex{\overline{\lambda^{>0}}}}{\lambda + \frac{v^2}{\lambda}}}
+    \le    \ex{\overline{\lambda^{>0}}} \abs{\rpart{s_p(v i)}}.
+    % \le&    \frac{1}{c} \frac{\alpha}{\min(b T, p)}  \approxquadratic{\approxall[]}.
+\end{align}
+
+\end{proof}
+}

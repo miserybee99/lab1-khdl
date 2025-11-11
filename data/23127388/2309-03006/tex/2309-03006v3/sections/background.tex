@@ -1,0 +1,85 @@
+\section{Solana's Execution Environment}
+\label{sec:sol-analysis}
+In the following, we provide an overview of Solana's execution environment~\cite{solana-doc, solana-rbpf}.
+
+\paragraph{Solana Account Model}
+The Solana account model decouples accounts containing non-executable raw data from accounts containing executable code.
+In order to achieve this decoupling, Solana introduces an account layout consisting of the following six fields:
+\begin{inparaenum}[(1)]
+    \item the public key of the account,
+    \item the public key of the account owner, 
+    \item the executable flag, which indicates whether an account is executable (and accordingly a program),
+    \item the rent epoch, which specifies a point in time when the account must pay rent to remain deployed on the blockchain,
+    \item the funds that the account holds, in a unit called \emph{lamports}, and
+    \item the data that the account contains.
+\end{inparaenum}
+
+Smart contracts in Solana are called \emph{programs}.
+Executable on-chain programs contain extended Berkeley Packet Filter (eBPF) bytecode compiled as an executable and linkable format (ELF) shared object file in their data field and are stateless, i.e., they do not store runtime-modifiable data in their data field.
+Programs manage runtime-modifiable data in non-executable accounts whose owner field contains the program's public key.
+Once a program is the owner of an account, only that program is able to modify the account's data as well as deduct lamports from the account. 
+
+Solana distinguishes between two types of programs: \emph{i)} \emph{native programs} and \emph{ii)} \emph{on-chain programs}. 
+Native programs are implemented in the Solana runtime and are not deployed on the blockchain.
+These programs typically perform tasks such as allocating new accounts on the blockchain or deploying on-chain programs on the blockchain.
+On-chain programs are written in C, C++, or Rust, compiled in eBPF, and deployed on the blockchain using a native program.
+Both native and on-chain programs are marked as executable.
+But only on-chain programs contain eBPF bytecode in their data field. 
+Moreover, on-chain programs are only capable of modifying the data and lamports of non-executable accounts at runtime.
+However, some native programs are also capable of modifying the remaining four fields.
+
+\paragraph{Solana Transactions}
+Transactions consist of, but are not limited to, 
+\begin{inparaenum}[(1)]
+    \item a list of signatures of accounts that signed the transaction
+    \item 
+    a recent blockhash used to determine if the transaction is too old,
+    \item a sorted list of accounts that can be used in the instructions of the transaction
+    \item and a list of \emph{instructions}. 
+\end{inparaenum}
+An \emph{instruction} is responsible for invoking a native or an on-chain program. 
+Here, a native program is executed directly in the Solana runtime, while an on-chain program is executed in Solana's eBPF VM using the eBPF bytecode stored in the program's data field.
+Instructions consist of three elements: \emph{i)} the public key of the program called by the instruction (also referred to as the \emph{program id}), \emph{ii)} a list of accounts passed to the program, which must be a subset of the sorted list of accounts in the transaction, and \emph{iii)} instruction data representing arbitrary data. 
+A called program accesses these three elements during execution.
+
+\paragraph{Cluster Information}
+Solana programs receive cluster information by calling functions of \emph{sysvar} accounts.
+For instance, the amount of lamports to pay for allocating one data byte for an account.
+According to the Solana programming model, \emph{sysvar} accounts must also be passed as input to the program by including them in the instruction's account list.
+
+\paragraph{Program-Derived Addresses}
+In addition to addresses that are a pair of public and private keys, Solana introduces Program-Derived Addresses (PDAs).
+PDAs are addresses that are not located on the ed25519 curve, do not have a corresponding private key, and are associated with a program. 
+A PDA receives its association with a program during its derivation, where the PDA is deterministically derived based on the program's public key and a set of optional seeds.
+In order to ensure that a PDA does not lie on the ed25519 curve, a bump byte is iteratively determined that will uniquely \enquote{bump} the PDA out of the ed25519 curve.
+
+\begin{figure*}
+\centering
+\includegraphics[width=0.8\linewidth]{figures/program_input_layout.pdf}
+\caption{Serialization of an instruction as input of the eBPF VM}
+\label{fig:program_input_layout}
+\end{figure*}
+
+\paragraph{Cross-Program Invocation}
+\label{par:cpi}
+Solana programs can call other programs using Cross-Program Invocation (CPI).
+Here, the caller invokes the callee with a self-created instruction that contains at least the same privileges as the instruction which invoked the caller, i.e., accounts that signed the transaction.
+However, the Solana runtime allows the caller to delegate additional privileges to the callee using PDAs.
+These additional privileges are restricted to accounts whose public key is a PDA associated with the caller, i.e., derived from the caller's public key along with a set of optional seeds.
+%
+Thus, when invoking a program using CPI, the calling program can use PDAs to \enquote{sign} accounts in the CPI instruction.
+
+\paragraph{eBPF VM}
+Solana's eBPF VM~\cite{solana-rbpf} can execute on-chain programs in both \emph{Just-in-time} compilation and \emph{Interpreter} mode.
+The Solana runtime defines a number of environmental restrictions when executing on-chain programs in the eBPF VM. 
+By default, the eBPF VM limits the resource consumption of an instruction to a maximum of a certain number of \emph{compute units}.
+The Solana runtime accumulates compute units for all instructions within a transaction, with certain runtime operations such as function or system calls consuming a specific number of compute units.
+%
+In addition, the Solana runtime enables the eBPF VM to allocate up to 64 stack frames and reach a maximum depth of four Cross-Program Invocations.
+Lastly, it prohibits reentrancy during CPI.
+
+When executing an instruction in the eBPF VM, the instruction is serialized and passed to the VM as input for the program.
+The program input starts at a fixed address of the VM memory layout. 
+\cref{fig:program_input_layout} depicts the layout of the serialized instruction, which is divided into three parts: accounts, instruction data, and program id which corresponds to the input of the program. 
+The first 8 bytes of each account contain information about whether the account has signed the transaction, is read-only, or is executable.
+Followed by the public key of the account and the account's owner, the amount of lamports, the data length, and other information.

@@ -1,0 +1,48 @@
+\section{Background}
+\subsection{Text-Attributed Graph}
+
+Let $G = \{V,A\}$ denotes a text-attributed graph (TAG), where $V$ is the node set and $A$ is the adjacency matrix. Each node $i \in V$ is associated with a sentence $S_i = \{s_{i,0},s_{i,1},...,s_{i,|S_i|}\}$, which represents the textual feature of the node. In most cases, the first token in each sentence (i.e., $s_{i,0}$) is $[\mathbf{cls}]$, indicating the beginning of the sentence. This paper focuses on how to unsupervised extract high-quality node features on TAGs for various downstream tasks.
+
+\subsection{Pretrained Language Models}
+
+Before we introduce G-Prompt, we require some basic concepts of pre-trained language models.
+
+\textbf{Framework of PLMs}. A PLM consists of a multi-layer transformer encoder that takes a sentence $S_i$ as input and outputs the hidden states of each token:
+\begin{equation}
+    \mathbf{PLM}(\{s_{i,0}, s_{i,1},...,s_{i,|S_i|}\}) = \{h_{i,0}, h_{i,1},...,h_{i,|S_i|}\},
+\end{equation}
+where $h_{i,k}$ is the dense hidden state of $s_{i,k}$.
+
+\textbf{Pretraining of PLMs}. The fill-mask task is commonly used to pre-train PLMs \cite{devlin2018bert,liu2019roberta,he2020deberta}. Given a sentence $S_i$, the mask stage involves randomly selecting some tokens and replacing them with either $[\mathbf{mask}]$ or random tokens, resulting in a modified sentence $\hat{S}_i = \{s_{i,0}, s_{i,1},...,\hat{s}_{i,k},...,s_{i,|S_i|}\}$, where $\hat{s}_{i,k}$ represents the masked token. In the filling stage, $\hat{S}_i$ is passed through the transformer encoder, which outputs the hidden states of each token. We denote the hidden state of the masked token $\hat{s}_{i,k}$ as $\hat{h}_{i,k}$, which is used to predict the ID of the masked token:
+\begin{equation}
+    \hat{y}_{i,k} = f_{\rm{LM}}(\hat{h}_{i,k}),
+\end{equation}
+where $f_{LM}$ is a linear transformation with softmax fuction, $\hat{y}_{i,k} \in \mathbb{N}^{1\times T}$, and $T$ is the size of the vocabulary. The loss function of the fill-mask task is defined as $\mathcal{L} = \rm{CE}(\hat{y}_{i,k}, y_{i,k})$, where $y_{i,k}$ is the ID of the masked token, and $\rm{CE}(\cdot,\cdot)$ is the cross-entropy loss.
+
+\textbf{Sentence Embedding}. The hidden state of the $[\mathbf{cls}]$ token ($h_{i,0}$) and the mean-pooling of all hidden states are commonly used as sentence embeddings \cite{reimers2019sentence, gao2021simcse}.
+
+\textbf{Prompting on PLMs}. Sentence embedding and token embedding are simultaneously pre-trained in many PLMs. However, due to the gap between pretraining tasks and downstream tasks, sentence embedding always requires fine-tuning for specific tasks. To address this issue, some studies utilize prompts to extract sentence features \cite{jiang2022promptbert}. For example, suppose we have a paper's abstract $\{\mathbf{Abstract}\}$, and the task is to classify the subject of it. We can add some prompts to the sentence:
+\begin{equation}
+    \{This, is, a, paper, of, [\mathbf{mask}], subject, its, abstract, is,:, \mathbf{Abstract}\}
+\end{equation} 
+Then this sentence is encoded by PLMs, and we let $h_{i|p}$ denote the hidden state of the $[\mathbf{mask}]$ token in prompts. Extensive experiment shows that using prompts can shorten the gap between PLMs and downstream tasks and maximize the utilization of the knowledge PLMs learned during pretraining.
+
+\subsection{Graph Neural Networks}
+
+Graph Neural Networks (GNNs) have achieved remarkable success in modeling graph-structured data\cite{velivckovic2017graph,gasteiger2018predict}. The message-passing framework is a commonly used architecture of GNN. At a high level, GNNs take a set of node features $X^0$ and an adjacency matrix $A$ as input and iteratively capture neighbors' information via message-passing. More specifically, for a given node $i \in V$, each layer of message-passing can be expressed as:
+\begin{equation}
+    x_i^{k} = \mathbf{Pool}\{f_\theta(x^{k-1}_j) | j\in \mathcal{N}_i\}
+\end{equation} 
+where $\mathbf{Pool}\{\cdot\}$ is an aggregation function that combines the features of neighboring nodes, such as mean-pooling. And $\mathcal{N}_i$ denotes the set of neighbors of node $i$. 
+%Different GNN architectures employ different aggregation methods; for instance, GraphSAGE utilizes mean-pool while GAT incorporates an attention mechanism.
+
+
+% \subsection{Modeling TAGs}
+% Most GNNs are designed to operate on continuous node features and cannot handle textual features directly. As a result, modeling TAGs requires combining LMs and GNNs. The most straightforward approach is to join the structure of GNNs and LMs and then end-to-end train them. However, most current LMs are based on Transformers with enormous trainable parameters, so end-to-end training requires significant computing resources.
+
+% Recently, impressive results have been achieved by combining LM and GNNs using the soft connection, e.g., knowledge distillation, and expectation-maximization framework. However, this approach involves fine-tuning LM, which is also extremely computationally expensive. Furthermore, the finetuned model is task-specific, are hard to employ in other downstream tasks.
+
+% A convenient framework commonly used in various applications involves using PLMs to unsupervised convert the textual features of nodes into continuous representations. Then, the extracted node representation and graph structure can be input into GNNs for end-to-end training. It's worth noting that the converted node feature is reusable for many downstream tasks.
+
+
+% \hxw{problem}

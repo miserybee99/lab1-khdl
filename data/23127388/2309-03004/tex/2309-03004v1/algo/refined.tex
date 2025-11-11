@@ -1,0 +1,52 @@
+\section{Refined Zeroth Biases}\label{sec:refine}
+
+After the analyses in \cref{sec:theory}, the use of zeroth biases proposed in \cref{sec:illustration} can be further refined. 
+\cref{theorem:main_with_hidden_vectors_and_layernorm} and \cref{theorem:main_with_effective_duplication} emphasize the role of LayerNorm layers in sparsity. To push sparsity further, it can be beneficial to enforce a lowerbound of elementwise scaling factors of LayerNorms.
+
+The two theorems also hint at conflicts of LayerNorm with zeroth biases and elementwise biases in LayerNorm. 
+Therefore, one can turn off the elementwise biases in LayerNorm layers and then confine the norm of columns in zeroth biases. 
+We choose to simply clamp the parameter of zeroth biases. To utilize the potential rising of elementwise scaling factors, the upperbound of absolute values of zeroth biases are determined relatively to the elementwise scaling factors.
+Putting things together, we execute \cref{algo:refined} after every update during training from scratch.
+
+\begin{algorithm}
+    \caption{Refined LayerNorm and Zeroth Biases}\label{algo:refined}
+    \NewDocumentCommand{\listofLayerNorms}{}{\mathcal{L}}
+    \NewDocumentCommand{\listofZerothBiases}{}{\mathcal{D}}
+    \begin{algorithmic}[1]
+        \Require $\listofZerothBiases$: the list of all zeroth biases; $\listofLayerNorms$: the list of \emph{unbiased} LayerNorm layers before zeroth biases, ordered so that $\listofZerothBiases[i]$ lies right after $\listofLayerNorms[i]$; $c$: the factor that controls zeroth biases relatively to the LayerNorm scaling factors
+        \Procedure{RestrictLayerNorm}{$\listofLayerNorms$} 
+            \For{$L \in \listofLayerNorms$}
+                \State $L.\text{weight} \gets \text{clamp}(L.\text{weight},\text{min}=1.0)$
+            \EndFor
+        \EndProcedure
+        \\
+        \Procedure{RestrictZerothBiases}{$\listofZerothBiases, \listofLayerNorms, c$}\label{algo:restricted-zb}
+            \For{$l = 0 \dots \size{\listofZerothBiases} - 1$}
+                \State $D \gets \listofZerothBiases[l]$
+                \State $L \gets \listofLayerNorms[l]$
+                \State $s \gets c * \text{unsqueeze}(\text{abs}(L.\text{weight}), \texttt{dim}=-2)$ 
+                \State \Comment{In Transformers, scaling factors in LayerNorms are vectors.}
+                \State \Comment{It needs to be expanded along the token-stacking dimension}
+                \State \Comment{to adapt the shape of $D$}
+                \State $D.\text{biases} \gets \text{clamp}(D.\text{biases}, \text{elementwise-min}=-s, \text{elementwise-max}=s)$
+            \EndFor
+        \EndProcedure
+    \end{algorithmic}
+\end{algorithm}
+
+In sparsity finetuning, it is not likely that the loaded checkpoints have scaling-restricted and unbiased LayerNorms so we freeze LayerNorms' biases and gradually uplift the absolute value of scaling factors while retaining their signs after each update according to \cref{algo:refined_finetuning} instead of \mathsc{RestrictLayerNorm}. It is also possible that changing to $\jrelu$ without any adaptation harms the performance, so we mix $\jrelu$ and $\relu$ linearly and increase the portion of $\jrelu$ linearly after every step, starting from $0$. \cref{sec:f_experiments} shows that the refinement performs well during finetuning.
+\begin{algorithm}
+    \caption{Refined LayerNorm in finetuning for sparsity in training from scratch}\label{algo:refined_finetuning}
+    \NewDocumentCommand{\listofLayerNorms}{}{\mathcal{L}}
+    \NewDocumentCommand{\listofZerothBiases}{}{\mathcal{D}}
+    \begin{algorithmic}[1]
+        \Require $\listofLayerNorms$: the list of \emph{unbiased} LayerNorm layers before zeroth biases; $T_{\text{uplifting}}$: the number of steps of uplifting; $t$: the index of the current step.
+        \Procedure{UpliftLayerNorm}{$\listofLayerNorms, T_{\text{uplifting}}, t$}
+            \For{$L \in \listofLayerNorms$}
+                \State $s \gets (L.\text{weight}.\text{sign}() + 0.1).\text{sign}()$ \Comment{Uplift zeros towards the positive direction}
+                \State $\text{UpliftedAbsoluteValue} \gets \text{clamp}(L.\text{weight}.\text{abs}(),\text{min}= \min(t / T_{\text{uplifting}}, 1))$
+                \State $L.\text{weight} \gets s * \text{UpliftedAbsoluteValue}$
+            \EndFor
+        \EndProcedure
+    \end{algorithmic}
+\end{algorithm}

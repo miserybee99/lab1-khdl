@@ -1,0 +1,626 @@
+\documentclass[twocolumn,floatfix,showkeys,preprintnumbers,amsmath,amssymb]{revtex4}
+
+\usepackage{graphicx}% Include figure files
+\usepackage{subfigure}% Include figure files
+\usepackage{dcolumn}% Align table columns on decimal point
+\usepackage{bm}% bold math
+%\nofiles
+
+\begin{document}
+
+\title{Effect of Backing on Neutron Spectra for Low Energy Quasi-Mono-energetic p+$^7$Li Reaction.\\}
+\author{H. Kumawat$^1$\footnote{author. Email address: harphool@barc.gov.in}}
+\affiliation{$^1$Nuclear Physics Division, BARC, Mumbai-400085, India\\}
+\date{\today}
+
+\begin{abstract}
+$\underline{\textbf{MO}}$nte-carlo $\underline{\textbf{N}}$ucleon transport $\underline{\textbf{C}}$ode (MONC) for nucleon transport is extended for below 20MeV proton transport using ENDF and EXFOR data base. It is used to simulate p+$^7$Li reaction upto 20MeV proton energies and produced neutron spectra are reported here. The simulated results are compared with calculated values from other available codes like PINO, EPEN, SimLiT and experimental data. The spectra reported here can be used to get the neutron cross-section for the quasi-mono-energetic neutron reaction and will help to subtract the low energy contribution. The neutron spectra also useful as this reaction is used for accelerator based Boron Neutron Capture Therapy. The backing materials are used to fully stop the proton beam hence contribution from the neutrons from backing materials is estimated. It is found that Tantalum is good backing material below $\sim$8 MeV and Carbon is better at higher energies. 
+\end{abstract}
+
+\keywords{Monte Carlo, Quasi-mono-energetic Neutron Source, Boron Neutron Capture Therapy}
+\maketitle
+\section{\label{sec:level1}Introduction}
+Measurement of neutron cross-section is an important research activity for it's application in nuclear reactors, cancer therapy, neutron dosimetry, nuclear astrophysics etc \cite{ads1, ads2,ads3,baltej,Lederer_2016,Reifarth_2014,PhysRevC.104.054608,KOEHLER1989494,Dillmann2023}. The $^7$Li(p, n)X reaction is used as quasi mono-energetic neutron source to measure cross-sections and also a possible accelerator based source of neutrons for Boron Neutron Capture Therapy (BNCT) \cite{Wang_2023,nakamura,kononov}. The threshold for the $^7$Li(p, n)$^7$Be$_g$ reaction is $\sim$1.88 MeV and cross-section rise rapidly near the threshold energy. For protons above 2.37 MeV, production of another group of neutrons starts due to inelastic state of $^7$Be at 429 keV. Neutron production threshold for three-body breakup channel $^7$Li(p, n+$^3$He)$\alpha$ is 3.7 MeV which gives a broad neutron energy distribution. Thus, $^7$Li(p, n)X reaction can be considered quasi-mono-energetic near threshold but it has a tail above 4 MeV of proton energies. It can be still used as a quasi-mono-energetic source for neutron threshold reactions where low energy tail does not contribute. The contribution of tail should be carefully subtracted for neutron capture reactions where low energy contributes more in neutron activation technique in cross-section measurement. 
+
+Additionally, the spread in the neutron spectra occurs due to thickness of the Lithium target (up to 100 $\mu$m), used by various experimentalists and the corresponding neutron energy spread may be up to 500keV. Some experimentalists use cadmium foil to cut very low energy neutron contribution but it is important to quote the energy spectra for a particular measurement. Recently, several experiments have been conducted at BARC-FOTIA \cite{fotia1,fotia2,fotia3,BAKSHI2020162926} and BARC-TIFR \cite{PhysRevC.107.054607,MUKHERJEE201972,refId0,10149237,tifr1,Singh_2022} facilities using this reaction. MONC \cite{Kumawat:2020emd,hkvenkata13,hkroot} code is used for Monte-carlo simulations for Lithium target of thickness 4mg/cm$^2$ which is typical thickness used at many experimental facilities in Mumbai, India. The contribution of low energy tail and second peak should be considered while quoting cross-section for a single energy and in best practices it should be subtracted as mentioned in Ref. \cite{smith} or by similar methods. The neutron flux monitor reaction should be sensitive in the similar energy range as that of reaction of measurement. The calculations are also performed using code PINO \cite{pino} which includes only $^7$Li(p, n$_0$)$^7$Be$_g$ and $^7$Li(p, n$_1$)$^7$Be$^*$ reactions hence valid in low energy region ($<$ 7.0 MeV). The simulated values are also compared with available experimental data and calculated values from literature by SimLiT and EPEN \cite{epen} at 3.5 MeV.
+
+At higher energies, the proton beam has to stop in some other material otherwise the quasi-mono-energeticity does not remain valid. Usually Tantalum and Carbon are used as the backing materials. The neutrons produced by the backing material should be estimated to get the total neutron spectrum.
+
+The outline of this paper is as follows. In Sec. II we present brief description of MONC. Section III contains simulation results. Conclusions are
+given in Sec. IV.
+
+\section{\label{sec:level2}Brief description of MONC}
+Monte Carlo program MONC incorporates Intra-nuclear Cascade, Pre-equilibrium, 
+Evaporation and Fission models to simulate spallation reaction mechanism for 
+thin and thick targets. Modeling details of Intra-nuclear cascade, Pre-equilibrium 
+particle emission are described in detail in Ref. \cite{baras1, baras2}. Fission barrier, level density parameter and 
+inverse cross sections for pre-equilibrium/evaporation/fission model are given in detail in Ref. \cite{hkumawat04, hkumawat05}.
+
+Benchmark of spallation models for experimental values of neutron, charged particles, 
+and pions double differential production cross-sections, particle multiplicities, 
+spallation residues and excitation functions was organized by IAEA and is given in Ref. \cite{hkumawat10}. We have used the predecessor of this code named CASCADE.04 to calculate these quantities in the IAEA benchmark. Heat Deposition algorithm for thick spallation targets and thin films was modified and benchmarked as mentioned in Ref. \cite{hkheat08}. The code was further developed for the Neutron shielding and dosimetry applications and published \cite{hkumawat09}. Energy loss of the charge particle is calculated during the transport in the thick target.
+
+MONC realizes the particle transport in three stages: 
+1) sampling of particle (ion) mean free path in the medium taking into account the energy loss of a charged particle and a possible decay of non-stable particles ($\pi^0$, $\pi^\pm$). All $\pi^0$-mesons are considered to decay into $\gamma$-quanta at the point of their creation. The ionization losses of $\pi$ - mesons, protons and light ions are calculated by Sternheimer’s method \cite{stern} using well established Bathe formula for the average ionization loss calculations with proper density effects. Here, it is important to mention that the density effect shows reduction in ionization loss for fast charged particles due to dielectric polarization of the medium. In the lower energy region ($<$ 2.0 MeV) Lindhard’s approach \cite{lind} is used and a semi-phenomenological procedure \cite{barasion} is applied for the heavy ions. 
+While doing the practical simulation one has to calculate the ionization and nuclear interaction ranges and then uses the formulation to deposit heat. 
+
+2) Simulation of the particle interaction with a nucleus is considered along its path. 
+In case of inelastic interaction the MONC code considers three stages of reaction for calculation: 
+a) intranuclear cascade originally developed at Dubna: In this part of the calculation,
+primary particles can be re-scattered and they may produce secondary particles several
+times prior to absorption or escape from the target. Modeling of intra-nuclear cascades 
+\cite{baras1, baras2} is in general rather closer to the methods used in other transport codes.
+Cross-sections of the hadron-nucleus collisions are calculated based on the compilations 
+of the experimental data \cite{barascrs1, barascrs2}. To calculate the nucleus-nucleus cross-sections 
+we used analytical approximations with parameters defined in Ref. \cite{barascrs3}. 
+b) Pre-equilibrium stage: In this part of 
+the reaction, relaxation of the nuclear excitation is treated according to the 
+exciton model of the pre-equilibrium decay. The relaxation is calculated by the 
+method based on the Blann's model \cite{mashnik, blann}. Proton, neutron, deuterium, tritium, 
+$^3$He and $^4$He are considered as emitted particles in the pre-equilibrium and in the
+subsequent equilibrium stage.  c) Equilibrium stage: This part considers 
+the particle evaporation/fission of the thermally equilibrated nucleus. 
+\begin{figure}
+\includegraphics[scale=0.52]{FIG1.pdf}
+\caption{$^7$Li(p,x)Y cross-section from ENDF VIII.0 as used in the MONC. $^7$Li(p, n+$^3$He)$\alpha$ reaction cross-section is taken from Ref. \cite{SCOTT1971405}} \label{crs}
+\end{figure}
+
+3) Low energy neutron transport code is developed recently. A package has been developed for reading pointwise cross sections for neutron in ACE (A Compact ENDF) format. ENDF data file processing and generating point data at different temperatures has also been developed \cite{endfhk}. The delayed neutrons are treated exclusively with their energy spectra for which data are available. Spontaneous and induced fission fragment yield are read from ENDF fission yield libraries. The free gas thermal treatment of the
+neutron interaction for below 4eV can be used for compound and crystal material or Thermal scattering law can be used if available in ENDF file. Probability table method is used in the un-resolved energy region. Low energy ($<$ 20 MeV) proton data are used to simulate the reaction mechanism and outgoing particles energy and angular distributions. No cross-section data are given for $^7$Li(p, n+$^3$He)$\alpha$ reaction in the ENDF file so it is taken from Ref. \cite{SCOTT1971405} while energy and angular distributions are calculated using 3-body kinematics. The cross-sections used in the present simulations are given in Fig. \ref{crs} for $^7$Li nucleus. There is a thick tantalum or carbon sheet placed at the end of Lithium target to stop the proton beam. The cross-section for Tantalum and Carbon are taken from Evaluated neutron data libraries and EXFOR experimental database. The energy and angular distributions are calculated using 2, 3-body kinematics.
+ \begin{figure}
+ \includegraphics[scale=0.52]{FIG2.pdf}
+ \caption{Proton induced neutron spectrum from $^7$Li(p,n)$^7$Be reaction. Experimental data are taken from Ref. \cite{PhysRevC.85.055809,PhysRevC.85.055810,PhysRevC.37.595} and calculations are performed using MONC.} 
+ \label{sp1912}
+ \end{figure}
+
+\section{\label{sec:level3} Simulation and Results}
+ 
+Monte-carlo simulations are carried out for 4mg/cm$^2$ thick $^7$Li target which is 92.41\% in the natural Lithium and contributes most for neutron production in the natural Lithium target. Proton energies considered are up to 21MeV (Namely 6, 10, 15 and 21 MeV). Experimental data near threshold energy at 1.912 MeV \cite {PhysRevC.85.055809,PhysRevC.85.055810,PhysRevC.37.595} are compared in Fig. \ref{sp1912}. Angular distributions are given in the ENDF library and corresponding energy is calculated using 2-body kinematics \cite{2dkin}. The calculated spectrum from MONC has overall agreement with slight underestimation at peak position of the energy spectrum.
+\begin{figure}
+ \includegraphics[scale=0.53]{FIG3.pdf}
+ \caption{Proton (E$_p$=3.5 MeV) induced neutron spectrum from $^7$Li(p,n)X reaction for 0$^\circ$-5$^\circ$ of neutrons simulated using MONC. Experimental data are taken from Ref. \cite{lefevre}} 
+ \label{sp352MeV}
+ \end{figure}
+ \begin{figure}
+ \includegraphics[scale=0.52]{FIG4.pdf}
+ \caption{Proton (E$_p$=3.5 MeV) induced neutron spectrum from $^7$Li(p,n)X reaction for neutrons simulated using MONC and PINO. Values for EPEN/SimLiT are taken from Ref. \cite{epen}} 
+ \label{sp35MeV}
+ \end{figure}
+ 
+\begin{figure}
+ \includegraphics[scale=0.52]{FIG5.pdf}
+ \caption{Proton (E$_p$=3MeV) induced neutron spectrum from $^7$Li(p,n)X reaction for 0$^\circ$-10$^\circ$ of neutrons simulated using MONC.} 
+ \label{sp3MeV}
+ \end{figure}
+
+In case of thick Lithium target, experimental data at 3.45 MeV and 0$^\circ$ are taken from Ref. \cite{lefevre} and simulations are done for $\theta_n$ = 0-5$^\circ$ using MONC. A comparison is shown in Fig. \ref{sp352MeV}. There is an agreement from peak energy up to highest neutron energy. MONC overestimate the neutron spectrum below the peak neutron energy. 
+
+Simulation was performed for 38$\mu$m thick target where EPEN and SimLiT \cite{epen} calculated values were also available in the literature. The calculations are also performed using PINO code \cite{pino} for comparison which is available on web portal. The published values from EPEN/SimLiT \cite{epen} are in good agreement with PINO and MONC calculated values for the first group of the neutron energies (see Fig. \ref{sp35MeV}) (ground state transition to $^7$Be) but the second group of neutron corresponding to the excited state transition to $^7$Be is underestimated by PINO. The data for second group of neutrons by EPEN is not given in this publication hence could not be compared.
+
+\begin{figure*}
+\includegraphics[scale=0.82]{FIG6.pdf}
+ \caption{Proton (E$_p$=21, 15, 10 and 6 MeV) induced neutron spectrum from $^7$Li(p,n)X, $^{181}$Ta(p,n)X and $^{nat}$C(p,n)X reaction for 0$^\circ$-10$^\circ$ of neutrons simulated using MONC.} 
+ \label{sp4MeV}
+ \end{figure*}
+
+Neutron spectra were simulated at 6, 10, 15 and 21 MeV proton energies. The Lithium target thickness was taken as 4mg/cm$^2$. Tantalum and Natural Carbon were taken as  backing material to stop the protons. The spectra for neutron angle $\theta_n$ 0-10$^\circ$ are given in Fig. \ref{sp4MeV} where usually samples are kept to measure neutron cross-sections. The Lithium spectra show a third group of neutrons from 6 to 20 MeV proton energies which is coming from three body breakup reaction as mentioned above. The neutrons from natural carbon target is contributed by $^{13}$C(p, n) reaction which has 1.1\% abundance. The barrier for this reaction is $\sim$1.15 MeV and threshold is 3.24 MeV. The neutron production for Tantalum is through $^{181}$Ta(p, n), $^{181}$Ta(p, 2n) and $^{181}$Ta(p, 3n) reactions with thresholds of 0.99 MeV, 7.70 MeV and 16.16 MeV, respectively. It is clear from the spectra that large contribution of neutrons is produced from Tantalum at higher energies. Carbon target gives less contribution by factor of two orders of magnitudes compared to that profuced from $^7$Li target.
+
+\section{\label{sec:level8} Conclusion}
+The Monte Carlo code MONC has been developed for proton induced reactions at low energies. The $^7$Li(p, n)X reaction which is widely used for neutron cross-section measurement and a potential candidate for Boron Neutron Capture Therapy, is investigated. The simulated neutron spectra are compared with the experimental data and calculated values from PINO and EPEN/SimLiT codes
+and the results are in good agreement for the first group $^7$Li(p,n)$^7$Be$_g$ at least. There is a disagreement for the second group of neutrons through $^7$Li(p,n)$^7$Be$^*$ reaction. PINO shows very small contribution from second group of neutrons coming from excited $^7$Be state at 429 keV. Ratio of these two groups are measured at different angle \cite {PhysRev.121.871} which shows a relative contribution of 10-15\% around 0$^\circ$-10$^\circ$ neutron emission angles and the ratio from MONC are of similar magnitudes for these group of neutrons. The neutron spectra at forward angles are given here because the measurements are done in the forward direction using neutron activation technique.
+The simulated neutron spectra are useful for the experimental measurements using neutron activation analysis although we use exact geometry of the arrangement of samples, sample holders, monitor foils etc. \cite{tawade} for our measurements and Monte carlo code is best suited for that compared to deterministic codes. The contribution to the neutron spectra by backing material is significant by Tantalum at higher energies and negligible below $\sim$8 MeV. The contribution from Natural carbon as backing material is less by two orders of magnitudes. The spectra from Carbon does not interfere with the major quasi-energetic peak while tantalum gives neutrons beyond this peak. Hence, Natural Carbon is better as backing material compared to Tantalum at higher energies.
+\begin{thebibliography}{52}
+\expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
+\expandafter\ifx\csname bibnamefont\endcsname\relax
+  \def\bibnamefont#1{#1}\fi
+\expandafter\ifx\csname bibfnamefont\endcsname\relax
+  \def\bibfnamefont#1{#1}\fi
+\expandafter\ifx\csname citenamefont\endcsname\relax
+  \def\citenamefont#1{#1}\fi
+\expandafter\ifx\csname url\endcsname\relax
+  \def\url#1{\texttt{#1}}\fi
+\expandafter\ifx\csname urlprefix\endcsname\relax\def\urlprefix{URL }\fi
+\providecommand{\bibinfo}[2]{#2}
+\providecommand{\eprint}[2][]{\url{#2}}
+
+\bibitem[{\citenamefont{Bowman\textit{ et al.}}(1992)}]{ads1}
+\bibinfo{author}{\bibfnamefont{C.~D.} \bibnamefont{Bowman\textit{ et al.}}},
+  \bibinfo{journal}{Nucl. Inst. Meth.} \textbf{\bibinfo{volume}{A320}},
+  \bibinfo{pages}{336} (\bibinfo{year}{1992}).
+
+\bibitem[{\citenamefont{Carminti\textit{ et al.}}(1993)}]{ads2}
+\bibinfo{author}{\bibfnamefont{F.}~\bibnamefont{Carminti\textit{ et al.}}},
+  \bibinfo{journal}{CERN report} \textbf{\bibinfo{volume}{CERN/AT/93-47(ET)}}
+  (\bibinfo{year}{1993}).
+
+\bibitem[{\citenamefont{Tolstov}(1989)}]{ads3}
+\bibinfo{author}{\bibfnamefont{K.~D.} \bibnamefont{Tolstov}},
+  \bibinfo{journal}{JINR preprint} \textbf{\bibinfo{volume}{18-89-778}}
+  (\bibinfo{year}{1989}).
+
+\bibitem[{\citenamefont{Bharti and Singh}(2018)}]{baltej}
+\bibinfo{author}{\bibfnamefont{V.}~\bibnamefont{Bharti}} \bibnamefont{and}
+  \bibinfo{author}{\bibfnamefont{B.}~\bibnamefont{Singh}},
+  \bibinfo{journal}{BARC Technical Report}
+  \textbf{\bibinfo{volume}{RPDD/PHWR/45}} (\bibinfo{year}{2018}).
+
+\bibitem[{\citenamefont{Lederer et~al.}(2016)\citenamefont{Lederer, Altstadt,
+  Andrzejewski, Audouin, Barbagallo, Bécares, Bečvář, Belloni,
+  Berthoumieux, Billowes et~al.}}]{Lederer_2016}
+\bibinfo{author}{\bibfnamefont{C.}~\bibnamefont{Lederer}},
+  \bibinfo{author}{\bibfnamefont{S.}~\bibnamefont{Altstadt}},
+  \bibinfo{author}{\bibfnamefont{J.}~\bibnamefont{Andrzejewski}},
+  \bibinfo{author}{\bibfnamefont{L.}~\bibnamefont{Audouin}},
+  \bibinfo{author}{\bibfnamefont{M.}~\bibnamefont{Barbagallo}},
+  \bibinfo{author}{\bibfnamefont{V.}~\bibnamefont{Bécares}},
+  \bibinfo{author}{\bibfnamefont{F.}~\bibnamefont{Bečvář}},
+  \bibinfo{author}{\bibfnamefont{F.}~\bibnamefont{Belloni}},
+  \bibinfo{author}{\bibfnamefont{E.}~\bibnamefont{Berthoumieux}},
+  \bibinfo{author}{\bibfnamefont{J.}~\bibnamefont{Billowes}},
+  \bibnamefont{et~al.}, \bibinfo{journal}{Journal of Physics: Conference
+  Series} \textbf{\bibinfo{volume}{665}}, \bibinfo{pages}{012020}
+  (\bibinfo{year}{2016}).
+
+\bibitem[{\citenamefont{Reifarth et~al.}(2014)\citenamefont{Reifarth, Lederer,
+  and Käppeler}}]{Reifarth_2014}
+\bibinfo{author}{\bibfnamefont{R.}~\bibnamefont{Reifarth}},
+  \bibinfo{author}{\bibfnamefont{C.}~\bibnamefont{Lederer}}, \bibnamefont{and}
+  \bibinfo{author}{\bibfnamefont{F.}~\bibnamefont{Käppeler}},
+  \bibinfo{journal}{Journal of Physics G: Nuclear and Particle Physics}
+  \textbf{\bibinfo{volume}{41}}, \bibinfo{pages}{053101}
+  (\bibinfo{year}{2014}).
+
+\bibitem[{\citenamefont{Couture et~al.}(2021)\citenamefont{Couture, Casten, and
+  Cakirli}}]{PhysRevC.104.054608}
+\bibinfo{author}{\bibfnamefont{A.}~\bibnamefont{Couture}},
+  \bibinfo{author}{\bibfnamefont{R.~F.} \bibnamefont{Casten}},
+  \bibnamefont{and} \bibinfo{author}{\bibfnamefont{R.~B.}
+  \bibnamefont{Cakirli}}, \bibinfo{journal}{Phys. Rev. C}
+  \textbf{\bibinfo{volume}{104}}, \bibinfo{pages}{054608}
+  (\bibinfo{year}{2021}).
+
+\bibitem[{\citenamefont{Koehler and O'Brien}(1989)}]{KOEHLER1989494}
+\bibinfo{author}{\bibfnamefont{P.}~\bibnamefont{Koehler}} \bibnamefont{and}
+  \bibinfo{author}{\bibfnamefont{H.}~\bibnamefont{O'Brien}},
+  \bibinfo{journal}{Nuclear Instruments and Methods in Physics Research Section
+  B: Beam Interactions with Materials and Atoms}
+  \textbf{\bibinfo{volume}{40-41}}, \bibinfo{pages}{494}
+  (\bibinfo{year}{1989}).
+
+\bibitem[{\citenamefont{Dillmann et~al.}(2023)\citenamefont{Dillmann, Kester,
+  Baartman, Chen, Junginger, Herwig, Kaltchev, Lennarz, Planche, Ruiz
+  et~al.}}]{Dillmann2023}
+\bibinfo{author}{\bibfnamefont{I.}~\bibnamefont{Dillmann}},
+  \bibinfo{author}{\bibfnamefont{O.}~\bibnamefont{Kester}},
+  \bibinfo{author}{\bibfnamefont{R.}~\bibnamefont{Baartman}},
+  \bibinfo{author}{\bibfnamefont{A.}~\bibnamefont{Chen}},
+  \bibinfo{author}{\bibfnamefont{T.}~\bibnamefont{Junginger}},
+  \bibinfo{author}{\bibfnamefont{F.}~\bibnamefont{Herwig}},
+  \bibinfo{author}{\bibfnamefont{D.}~\bibnamefont{Kaltchev}},
+  \bibinfo{author}{\bibfnamefont{A.}~\bibnamefont{Lennarz}},
+  \bibinfo{author}{\bibfnamefont{T.}~\bibnamefont{Planche}},
+  \bibinfo{author}{\bibfnamefont{C.}~\bibnamefont{Ruiz}}, \bibnamefont{et~al.},
+  \bibinfo{journal}{The European Physical Journal A}
+  \textbf{\bibinfo{volume}{59}}, \bibinfo{pages}{105} (\bibinfo{year}{2023}).
+
+\bibitem[{\citenamefont{Wang et~al.}(2023)\citenamefont{Wang, Du, Lin, Zhou,
+  Lin, Qiu, Li, Guan, and Gu}}]{Wang_2023}
+\bibinfo{author}{\bibfnamefont{Y.}~\bibnamefont{Wang}},
+  \bibinfo{author}{\bibfnamefont{J.}~\bibnamefont{Du}},
+  \bibinfo{author}{\bibfnamefont{H.}~\bibnamefont{Lin}},
+  \bibinfo{author}{\bibfnamefont{X.}~\bibnamefont{Zhou}},
+  \bibinfo{author}{\bibfnamefont{C.}~\bibnamefont{Lin}},
+  \bibinfo{author}{\bibfnamefont{J.}~\bibnamefont{Qiu}},
+  \bibinfo{author}{\bibfnamefont{J.}~\bibnamefont{Li}},
+  \bibinfo{author}{\bibfnamefont{X.}~\bibnamefont{Guan}}, \bibnamefont{and}
+  \bibinfo{author}{\bibfnamefont{L.}~\bibnamefont{Gu}},
+  \bibinfo{journal}{Journal of Instrumentation} \textbf{\bibinfo{volume}{18}},
+  \bibinfo{pages}{P03006} (\bibinfo{year}{2023}).
+
+\bibitem[{\citenamefont{Nakamura et~al.}(2019)\citenamefont{Nakamura, Igaki,
+  Okamoto, Wakita, Ito, Imamichi, Nishioka, Iijima, Nakayama, Takemori
+  et~al.}}]{nakamura}
+\bibinfo{author}{\bibfnamefont{S.}~\bibnamefont{Nakamura}},
+  \bibinfo{author}{\bibfnamefont{H.}~\bibnamefont{Igaki}},
+  \bibinfo{author}{\bibfnamefont{H.}~\bibnamefont{Okamoto}},
+  \bibinfo{author}{\bibfnamefont{A.}~\bibnamefont{Wakita}},
+  \bibinfo{author}{\bibfnamefont{M.}~\bibnamefont{Ito}},
+  \bibinfo{author}{\bibfnamefont{S.}~\bibnamefont{Imamichi}},
+  \bibinfo{author}{\bibfnamefont{S.}~\bibnamefont{Nishioka}},
+  \bibinfo{author}{\bibfnamefont{K.}~\bibnamefont{Iijima}},
+  \bibinfo{author}{\bibfnamefont{H.}~\bibnamefont{Nakayama}},
+  \bibinfo{author}{\bibfnamefont{M.}~\bibnamefont{Takemori}},
+  \bibnamefont{et~al.}, \bibinfo{journal}{Phys Med.}
+  \textbf{\bibinfo{volume}{58}}, \bibinfo{pages}{121} (\bibinfo{year}{2019}).
+
+\bibitem[{\citenamefont{Kononov et~al.}(2003)\citenamefont{Kononov, Kononov,
+  and Solov'ev}}]{kononov}
+\bibinfo{author}{\bibfnamefont{O.~E.} \bibnamefont{Kononov}},
+  \bibinfo{author}{\bibfnamefont{V.~N.} \bibnamefont{Kononov}},
+  \bibnamefont{and} \bibinfo{author}{\bibfnamefont{N.~A.}
+  \bibnamefont{Solov'ev}}, \bibinfo{journal}{Atomic Energy}
+  \textbf{\bibinfo{volume}{94}}, \bibinfo{pages}{417 } (\bibinfo{year}{2003}).
+
+\bibitem[{\citenamefont{Lawriniang et~al.}(2015)\citenamefont{Lawriniang,
+  Badwar, Ghosh, Jyrwa, Vansola, Naik, Goswami, Naik, Datrik, Gupta
+  et~al.}}]{fotia1}
+\bibinfo{author}{\bibfnamefont{B.~M.} \bibnamefont{Lawriniang}},
+  \bibinfo{author}{\bibfnamefont{S.}~\bibnamefont{Badwar}},
+  \bibinfo{author}{\bibfnamefont{R.}~\bibnamefont{Ghosh}},
+  \bibinfo{author}{\bibfnamefont{B.}~\bibnamefont{Jyrwa}},
+  \bibinfo{author}{\bibfnamefont{V.}~\bibnamefont{Vansola}},
+  \bibinfo{author}{\bibfnamefont{H.}~\bibnamefont{Naik}},
+  \bibinfo{author}{\bibfnamefont{A.}~\bibnamefont{Goswami}},
+  \bibinfo{author}{\bibfnamefont{Y.}~\bibnamefont{Naik}},
+  \bibinfo{author}{\bibfnamefont{C.~S.} \bibnamefont{Datrik}},
+  \bibinfo{author}{\bibfnamefont{A.~K.} \bibnamefont{Gupta}},
+  \bibnamefont{et~al.}, \bibinfo{journal}{J. Kor. Phys. Soc.}
+  \textbf{\bibinfo{volume}{67}}, \bibinfo{pages}{441} (\bibinfo{year}{2015}).
+
+\bibitem[{\citenamefont{Vansola et~al.}(2015)\citenamefont{Vansola, Ghosh,
+  Badwar, Lawriniang, Gopalakrishna, Naik, Naik, Tawade, Sharma, Bhatt
+  et~al.}}]{fotia2}
+\bibinfo{author}{\bibfnamefont{V.}~\bibnamefont{Vansola}},
+  \bibinfo{author}{\bibfnamefont{R.}~\bibnamefont{Ghosh}},
+  \bibinfo{author}{\bibfnamefont{S.}~\bibnamefont{Badwar}},
+  \bibinfo{author}{\bibfnamefont{B.}~\bibnamefont{Lawriniang}},
+  \bibinfo{author}{\bibfnamefont{A.}~\bibnamefont{Gopalakrishna}},
+  \bibinfo{author}{\bibfnamefont{H.}~\bibnamefont{Naik}},
+  \bibinfo{author}{\bibfnamefont{Y.}~\bibnamefont{Naik}},
+  \bibinfo{author}{\bibfnamefont{N.}~\bibnamefont{Tawade}},
+  \bibinfo{author}{\bibfnamefont{S.}~\bibnamefont{Sharma}},
+  \bibinfo{author}{\bibfnamefont{J.}~\bibnamefont{Bhatt}},
+  \bibnamefont{et~al.}, \bibinfo{journal}{Radiochimica Acta}
+  \textbf{\bibinfo{volume}{103}}, \bibinfo{pages}{817} (\bibinfo{year}{2015}).
+
+\bibitem[{\citenamefont{Ghosh et~al.}(2016)\citenamefont{Ghosh, Badwar,
+  Lawriniang, Vansola, Naik, Naik, Suryanarayana, Tawade, Padmakumar, Sharma
+  et~al.}}]{fotia3}
+\bibinfo{author}{\bibfnamefont{R.}~\bibnamefont{Ghosh}},
+  \bibinfo{author}{\bibfnamefont{S.}~\bibnamefont{Badwar}},
+  \bibinfo{author}{\bibfnamefont{B.~M.} \bibnamefont{Lawriniang}},
+  \bibinfo{author}{\bibfnamefont{V.}~\bibnamefont{Vansola}},
+  \bibinfo{author}{\bibfnamefont{H.}~\bibnamefont{Naik}},
+  \bibinfo{author}{\bibfnamefont{Y.}~\bibnamefont{Naik}},
+  \bibinfo{author}{\bibfnamefont{S.}~\bibnamefont{Suryanarayana}},
+  \bibinfo{author}{\bibfnamefont{N.~S.} \bibnamefont{Tawade}},
+  \bibinfo{author}{\bibfnamefont{S.}~\bibnamefont{Padmakumar}},
+  \bibinfo{author}{\bibfnamefont{S.~C.} \bibnamefont{Sharma}},
+  \bibnamefont{et~al.}, \bibinfo{journal}{J. Radioana. Nucl. Chem.}
+  \textbf{\bibinfo{volume}{307}}, \bibinfo{pages}{1481 }
+  (\bibinfo{year}{2016}).
+
+\bibitem[{\citenamefont{Bakshi et~al.}(2020)\citenamefont{Bakshi, Dawn,
+  Suryanarayana, and Datta}}]{BAKSHI2020162926}
+\bibinfo{author}{\bibfnamefont{A.}~\bibnamefont{Bakshi}},
+  \bibinfo{author}{\bibfnamefont{S.}~\bibnamefont{Dawn}},
+  \bibinfo{author}{\bibfnamefont{S.}~\bibnamefont{Suryanarayana}},
+  \bibnamefont{and} \bibinfo{author}{\bibfnamefont{D.}~\bibnamefont{Datta}},
+  \bibinfo{journal}{Nuclear Instruments and Methods in Physics Research Section
+  A: Accelerators, Spectrometers, Detectors and Associated Equipment}
+  \textbf{\bibinfo{volume}{949}}, \bibinfo{pages}{162926}
+  (\bibinfo{year}{2020}), ISSN \bibinfo{issn}{0168-9002},
+  \urlprefix\url{https://www.sciencedirect.com/science/article/pii/S0168900219313294}.
+
+\bibitem[{\citenamefont{Singh et~al.}(2023{\natexlab{a}})\citenamefont{Singh,
+  Singh, Mehta, Chauhan, Kumawat, Makwana, Suryanarayana, Nayak, Naik, Varmuza
+  et~al.}}]{PhysRevC.107.054607}
+\bibinfo{author}{\bibfnamefont{R.~K.} \bibnamefont{Singh}},
+  \bibinfo{author}{\bibfnamefont{N.~L.} \bibnamefont{Singh}},
+  \bibinfo{author}{\bibfnamefont{M.}~\bibnamefont{Mehta}},
+  \bibinfo{author}{\bibfnamefont{R.}~\bibnamefont{Chauhan}},
+  \bibinfo{author}{\bibfnamefont{H.}~\bibnamefont{Kumawat}},
+  \bibinfo{author}{\bibfnamefont{R.}~\bibnamefont{Makwana}},
+  \bibinfo{author}{\bibfnamefont{S.~V.} \bibnamefont{Suryanarayana}},
+  \bibinfo{author}{\bibfnamefont{B.~K.} \bibnamefont{Nayak}},
+  \bibinfo{author}{\bibfnamefont{H.}~\bibnamefont{Naik}},
+  \bibinfo{author}{\bibfnamefont{J.}~\bibnamefont{Varmuza}},
+  \bibnamefont{et~al.}, \bibinfo{journal}{Phys. Rev. C}
+  \textbf{\bibinfo{volume}{107}}, \bibinfo{pages}{054607}
+  (\bibinfo{year}{2023}{\natexlab{a}}).
+
+\bibitem[{\citenamefont{Mukherjee et~al.}(2019)\citenamefont{Mukherjee,
+  Vansola, Parashari, Makwana, Singh, Suryanarayana, Sharma, Nayak, and
+  Naik}}]{MUKHERJEE201972}
+\bibinfo{author}{\bibfnamefont{S.}~\bibnamefont{Mukherjee}},
+  \bibinfo{author}{\bibfnamefont{V.}~\bibnamefont{Vansola}},
+  \bibinfo{author}{\bibfnamefont{S.}~\bibnamefont{Parashari}},
+  \bibinfo{author}{\bibfnamefont{R.}~\bibnamefont{Makwana}},
+  \bibinfo{author}{\bibfnamefont{N.}~\bibnamefont{Singh}},
+  \bibinfo{author}{\bibfnamefont{S.}~\bibnamefont{Suryanarayana}},
+  \bibinfo{author}{\bibfnamefont{S.}~\bibnamefont{Sharma}},
+  \bibinfo{author}{\bibfnamefont{B.}~\bibnamefont{Nayak}}, \bibnamefont{and}
+  \bibinfo{author}{\bibfnamefont{H.}~\bibnamefont{Naik}},
+  \bibinfo{journal}{Applied Radiation and Isotopes}
+  \textbf{\bibinfo{volume}{143}}, \bibinfo{pages}{72} (\bibinfo{year}{2019}).
+
+\bibitem[{\citenamefont{{Singh, R. K.} et~al.}(2021)\citenamefont{{Singh, R.
+  K.}, {Singh, N. L.}, {Chauhan, R. D.}, {Mehta, Mayur}, {Suryanarayana, S.
+  V.}, {Makwana, Rajnikant}, {Mukherjee, S.}, {Nayak, B. K.}, {Naik, H.},
+  {Varmuza, J.} et~al.}}]{refId0}
+\bibinfo{author}{\bibnamefont{{Singh, R. K.}}},
+  \bibinfo{author}{\bibnamefont{{Singh, N. L.}}},
+  \bibinfo{author}{\bibnamefont{{Chauhan, R. D.}}},
+  \bibinfo{author}{\bibnamefont{{Mehta, Mayur}}},
+  \bibinfo{author}{\bibnamefont{{Suryanarayana, S. V.}}},
+  \bibinfo{author}{\bibnamefont{{Makwana, Rajnikant}}},
+  \bibinfo{author}{\bibnamefont{{Mukherjee, S.}}},
+  \bibinfo{author}{\bibnamefont{{Nayak, B. K.}}},
+  \bibinfo{author}{\bibnamefont{{Naik, H.}}},
+  \bibinfo{author}{\bibnamefont{{Varmuza, J.}}}, \bibnamefont{et~al.},
+  \bibinfo{journal}{Eur. Phys. J. Plus} \textbf{\bibinfo{volume}{136}},
+  \bibinfo{pages}{338} (\bibinfo{year}{2021}).
+
+\bibitem[{\citenamefont{Singh et~al.}(2023{\natexlab{b}})\citenamefont{Singh,
+  Bangotra, Mehta, Singh, Soni, Makwana, Chauhan, Vashi, Palit, Subhash
+  et~al.}}]{10149237}
+\bibinfo{author}{\bibfnamefont{N.~L.} \bibnamefont{Singh}},
+  \bibinfo{author}{\bibfnamefont{P.}~\bibnamefont{Bangotra}},
+  \bibinfo{author}{\bibfnamefont{M.}~\bibnamefont{Mehta}},
+  \bibinfo{author}{\bibfnamefont{R.}~\bibnamefont{Singh}},
+  \bibinfo{author}{\bibfnamefont{B.}~\bibnamefont{Soni}},
+  \bibinfo{author}{\bibfnamefont{R.}~\bibnamefont{Makwana}},
+  \bibinfo{author}{\bibfnamefont{R.}~\bibnamefont{Chauhan}},
+  \bibinfo{author}{\bibfnamefont{V.}~\bibnamefont{Vashi}},
+  \bibinfo{author}{\bibfnamefont{R.}~\bibnamefont{Palit}},
+  \bibinfo{author}{\bibfnamefont{P.}~\bibnamefont{Subhash}},
+  \bibnamefont{et~al.}, in \emph{\bibinfo{booktitle}{2023 23rd International
+  Scientific Conference on Electric Power Engineering (EPE)}}
+  (\bibinfo{year}{2023}{\natexlab{b}}), pp. \bibinfo{pages}{1--4}.
+
+\bibitem[{\citenamefont{Soni et~al.}(2020)\citenamefont{Soni, Parashari,
+  Mukherjee, Makwana, Suryanarayana, Nayak, Naik, Varmuza, and
+  Katovsky}}]{tifr1}
+\bibinfo{author}{\bibfnamefont{B.}~\bibnamefont{Soni}},
+  \bibinfo{author}{\bibfnamefont{S.}~\bibnamefont{Parashari}},
+  \bibinfo{author}{\bibfnamefont{S.}~\bibnamefont{Mukherjee}},
+  \bibinfo{author}{\bibfnamefont{R.}~\bibnamefont{Makwana}},
+  \bibinfo{author}{\bibfnamefont{S.~V.} \bibnamefont{Suryanarayana}},
+  \bibinfo{author}{\bibfnamefont{B.~K.} \bibnamefont{Nayak}},
+  \bibinfo{author}{\bibfnamefont{H.}~\bibnamefont{Naik}},
+  \bibinfo{author}{\bibfnamefont{J.}~\bibnamefont{Varmuza}}, \bibnamefont{and}
+  \bibinfo{author}{\bibfnamefont{K.}~\bibnamefont{Katovsky}},
+  \bibinfo{journal}{The European Physical Journal Plus}
+  \textbf{\bibinfo{volume}{135}}, \bibinfo{pages}{300} (\bibinfo{year}{2020}).
+
+\bibitem[{\citenamefont{Singh et~al.}(2022)\citenamefont{Singh, Singh, Chauhan,
+  Mehta, Suryanarayana, Makwana, Nayak, Naik, Nag, and Katovsky}}]{Singh_2022}
+\bibinfo{author}{\bibfnamefont{R.~K.} \bibnamefont{Singh}},
+  \bibinfo{author}{\bibfnamefont{N.~L.} \bibnamefont{Singh}},
+  \bibinfo{author}{\bibfnamefont{R.~D.} \bibnamefont{Chauhan}},
+  \bibinfo{author}{\bibfnamefont{M.}~\bibnamefont{Mehta}},
+  \bibinfo{author}{\bibfnamefont{S.~V.} \bibnamefont{Suryanarayana}},
+  \bibinfo{author}{\bibfnamefont{R.}~\bibnamefont{Makwana}},
+  \bibinfo{author}{\bibfnamefont{B.~K.} \bibnamefont{Nayak}},
+  \bibinfo{author}{\bibfnamefont{H.}~\bibnamefont{Naik}},
+  \bibinfo{author}{\bibfnamefont{T.~N.} \bibnamefont{Nag}}, \bibnamefont{and}
+  \bibinfo{author}{\bibfnamefont{K.}~\bibnamefont{Katovsky}},
+  \bibinfo{journal}{Chinese Physics C} \textbf{\bibinfo{volume}{46}},
+  \bibinfo{pages}{054002} (\bibinfo{year}{2022}).
+
+\bibitem[{\citenamefont{Kumawat and Venkata}(2020)}]{Kumawat:2020emd}
+\bibinfo{author}{\bibfnamefont{H.}~\bibnamefont{Kumawat}} \bibnamefont{and}
+  \bibinfo{author}{\bibfnamefont{P.~P.~K.} \bibnamefont{Venkata}}
+  (\bibinfo{year}{2020}), \eprint{2008.11502}.
+
+\bibitem[{\citenamefont{Kumawat and Venkata}(2013)}]{hkvenkata13}
+\bibinfo{author}{\bibfnamefont{H.}~\bibnamefont{Kumawat}} \bibnamefont{and}
+  \bibinfo{author}{\bibfnamefont{P.~P.~K.} \bibnamefont{Venkata}},
+  \bibinfo{journal}{BARC NEWSLETTER} \textbf{\bibinfo{volume}{332}}
+  (\bibinfo{year}{2013}).
+
+\bibitem[{\citenamefont{Kumawat
+  et~al.}(2016{\natexlab{a}})\citenamefont{Kumawat, Saxena, and
+  Carminiti}}]{hkroot}
+\bibinfo{author}{\bibfnamefont{H.}~\bibnamefont{Kumawat}},
+  \bibinfo{author}{\bibfnamefont{A.}~\bibnamefont{Saxena}}, \bibnamefont{and}
+  \bibinfo{author}{\bibfnamefont{F.}~\bibnamefont{Carminiti}},
+  \bibinfo{journal}{BARC External Report}
+  \textbf{\bibinfo{volume}{BARC/2016/E/017}}
+  (\bibinfo{year}{2016}{\natexlab{a}}).
+
+\bibitem[{\citenamefont{Smith et~al.}(2005)\citenamefont{Smith, Plompen, and
+  Semkova}}]{smith}
+\bibinfo{author}{\bibfnamefont{D.~L.} \bibnamefont{Smith}},
+  \bibinfo{author}{\bibfnamefont{A.~J.~M.} \bibnamefont{Plompen}},
+  \bibnamefont{and} \bibinfo{author}{\bibfnamefont{V.}~\bibnamefont{Semkova}},
+  in \emph{\bibinfo{booktitle}{Corrections for low energy neutron by spectral
+  indexing}} (\bibinfo{year}{2005}),
+  \urlprefix\url{https://www.oecdnea.org/science/docs/2005
+  /nsc-wpec-doc2005-357.pdf}.
+
+\bibitem[{\citenamefont{Reifarth et~al.}(2009)\citenamefont{Reifarth, Heil,
+  Käppeler, and Plag}}]{pino}
+\bibinfo{author}{\bibfnamefont{R.}~\bibnamefont{Reifarth}},
+  \bibinfo{author}{\bibfnamefont{M.}~\bibnamefont{Heil}},
+  \bibinfo{author}{\bibfnamefont{F.}~\bibnamefont{Käppeler}},
+  \bibnamefont{and} \bibinfo{author}{\bibfnamefont{R.}~\bibnamefont{Plag}},
+  \bibinfo{journal}{Nuclear Instruments and Methods in Physics Research Section
+  A: Accelerators, Spectrometers, Detectors and Associated Equipment}
+  \textbf{\bibinfo{volume}{608}}, \bibinfo{pages}{139} (\bibinfo{year}{2009}),
+  ISSN \bibinfo{issn}{0168-9002}.
+
+\bibitem[{\citenamefont{{Pachuau, Rebecca} et~al.}(2017)\citenamefont{{Pachuau,
+  Rebecca}, {Lalremruata, B.}, {Otuka, N.}, {Hlondo, L.R.}, {Punte, L.R.M.},
+  and {Thanga, H.H.}}}]{epen}
+\bibinfo{author}{\bibnamefont{{Pachuau, Rebecca}}},
+  \bibinfo{author}{\bibnamefont{{Lalremruata, B.}}},
+  \bibinfo{author}{\bibnamefont{{Otuka, N.}}},
+  \bibinfo{author}{\bibnamefont{{Hlondo, L.R.}}},
+  \bibinfo{author}{\bibnamefont{{Punte, L.R.M.}}}, \bibnamefont{and}
+  \bibinfo{author}{\bibnamefont{{Thanga, H.H.}}}, \bibinfo{journal}{EPJ Web
+  Conf.} \textbf{\bibinfo{volume}{146}}, \bibinfo{pages}{12016}
+  (\bibinfo{year}{2017}),
+  \urlprefix\url{https://doi.org/10.1051/epjconf/201714612016}.
+
+\bibitem[{\citenamefont{Barashenkov and Toneev}(1972)}]{baras1}
+\bibinfo{author}{\bibfnamefont{V.}~\bibnamefont{Barashenkov}} \bibnamefont{and}
+  \bibinfo{author}{\bibfnamefont{V.}~\bibnamefont{Toneev}},
+  \bibinfo{journal}{Atomizdat, Moscow}  (\bibinfo{year}{1972}).
+
+\bibitem[{\citenamefont{Barashenkov}(2000)}]{baras2}
+\bibinfo{author}{\bibfnamefont{V.~S.} \bibnamefont{Barashenkov}},
+  \bibinfo{journal}{Comput. Phys. Commun.} \textbf{\bibinfo{volume}{126}},
+  \bibinfo{pages}{28} (\bibinfo{year}{2000}).
+
+\bibitem[{\citenamefont{Kumawat}(2004)}]{hkumawat04}
+\bibinfo{author}{\bibfnamefont{H.}~\bibnamefont{Kumawat}},
+  \bibinfo{journal}{Development of Monte-Carlo Complex Program CASCADE and its
+  Applications to Mathematical Modelling of Transport of Particles in Many
+  Component Systems, PhD Thesis, JINR, Dubna and JINR preprint}
+  \textbf{\bibinfo{volume}{E11-2004-166}} (\bibinfo{year}{2004}).
+
+\bibitem[{\citenamefont{Kumawat and Barashenkov}(2005)}]{hkumawat05}
+\bibinfo{author}{\bibfnamefont{H.}~\bibnamefont{Kumawat}} \bibnamefont{and}
+  \bibinfo{author}{\bibfnamefont{V.~S.} \bibnamefont{Barashenkov}},
+  \bibinfo{journal}{Euro. Phys. J.} \textbf{\bibinfo{volume}{A26}},
+  \bibinfo{pages}{61} (\bibinfo{year}{2005}).
+
+\bibitem[{\citenamefont{Kumawat}(March 2010)}]{hkumawat10}
+\bibinfo{author}{\bibfnamefont{H.}~\bibnamefont{Kumawat}},
+  \emph{\bibinfo{title}{IAEA Benchmark of spallation models}}
+  (\bibinfo{year}{March 2010}),
+  \urlprefix\url{http://www-nds.iaea.org/spallations/spal_mdl.html}.
+
+\bibitem[{\citenamefont{Kumawat\textit{ et al.}}(2008)}]{hkheat08}
+\bibinfo{author}{\bibfnamefont{H.}~\bibnamefont{Kumawat\textit{ et al.}}},
+  \bibinfo{journal}{Nucl. Instr. Meth. Phys. Res.}
+  \textbf{\bibinfo{volume}{B266}}, \bibinfo{pages}{604} (\bibinfo{year}{2008}).
+
+\bibitem[{\citenamefont{Kumawat et~al.}(2009)\citenamefont{Kumawat, Srinivasan,
+  and Kumar}}]{hkumawat09}
+\bibinfo{author}{\bibfnamefont{H.}~\bibnamefont{Kumawat}},
+  \bibinfo{author}{\bibfnamefont{P.}~\bibnamefont{Srinivasan}},
+  \bibnamefont{and} \bibinfo{author}{\bibfnamefont{V.}~\bibnamefont{Kumar}},
+  \bibinfo{journal}{Pramana J. Phys.} \textbf{\bibinfo{volume}{72}},
+  \bibinfo{pages}{601} (\bibinfo{year}{2009}).
+
+\bibitem[{\citenamefont{Sternheimer}(1971)}]{stern}
+\bibinfo{author}{\bibfnamefont{R.}~\bibnamefont{Sternheimer}},
+  \bibinfo{journal}{Phys. Rev.} \textbf{\bibinfo{volume}{145}},
+  \bibinfo{pages}{247} (\bibinfo{year}{1971}).
+
+\bibitem[{\citenamefont{Lindhard\textit{ et al.}}(1963)}]{lind}
+\bibinfo{author}{\bibfnamefont{L.}~\bibnamefont{Lindhard\textit{ et al.}}},
+  \bibinfo{journal}{Kon. Dan. Vidensk. Selsk. Nat.-Fys. Medd.}
+  \textbf{\bibinfo{volume}{33}}, \bibinfo{pages}{14} (\bibinfo{year}{1963}).
+
+\bibitem[{\citenamefont{Barashenkov\textit{ et al.}}(1993)}]{barasion}
+\bibinfo{author}{\bibfnamefont{V.}~\bibnamefont{Barashenkov\textit{ et al.}}},
+  \bibinfo{journal}{Phys. Part. Nucl.} \textbf{\bibinfo{volume}{24}},
+  \bibinfo{pages}{107} (\bibinfo{year}{1993}).
+
+\bibitem[{\citenamefont{Barashenkov}(1993)}]{barascrs1}
+\bibinfo{author}{\bibfnamefont{V.}~\bibnamefont{Barashenkov}},
+  \bibinfo{journal}{JINR, Dubna}  (\bibinfo{year}{1993}).
+
+\bibitem[{\citenamefont{Barashenkov and Polanski}(1994)}]{barascrs2}
+\bibinfo{author}{\bibfnamefont{V.}~\bibnamefont{Barashenkov}} \bibnamefont{and}
+  \bibinfo{author}{\bibfnamefont{A.}~\bibnamefont{Polanski}},
+  \bibinfo{journal}{JINR, Dubna} \textbf{\bibinfo{volume}{E2-94-417}}
+  (\bibinfo{year}{1994}).
+
+\bibitem[{\citenamefont{Barashenkov and Kumawat}(2003)}]{barascrs3}
+\bibinfo{author}{\bibfnamefont{V.}~\bibnamefont{Barashenkov}} \bibnamefont{and}
+  \bibinfo{author}{\bibfnamefont{H.}~\bibnamefont{Kumawat}},
+  \bibinfo{journal}{Kerntechnik} \textbf{\bibinfo{volume}{68}},
+  \bibinfo{pages}{259} (\bibinfo{year}{2003}).
+
+\bibitem[{\citenamefont{Mashnik and Toneev}(1974)}]{mashnik}
+\bibinfo{author}{\bibfnamefont{S.}~\bibnamefont{Mashnik}} \bibnamefont{and}
+  \bibinfo{author}{\bibfnamefont{V.}~\bibnamefont{Toneev}},
+  \bibinfo{journal}{JINR, Dubna.} \textbf{\bibinfo{volume}{P4-9417}}
+  (\bibinfo{year}{1974}).
+
+\bibitem[{\citenamefont{Blann et~al.}(1976)\citenamefont{Blann, Mignerey, and
+  Scobel}}]{blann}
+\bibinfo{author}{\bibfnamefont{M.}~\bibnamefont{Blann}},
+  \bibinfo{author}{\bibfnamefont{A.}~\bibnamefont{Mignerey}}, \bibnamefont{and}
+  \bibinfo{author}{\bibfnamefont{W.}~\bibnamefont{Scobel}},
+  \bibinfo{journal}{nucleonika} \textbf{\bibinfo{volume}{21}},
+  \bibinfo{pages}{335} (\bibinfo{year}{1976}).
+
+\bibitem[{\citenamefont{Scott}(1971)}]{SCOTT1971405}
+\bibinfo{author}{\bibfnamefont{M.~C.} \bibnamefont{Scott}},
+  \bibinfo{journal}{Journal of Nuclear Energy} \textbf{\bibinfo{volume}{25}},
+  \bibinfo{pages}{405} (\bibinfo{year}{1971}).
+
+\bibitem[{\citenamefont{Kumawat
+  et~al.}(2016{\natexlab{b}})\citenamefont{Kumawat, Saxena, and
+  Carminiti}}]{endfhk}
+\bibinfo{author}{\bibfnamefont{H.}~\bibnamefont{Kumawat}},
+  \bibinfo{author}{\bibfnamefont{A.}~\bibnamefont{Saxena}}, \bibnamefont{and}
+  \bibinfo{author}{\bibfnamefont{F.}~\bibnamefont{Carminiti}}
+  (\bibinfo{year}{2016}{\natexlab{b}}),
+  \urlprefix\url{https://inis.iaea.org/collection/NCLCollectionStore/_Public/48/041/48041909.pdf}.
+
+\bibitem[{\citenamefont{Lederer et~al.}(2012)\citenamefont{Lederer, K\"appeler,
+  Mosconi, Nolte, Heil, Reifarth, Schmidt, Dillmann, Giesen, Mengoni
+  et~al.}}]{PhysRevC.85.055809}
+\bibinfo{author}{\bibfnamefont{C.}~\bibnamefont{Lederer}},
+  \bibinfo{author}{\bibfnamefont{F.}~\bibnamefont{K\"appeler}},
+  \bibinfo{author}{\bibfnamefont{M.}~\bibnamefont{Mosconi}},
+  \bibinfo{author}{\bibfnamefont{R.}~\bibnamefont{Nolte}},
+  \bibinfo{author}{\bibfnamefont{M.}~\bibnamefont{Heil}},
+  \bibinfo{author}{\bibfnamefont{R.}~\bibnamefont{Reifarth}},
+  \bibinfo{author}{\bibfnamefont{S.}~\bibnamefont{Schmidt}},
+  \bibinfo{author}{\bibfnamefont{I.}~\bibnamefont{Dillmann}},
+  \bibinfo{author}{\bibfnamefont{U.}~\bibnamefont{Giesen}},
+  \bibinfo{author}{\bibfnamefont{A.}~\bibnamefont{Mengoni}},
+  \bibnamefont{et~al.}, \bibinfo{journal}{Phys. Rev. C}
+  \textbf{\bibinfo{volume}{85}}, \bibinfo{pages}{055809}
+  (\bibinfo{year}{2012}).
+
+\bibitem[{\citenamefont{Feinberg et~al.}(2012)\citenamefont{Feinberg, Friedman,
+  Kr\'asa, Shor, Eisen, Berkovits, Cohen, Giorginis, Hirsh, Paul
+  et~al.}}]{PhysRevC.85.055810}
+\bibinfo{author}{\bibfnamefont{G.}~\bibnamefont{Feinberg}},
+  \bibinfo{author}{\bibfnamefont{M.}~\bibnamefont{Friedman}},
+  \bibinfo{author}{\bibfnamefont{A.}~\bibnamefont{Kr\'asa}},
+  \bibinfo{author}{\bibfnamefont{A.}~\bibnamefont{Shor}},
+  \bibinfo{author}{\bibfnamefont{Y.}~\bibnamefont{Eisen}},
+  \bibinfo{author}{\bibfnamefont{D.}~\bibnamefont{Berkovits}},
+  \bibinfo{author}{\bibfnamefont{D.}~\bibnamefont{Cohen}},
+  \bibinfo{author}{\bibfnamefont{G.}~\bibnamefont{Giorginis}},
+  \bibinfo{author}{\bibfnamefont{T.}~\bibnamefont{Hirsh}},
+  \bibinfo{author}{\bibfnamefont{M.}~\bibnamefont{Paul}}, \bibnamefont{et~al.},
+  \bibinfo{journal}{Phys. Rev. C} \textbf{\bibinfo{volume}{85}},
+  \bibinfo{pages}{055810} (\bibinfo{year}{2012}).
+
+\bibitem[{\citenamefont{Ratynski and K\"appeler}(1988)}]{PhysRevC.37.595}
+\bibinfo{author}{\bibfnamefont{W.}~\bibnamefont{Ratynski}} \bibnamefont{and}
+  \bibinfo{author}{\bibfnamefont{F.}~\bibnamefont{K\"appeler}},
+  \bibinfo{journal}{Phys. Rev. C} \textbf{\bibinfo{volume}{37}},
+  \bibinfo{pages}{595} (\bibinfo{year}{1988}).
+
+\bibitem[{2dk(2023)}]{2dkin}
+in \emph{\bibinfo{booktitle}{ENDF Manual}} (\bibinfo{year}{2023}),
+  \urlprefix\url{https://t2.lanl.gov/nis/endf/intro19.html}.
+
+\bibitem[{\citenamefont{Lefevre and Din}(1969)}]{lefevre}
+\bibinfo{author}{\bibfnamefont{H.~W.} \bibnamefont{Lefevre}} \bibnamefont{and}
+  \bibinfo{author}{\bibfnamefont{G.~U.} \bibnamefont{Din}},
+  \bibinfo{journal}{Aust. J. Phys.} \textbf{\bibinfo{volume}{22}},
+  \bibinfo{pages}{669 } (\bibinfo{year}{1969}).
+
+\bibitem[{\citenamefont{Bevington et~al.}(1961)\citenamefont{Bevington,
+  Rolland, and Lewis}}]{PhysRev.121.871}
+\bibinfo{author}{\bibfnamefont{P.~R.} \bibnamefont{Bevington}},
+  \bibinfo{author}{\bibfnamefont{W.~W.} \bibnamefont{Rolland}},
+  \bibnamefont{and} \bibinfo{author}{\bibfnamefont{H.~W.} \bibnamefont{Lewis}},
+  \bibinfo{journal}{Phys. Rev.} \textbf{\bibinfo{volume}{121}},
+  \bibinfo{pages}{871} (\bibinfo{year}{1961}).
+
+\bibitem[{\citenamefont{Tawade et~al.}(2022)\citenamefont{Tawade, Patra,
+  Tripathi, Kumawat, Patel, and Pujari}}]{tawade}
+\bibinfo{author}{\bibfnamefont{N.~S.} \bibnamefont{Tawade}},
+  \bibinfo{author}{\bibfnamefont{S.}~\bibnamefont{Patra}},
+  \bibinfo{author}{\bibfnamefont{R.}~\bibnamefont{Tripathi}},
+  \bibinfo{author}{\bibfnamefont{H.}~\bibnamefont{Kumawat}},
+  \bibinfo{author}{\bibfnamefont{T.}~\bibnamefont{Patel}}, \bibnamefont{and}
+  \bibinfo{author}{\bibfnamefont{P.~K.} \bibnamefont{Pujari}},
+  \bibinfo{journal}{The European Physical Journal A}
+  \textbf{\bibinfo{volume}{58}}, \bibinfo{pages}{80} (\bibinfo{year}{2022}).
+
+\end{thebibliography}
+  \end{document}

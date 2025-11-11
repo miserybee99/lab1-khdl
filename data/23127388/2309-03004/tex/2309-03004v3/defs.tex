@@ -1,0 +1,114 @@
+\makeatletter
+\newenvironment{breakablealgorithm}
+  {% \begin{breakablealgorithm}
+   \begin{center}
+     \refstepcounter{algorithm}% New algorithm
+     \hrule height.8pt depth0pt \kern2pt% \@fs@pre for \@fs@ruled
+     \renewcommand{\caption}[2][\relax]{% Make a new \caption
+       {\raggedright\textbf{\ALG@name~\thealgorithm} ##2\par}%
+       \ifx\relax##1\relax % #1 is \relax
+         \addcontentsline{loa}{algorithm}{\protect\numberline{\thealgorithm}##2}%
+       \else % #1 is not \relax
+         \addcontentsline{loa}{algorithm}{\protect\numberline{\thealgorithm}##1}%
+       \fi
+       \kern2pt\hrule\kern2pt
+     }
+  }{% \end{breakablealgorithm}
+     \kern2pt\hrule\relax% \@fs@post for \@fs@ruled
+   \end{center}
+  }
+\makeatother
+
+
+\newcommand{\set}[1]{\{#1\}}
+\newcommand{\setName}[1]{{\textbb{#1}}}
+\newcommand{\floor}[1]{{\left\lfloor #1 \right\rfloor}}
+\newcommand{\ceil}[1]{{\left\lceil #1 \right\rceil}}
+\newcommand{\srt}[2]{{\texttt{#1}(#2)}}
+\newcommand{\srtName}[1]{{\texttt{#1}}}
+\newcommand{\nil}{{\textrm{NIL}}}
+\newcommand{\gh}{{\mbox{-}}}
+\newcommand{\seg}[3]{{#1[#2\dots#3]}}
+\newcommand{\arr}[2]{{#1[#2]}}
+% \newcommand{\interval}[2]{{\left[#1,#2\right]}}
+\newcommand{\sqrket}[2]{{\left[#1,#2\right]}}
+\newcommand{\angBracket}[1]{{\left\langle#1\right\rangle}}
+\newcommand{\size}[1]{{\left|{#1}\right|}}
+\newcommand{\abs}[1]{\size{#1}}
+\newcommand{\mathCmt}[1]{{\text{(#1)}}}
+\newcommand{\mn}[1]{{\min\set{#1}}}
+\newcommand{\mx}[1]{{\max\set{#1}}}
+\newcommand{\event}[1]{{\set{#1}}}
+\newcommand{\bigO}[1]{{O\left(#1\right)}}
+\newcommand{\bigTheta}[1]{{\Theta\left(#1\right)}}
+\newcommand{\bigOmg}[1]{{\Omega\left(#1\right)}}
+\newcommand{\diam}[1]{{\mathop{\mathrm{diam}}\left(#1\right)}}
+\newcommand{\dfsWhite}{{\textrm{WHITE}}}
+\newcommand{\dfsGray}{{\textrm{GRAY}}}
+\newcommand{\dfsBlack}{{\textrm{BLACK}}}
+\newcommand{\lcm}{{\mathop{\mathrm{lcm}}}}
+\newcommand{\intGroup}[1]{{\mathbb{Z}_{#1}}}
+\newcommand{\substitute}[2]{{\left[\frac{#1}{#2}\right]}}
+\newcommand{\bvec}[1]{\mathbb{#1}}
+\newcommand{\Null}{\textrm{Null}}
+% \newcommand{\unit}[1]{{\,\,\mathrm{#1}}}
+\newcommand{\mathsc}[1]{\text{\sc{#1}}}
+\newcommand{\dom}{\mathrm{dom}}
+\newcommand{\pr}[1]{{\mathrm{Pr}\left[#1\right]}}
+\newcommand{\var}[1]{{\mathbf{Var}\left[{#1}\right]}}
+% \newcommand{\fact}[1]{{{#1}!}}
+\newcommand{\indic}[1]{{\mathrm{I}\left[{#1}\right]}}
+\newcommand{\mathcomment}[1]{\text{(#1)}}
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}
+\newcommand{\mat}[1]{\mathbf{#1}}
+\newcommand{\inlinecode}[1]{\texttt{#1}}
+\newcommand{\cardinality}[1]{{\left|{#1}\right|}}
+\newcommand{\argmin}{{\mathrm{argmin}}}
+\newcommand{\funcmodify}[3]{{{#1}\left\{{#2} \leadsto {#3}\right\}}}
+\newcommand{\sgn}{\textrm{sgn}}
+\NewDocumentCommand{\reals}{}{\mathbb{R}}
+\NewDocumentCommand{\nats}{}{\mathbb{N}}
+\NewDocumentCommand{\complexes}{}{\mathbb{C}}
+\NewDocumentCommand{\dd}{}{\mathrm{d}}
+\NewDocumentCommand{\rpart}{m}{\mathrm{Re}\left(#1\right)}
+\NewDocumentCommand{\ipart}{m}{\mathrm{Im}\left(#1\right)}
+
+\DeclareMathOperator{\supportinner}{supp}
+
+\NewDocumentCommand{\mset}{m}{\set{#1}}
+\NewDocumentCommand{\opt}{O{}}{\mathrm{OPT}_{\mathrm{#1}}}
+\NewDocumentCommand{\sol}{O{}}{\mathrm{SOL}_{\mathrm{#1}}}
+\NewDocumentCommand{\support}{m}{\supportinner{#1}}
+\NewDocumentCommand{\ex}{O{} m}{{\mathbf{E}_{#1}\left[#2\right]}}
+\DeclareMathOperator{\rangeinner}{ran}
+\NewDocumentCommand{\range}{m}{\rangeinner{#1}}
+\NewDocumentCommand{\defeq}{}{\triangleq}
+\NewDocumentCommand{\mutualinfo}{O{} O{} m m}{I_{#1}^{#2}(#3; #4)}
+\NewDocumentCommand{\entropy}{O{} O{} m m}{H_{#1}^{#2}(#3)}
+\NewDocumentCommand{\prob}{O{} O{} m}{\mathrm{P}^{#1}_{#2}\left[#3\right]}
+\NewDocumentCommand{\transpose}{}{T}
+\NewDocumentCommand{\trace}{m}{\mathrm{tr}\left(#1\right)}
+\NewDocumentCommand{\hadamard}{}{\odot}
+\NewDocumentCommand{\diag}{m}{\mathrm{diag}\left(#1\right)}
+\NewDocumentCommand{\gaussian}{m m}{\mathcal{N}\left(#1, #2\right)}
+\NewDocumentCommand{\chisquared}{m}{\chi^2_{#1}}
+
+% define theorem-like environments
+\newenvironment{cntrProofTree}{\begin{center}\begin{prooftree}}{\end{prooftree}\end{center}}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+% \newtheorem{theorem}{Theorem}
+% \newtheorem{lemma}[theorem]{Lemma}
+% \theoremsymbol{\ensuremath{\color{lightgray}\blacksquare}}
+% \newtheorem*{proof}{Proof}
+
+% \newtheorem{theorem}{Theorem}
+% \newtheorem{corollary}{Corollary}
+% \newtheorem{lemma}{Lemma}
+% \newtheorem{definition}{Definition}
+% \newtheorem{remark}{Remark}
+% \newtheorem{observation}{Observation}
+% \newtheorem{conjecture}{Conjecture}
+
+\declaretheorem[name=Theorem]{thm}
+\declaretheorem[name=Corollary]{restatablecorollary}

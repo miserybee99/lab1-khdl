@@ -1,0 +1,84 @@
+Assuming batch sampling with replacement (which slightly diverges common practice of sampling without replacement), columns in $\Eta^t$ or $X^t$ are mutually independent, but there can be dependence within one column. To adapt to it, we rely an extension of Marchenko-Pastur distribution under dependence within independent columns proved in \citep{mp_quadratic_form}.
+\begin{theorem}[Marchenko-Pastur distribution, extended under column dependence \citep{mp_quadratic_form}]\label{theorem:ext_mp_distribution}
+    Let $X^{p, b} \in \reals^{p \times b}$ be a random matrix whose columns $X^{p, b}_{\cdot, j} \in \reals^{p}$ are I.I.D. copies of some random vector $x^p \in \reals^{p}$ for all $p, b \ge 1$.
+
+    If $\left(\left(x^p\right)^\transpose A^p x^p - \trace{A^p}\right) / p \xrightarrow{p} 0$ as $p \to \infty$ for all sequences of $p \times p$ complex matrices $A^p$ with uniformly bounded spectral norms $\norm{A^p}$, then with probability $1$, empirical spectral density of $\frac{1}{b} X^{p, b} \left(X^{p, b}\right)^\transpose$ is weakly convergent to Marchenko-Pastur distribution as $p \to \infty$ with $p / b \to c$.
+\end{theorem}
+We develop a sufficient condition suitable for $\Eta$ and $U$ in \cref{corollary:spectral_of_single_step}.
+\begin{restatable}[Spectral property of single step]{corollary}{SpectralOfSingleStep}
+    \label{corollary:spectral_of_single_step}
+
+    Inherit notation defined in \cref{theorem:ext_mp_distribution}. Particularly, the columns in $X^p$ are independent.
+    Let $S^p \defeq \ex{x^p \left(x^p\right)^\transpose}$ be the covariance matrix of the random vector at $p$, and $I_p$ be the compatible identity matrix.
+    Assume $x^p$'s norm is bounded, say by $1$, and scale it with 
+    \begin{align}
+        u^p \defeq \sqrt{\alpha} x^p,
+    \end{align}
+    where $\alpha \defeq \frac{\trace{S^p}}{\trace{S^p S^p}}$. Let $T^p \defeq \ex{u^p \left(u^p\right)^\transpose} = \alpha \cdot S^p$ be the covariance matrix of $u^p$. Let $U^p \in \reals^{p \times b}$ be the matrix consisting of I.I.D. copies of $u^p$.
+
+    If $\trace{(T^p - I^p)(T^p - I^p)} / p \to 0$ and $\alpha / p \to 0$, then with probability $1$, empirical spectral density of $\frac{1}{b} U^p \left(U^p\right)^\transpose$ weakly converges to Marchenko-Pastur distribution as $p \to \infty$ with $p / b \to c$.
+\end{restatable}
+
+Its proof is left in \cref{appendix:proof_of_lemmas}. To apply \cref{corollary:spectral_of_single_step} on $\Eta^t \left(\Eta^t\right)^\transpose$ and $X^t \left(X^t\right)^\transpose$, we empirically verify that $\trace{(T^p - I^p)(T^p - I^p)} = o(p)$ and $\alpha = o(p)$ of both back-propagated gradients $\eta^{l, s}$ and inputs $u^{l, s}$ to the weight for the entire training set $\dataset$. Since hidden dimension must be altered multiple times, it is done on small data set MNIST using LayerNorm-ed (features are bounded) tiny pure MLP or a tiny ViT. It is observed that the two statistics increase in a rate much slower than the increase of hidden dimension, at least when dimension is about several hundred. Therefore we consider \cref{corollary:spectral_of_single_step} approximately applicable to real scenarios. Therefore, non-zero eigenvalues in $\Eta^t \left(\Eta^t\right)^\transpose$ and $X^t \left(X^t\right)^\transpose$ concentrate in a extremely narrow interval, compared to their distance to $0$.
+\SpectralOfSingleStep*
+\begin{proof}[Proof of \cref{corollary:spectral_of_single_step}]
+    We first prove that expectation of $\utau$ converges to $\trace{A^p}$ with rate $o(p)$, and then show the its variance converges to $0$ at rate $o(p^2)$. If both claim is done, then for every $\epsilon > 0$
+    \begin{align}
+        &   \lim_{p \to \infty} \prob{\abs{\left(\utau - \trace{A^p} \right) / p - 0} > \epsilon}\\
+        \le&    \lim_{p \to \infty} \prob{
+                \abs{\utau - \ex{\utau}} / p
+                + \abs{\ex{\utau} - \trace{A^p}} / p >
+            \epsilon}\\
+        =&    \lim_{p \to \infty} \prob{
+                \abs{\utau - \ex{\utau}} / p >
+            \epsilon}\\
+        &   \left(\text{Chebyshev's inequality}\right)\\
+        \le&    \lim_{p \to \infty} \frac{\var{\utau}}{p^2 \epsilon^2} = 0,
+    \end{align}
+    and the weak convergence is proved.
+
+    For the asymptotic unbiasedness, when $p$ is sufficiently large to use $\norm{A_p}$'s uniform bound,
+    \begin{align}
+        \abs{\frac{\ex{\utau} - \trace{A^p}}{p}}\label{eq:p_convergence_start}
+        =&  \frac{\abs{\trace{\left(\ex{\uut} - I^p\right)^\transpose A^p}}}{p}\\
+        % &   \left(\abs{\sum_{i} \lambda_i} \le \sum_{i} \abs{\lambda_i} \right)\\
+        \le&    \frac{\norm{\left(T^p - I^p\right)^\transpose A^p}_1}{p}\\
+        &   \left(\text{Hölder's inequality, applied on absolute singular values}\right)\\
+        \le&    \frac{\norm{T^p - I^p}_1 \norm{A_p}_{\infty}}{p}\\
+        &   \left(\text{spectral norms $\norm{A^p} = \norm{A^p}_{\infty}$ are uniformly bounded}\right)\\
+        \le&    O(1) \cdot \frac{\norm{T^p - I^p}_1}{p},
+    \end{align}
+    where $\norm{\cdot}_k$ indicates Schatten $k$-norms, i.e., $L_k$ norms taken on singular values. To continue, only focusing on $\frac{\norm{T^p - I^p}}{p}$ gives
+    \begin{align}
+        \frac{\norm{T^p - I^p}_1}{p}
+        \le&    \frac{\sqrt{p} \norm{T^p - I^p}_2}{p} \label{step:upperbound_L1_by_L2}\\
+        =&      \sqrt{\trace{\left(T^p - I^p\right)^\transpose \left(T^p - I^p\right)} / p},
+    \end{align}
+    where \cref{step:upperbound_L1_by_L2} follows the upperbound of $L_1$ norm by $L_2$ norm.
+    By condition $\trace{(T^p - I^p)(T^p - I^p)} / p \to 0$, 
+    \begin{align}
+        \abs{\frac{\ex{\utau} - \trace{A^p}}{p}}
+        \le&    O(1) \cdot \sqrt{\trace{\left(T^p - I^p\right)^\transpose \left(T^p - I^p\right)} / p} \to 0.
+    \end{align}
+
+    For variance's diminishment, 
+    \begin{align}
+        \var{\utau}
+        =&  \ex{\trace{\utau \utau}} - \ex{\trace{\utau}}^2 \label{eq:p_convergence_variance_begin}\\
+        =&  \alpha^2 \left(\ex{\trace{\xtax \xtax}} - \ex{\trace{\xtax}}^2\right)\\
+        \le&    \alpha^2 \ex{\trace{\xtax \xtax}}   \le    \alpha^2 \ex{\norm{x^p}_2^4 \norm{A}^2}\\
+        =&  \alpha^2 \cdot O(1),\label{eq:p_convergence_end}
+    \end{align}
+    where the last step follows that $x^p$'s norm is bounded and that $\norm{A}$ is also uniformly bounded. Since $\alpha = o(p)$, $\var{\utau} = o(p^2)$.
+
+    To gave a scaling factor $\alpha$ encouraging best convergence, minimize the difference bound of $\ex{\utau}$ and $\trace{A^p}$ proved before, i.e.
+    \begin{align}
+        \trace{\left(T^p - I^p\right)^\transpose \left(T^p - I^p\right)}
+        =&  \trace{\left(\alpha S^p - I^p\right)^\transpose \left(\alpha S^p - I^p\right)}
+    \end{align}
+    whose derivative w.r.t. $\alpha$ is $\trace{S^p \left(\alpha S^p - I^p\right)}$. Setting the derivative to $0$ gives
+    \begin{align}
+        \trace{S^p \alpha S^p} =^ \trace{S^p}\\
+        \alpha = \frac{\trace{S^p}}{\trace{S^p S^p}}.
+    \end{align}
+\end{proof}

@@ -1,0 +1,99 @@
+\section{Group III}
+\label{sec:group-III}
+
+This group consists of all games where exactly one player has control over the buffer updates, and additionally the game where both players are allowed to update buffer messages \emph{after} their own move.
+Intuitively, all of them have in common that the TSO program can attribute a buffer update to one specific player.
+If only one player can update messages, this is clear.
+In the other game, the first player who observes that a buffer message has reached the memory is not the one who has performed the buffer update.
+Thus, the program is able to punish misbehaviour, i.e. not following protocols or losing messages.
+
+We will show that the safety problem is undecidable for this group of games.
+To accomplish that, we reduce the state reachability problem of PCS to the safety problem of each game.
+Since the former problem is undecidable, so is the latter.
+
+The case where player A is allowed to perform buffer updates at any time is called the \emph{A-TSO game}.
+It is explained in detail in the following.
+The other cases work similar, but require slightly different program constructions.
+They are presented in the appendix.
+
+\medskip
+
+Consider the A-TSO game, i.e. the case where player A can update messages at any time, but player B can never do so.
+Given a PCS $\channelsystem = \tuple{ \channelstateset, \channelmessageset, \transition }$ and a final state $\channelstate_F \in \channelstateset$, we construct a TSO program $\program$ that simulates $\channelsystem$.
+We design the program such that $\channelstate_F$ is reachable in $\channelsystem$ if and only if player B wins the safety game induced by $\program$.
+Thus, the construction gives her the initiative to decide which transitions of $\channelsystem$ will be simulated.
+Meanwhile, the task of player A is to take care of the buffer updates.
+
+$\program$ consists of three processes $\process^1$, $\process^2$ and $\process^3$, that operate on the variables $\set{ \xwr, \xrd, \yvar }$ over the domain $\channelmessageset \uplus \set{ 0, 1, \bot }$.
+The first process simulates the control flow and the message channel of the PCS $\channelsystem$.
+The second process provides a mean to read from the channel.
+The only task of the third process is to prevent deadlocks, or rather to make any deadlocked player lose.
+$\process^3$ achieves this with four states: the initial state, an intermediate state, and one winning state for each player, respectively.
+If one of the players cannot move in both $\process^1$ and $\process^2$, they have to take a transition in $\process^3$.
+From the initial state of this process, there exists only one outgoing transition, which is to the intermediate state.
+From there, the other player can move to her respective winning state and the process will only self-loop from then on.
+For player A, her state is winning because she can refuse to update any messages, which will ensure that player B keeps being deadlocked in $\process^1$ and $\process^2$.
+For player B, her state simply is contained in $\stateset_F^\program$.
+In the following, we will mostly omit $\process^3$ from the analysis and just assume that both players avoid reaching a configuration where they cannot take any transition in either $\process^1$ or $\process^2$.
+
+As mentioned above, we will construct $\process^1$ and $\process^2$ to simulate the perfect channel system in a way that gives player B the control about which channel operation will be simulated.
+To achieve this, each channel operation will need an even number of transitions to be simulated in $\program$.
+Since player B starts the game, this means that after every fully completed simulation step, it is again her turn and she can initiate another simulation step as she pleases.
+Furthermore, during the simulation of a skip or send operation, we want to prevent player A from executing $\process^2$, since this process is only needed for the receive operation.
+Suppose that we want to block player A from taking a transition $\state \to[\instr] \state'$.
+We add a new transition $\state' \to[\nop] \state_F$, where $\state_F \in \statemap_F^\program$.
+Hence, reaching $\state'$ is immediately losing for player A, since player B can respond by moving to $\state_F$.
+
+Next, we will describe how $\process^1$ and $\process^2$ simulate the perfect channel system $\channelsystem$.
+For each transition in $\channelsystem$, we construct a sequence of transitions in $\process^1$ that simulates both the state change and the channel behaviour of the $\channelsystem$-transition.
+To achieve this, $\process^1$ uses its buffer to store the messages of the PCS's channel.
+In particular, to simulate a send operation $!\channelmessage$, $\process^1$ adds the message $\tuple{\xwr, \channelmessage}$ to its buffer.
+For receive operations, $\process^1$ cannot read its own oldest buffer message, since it is overshadowed by the more recent messages.
+Thus, the program uses $\process^2$ to read the message from memory and copies it to the variable $\xrd$, where it can be read by $\process^1$.
+We call the combination of reading a message $\channelmessage$ from $\xwr$ and writing it to $\xrd$ the \emph{rotation} of $\channelmessage$.
+
+While this is sufficient to simulate all behaviours of the PCS, it also allows for additional behaviour that is not captured by $\channelsystem$.
+More precisely, we need to ensure that each channel message is received \emph{once and only once}.
+Equivalently, we need to prevent the \emph{loss} and \emph{duplication} of messages.
+This can happen due to multiple reasons.
+
+The first phenomenon that allows the loss of messages is the seeming lossiness of the TSO buffer.
+Although it is not strictly lossy, it can appear so:
+Consider an execution of $\program$ that simulates two send operations $!\channelmessage_1$ and $!\channelmessage_2$, i.e. $\process^1$ adds $\tuple{\xwr, \channelmessage_1}$ and $\tuple{\xwr, \channelmessage_2}$ to its buffer.
+Assume that player A decides to update both messages to the memory, without $\process^2$ performing a message rotation in between.
+The first message $\channelmessage_1$ is overwritten by the second message $\channelmessage_2$ and is lost beyond recovery.
+
+To prevent this, we extend the construction of $\process^1$ such that it inserts an auxiliary message $\tuple{\yvar, 1}$ into its buffer after the simulation of each send operation.
+After a message rotation, that is, after $\process^2$ copied a message from $\xwr$ to $\xrd$, the process then resets the value of $\xwr$ to its initial value $\bot$.
+Next, the process checks that $\yvar$ contains the value $0$, which indicates that only one message was updated to the memory.
+Now, player A is allowed to update exactly one $\tuple{\yvar, 1}$ buffer message, after which $\process^2$ resets $\yvar$ to $0$.
+To ensure that player A has actually updated only one message in this step, $\process^2$ then checks that $\xwr$ is still empty.
+Since player A is exclusively responsible for buffer updates, $\process^2$ deadlocks her whenever one of these checks fails.
+
+In the next scenario, we discover a different way of message loss.
+Consider again an execution of $\program$ that simulates two send operations $!\channelmessage_1$ and $!\channelmessage_2$.
+Assume Player A updates $\channelmessage_1$ to the memory and $\process^2$ performs a message rotation.
+Immediately afterwards, the same happens to $\channelmessage_2$, without $\process^1$ simulating a receive operation in between.
+Again, $\channelmessage_1$ is overwritten by $\channelmessage_2$ before being received, thus it is lost.
+
+Player A is prevented from losing a message in this way by disallowing her to perform a complete message rotation (including the update of one $\tuple{\yvar,1}$-message and the reset of the variables) entirely on her own.
+More precisely, we add a winning transition for player B to $\process^2$ that she can take if and only if player A is the one initiating the update of $\tuple{\yvar,1}$.
+On the other hand, player A can prevent player B from performing two rotations right after each other by refusing to update the next buffer message until $\process^1$ initiates the simulation of a receive operation.
+
+Lastly, we investigate message duplication.
+This occurs if $\process^1$ simulates two receive operations without $\process^2$ performing a message rotation in between.
+In this case, the most recently rotated message is received twice.
+
+The program prevents this by blocking $\process^1$ from progressing after a receive operation until $\process^2$ has finished a full rotation.
+In detail, at the very end of the message rotation and $\tuple{\yvar,1}$-update, $\process^2$ reset the value of $\xrd$ to its initial value $\bot$.
+After simulating a receive operation, $\process^1$ is blocked until it can read this value from memory.
+
+This concludes the mechanisms implemented to ensure that each channel message is received \emph{once and only once}.
+Thus, we have constructed an A-TSO game that simulates a perfect channel system.
+We summarise our results in the following theorem.
+The formal proof can be found in Appendix \ref{apx:atso}.
+
+\begin{thm}
+\label{thm:atso}
+    The safety problem for the A-TSO game is undecidable.
+\end{thm}

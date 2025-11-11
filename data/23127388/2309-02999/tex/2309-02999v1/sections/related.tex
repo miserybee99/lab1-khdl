@@ -1,0 +1,89 @@
+\section{Related Works}
+\label{sec:related}
+
+In this section, we first cover existing trends in 3D vision-language tasks, and summarize existing approaches in 3D dense captioning.
+% 
+After that, we show recent advances on transformers for both 2D and 3D object detection.
+% 
+We also include related works on other caption tasks.
+
+
+
+\subsection{3D Vision-Language Tasks}
+
+\whatsnew{
+\textbf{3D} \textbf{V}ision-\textbf{L}anguage (3DVL) tasks require a model to showcase its understanding of a 3D scene in response to, or in response by language.
+% 
+\textbf{3D} \textbf{D}ense \textbf{C}aptioning (3DDC)\cite{chen2021scan2cap,chen2023vote2cap} feeds a model with a 3D scene and expects a set of instance location estimations paired with natural language descriptions in response.
+% 
+\textbf{3D} \textbf{V}isual \textbf{G}rounding (3DVG)\cite{chen2020scanrefer,achlioptas2020referit3d,zhao20213dvg,wu2023eda} requires a model to localize the one and only object mentioned in the query sentence from a 3D scene.
+% 
+\textbf{3D} \textbf{Q}uestion \textbf{A}nswering (3DQA)\cite{ye20223dqa,azuma2022scanqa,ma2022sqa3d} expects a model to answer the question based on the corresponding 3D scene input.
+% 
+The majority of the existing 3DVL approaches\cite{chen2020scanrefer,achlioptas2020referit3d,chen2021scan2cap,jin2023context,azuma2022scanqa,ye20223dqa} adopt the ``detect-then-describe'' pipeline that builds multi-modal fusion or spatial relation reasoning modules on top of a 3D detector\cite{qi2019votenet}, instance segmentation model\cite{jiang2020pointgroup}, or even ground truth instance labels\cite{achlioptas2020referit3d,he2021transrefer3d,roh2022languagerefer}.
+% 
+In this paper, we propose two transformer-based 3DDC models that decouple the object localization and description generation process.
+% 
+We hope this design will inspire follow-up works to rethink the design of models in 3DVL tasks.
+}
+
+
+
+\subsection{3D Dense Captioning}
+3D dense captioning is a challenging task that requires a model to accurately localize and generate informative descriptions for all the objects from a cluttered 3D scene.
+% 
+Since its inception, various methods have been proposed to tackle this challenging problem.
+% 
+Scan2Cap\cite{chen2021scan2cap}, D3Net\cite{chen2021d3net}, REMAN\cite{mao2023complete} and MORE\cite{jiao2022more} treats each proposal of a 3D detector's box estimations as a graph node, and manually build k nearest neighbor graphs to extract features with graph operations\cite{wang2019edgeconv}.
+% 
+3DJCG\cite{cai20223djcg}, SpaCap3D\cite{wang2022spacap3d}, 3D-VLP\cite{jin2023context}, $\chi$-Tran2Cap\cite{yuan2022x-trans2cap} and UniT3D\cite{chen2022unit3d} replace the graph operations with transformers\cite{vaswani2017attention} to capture spatial relations among object proposals.
+% 
+Meanwhile, 3D-VLP\cite{jin2023context}, UniT3D\cite{chen2022unit3d}, D3Net\cite{chen2021d3net}, and 3DJCG\cite{cai20223djcg} shifts attention to the mutual promotion of various 3D vision-language tasks, including 3D dense captioning, 3D visual grounding\cite{chen2020scanrefer}, and even 3D question answering\cite{ye20223dqa,azuma2022scanqa}.
+% 
+One can see that most of the above-mentioned methods all adopt the ``detect-then-describe'' pipeline, which directly builds spatial relation modules on the output of a 3D detector.
+% 
+Though straightforward and simple as these approaches are, the explicit relation modeling procedure is sensitive to certain hyperparameters, such as the definition of edges between two nodes, and the number of nearest neighbors, and could be easily confused by the duplicated and inaccurate box estimations from the 3D detector.
+% 
+Our proposed methods are able to bypass these limitations via decoupled and parallel sub-task decoding.
+% 
+We further propose decoupled queries to capture task-specific features.
+
+
+\subsection{DEtection TRansformers (DETR): from 2D to 3D}
+
+DETRs\cite{carion2020detr,zhu2020deformabledetr} are transformer\cite{vaswani2017attention} based object detectors that treat the detection problem as set prediction, and are able to generate sparse predictions robust to \textbf{N}on-\textbf{M}aximum \textbf{S}uppression (NMS)\cite{neubeck2006nms} for post-processing.
+% 
+Though astonishing performance has been achieved, the original DETR\cite{carion2020detr} suffers from slow convergence.
+% 
+As a result, many follow-ups\cite{chen2022groupdetr,jia2022hybriddetrs,zhu2020deformabledetr,meng2021conditionaldetr} have made great attempts to accelerating the training procedure by exploring the label assignment strategy\cite{chen2022groupdetr,jia2022hybriddetrs,liu2023stabledetr}, the usage of multi-scale features\cite{zhang2022detr++,zhu2020deformabledetr,li2023litedetr}, and the design of attention\cite{chen2022conditionaldetrv2,zhu2020deformabledetr}.
+% 
+Researchers also make great attempts to extend the idea of DETR to 3D object detection.
+% 
+GroupFree3D\cite{liu2021groupfree3d} learns object proposals from the input point cloud with transformers rather than grouping local points\cite{qi2019votenet}, and 3DETR\cite{misra2021-3detr} explores the potential of the standard transformer architecture for 3D object detection.
+% 
+In this paper, we further extend the idea of DETR to treat 3D dense captioning as a set prediction problem, which learns to predict a set of object-caption pairs directly from a set of points.
+
+
+
+
+\subsection{Other Visual Captioning Tasks}
+
+Image captioning and video dense captioning are also two important tasks in multi-modal learning.
+% 
+An image captioning model is capable of understanding and describing the key elements/relations in an input image.
+% 
+The current trend\cite{anderson2018bottom,huang2019AinA-img-cap,nguyen2022grit} in image captioning is to adopt an encoder-decoder architecture for generating sentences that describe the key elements of the entire image.
+% 
+Among those approaches, \cite{anderson2018bottom,huang2019AinA-img-cap,cornia2020meshed} encode the input image with region features extracted by a pre-trained image detector\cite{ren2015faster}, while \cite{mokady2021clipcap,liu2021cptr} directly extract grid feature with an image encoder\cite{dosovitskiy2020image} pre-trained on ImageNet\cite{deng2009imagenet}.
+% 
+More recently, \cite{luo2023semantic,zhu2022exploring} explore the potential of diffusion models\cite{ho2020denoising} in image captioning.
+% 
+Concurrently, researchers also put much effort in video dense captioning.
+% 
+Video dense captioning\cite{krishna2017dense} requires a model to segment the input video and describe the event in each video clip.
+Recently, \cite{wang2021end,zhou2018end} adopt a transformer architecture for end-to-end video dense captioning.
+% 
+In our paper, we focus on 3D dense caption, which translates the understanding of a 3D scene to boxes and words.
+% 
+We also propose several key components designed especially for 3D tasks, including the designs for queries, and the local-context aware caption heads.
+

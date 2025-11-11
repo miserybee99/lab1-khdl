@@ -1,0 +1,191 @@
+\section{Preliminary}\label{sec:preliminary}
+
+Before starting, we concisely introduce elements that build our theory. We start from basic symbols and concepts of multiple kinds of sparsity and go through bias toward flat minima, adversarial robustness and random matrix theory that deals with large random matrices.
+
+\subsection{Notation}
+
+We use $x, y$ to indicate samples and labels, respectively, and $\dataset = \set{(x_s, y_s): 1 \le s \le \size{\dataset}, s \in \nats^+}$ for the training data set. We restrict focus on activation sparsity on \emph{training} samples, so we do not introduce symbols for the testing set in formal analyses. 
+Lowercase letters such as $f$ are used to indicate unparameterized models and those subscripted by parameter $\theta$, such as $f_\theta$, indicate parameterized ones.
+Classification task is assumed, so $f_\theta$ is assumed to output a probability distribution over the label space, and the probability of label $y$ is denoted by $f_\theta(y \mid x)$ or $f(y \mid \theta, x)$, with $\sum_y f(y \mid \theta, x) = 1$.
+Let $\loss$ be a certain loss, then $\loss(f_\theta, (x_s, y_s))$ is the loss of $f_\theta$ on sample $(x_s, y_s)$. 
+If $l$ is a scalar function of matrix or vector $X$, we use $\derivatives{l}{X} \defeq \begin{bmatrix} \derivatives{l}{X_{i, j}} \end{bmatrix}_{i, j}$ to denote the partial derivatives of $l$ w.r.t. $X$'s entries collected in the same shape, while $\nabla_{\vectorize{X}} l(X)$ is used after flattening. 
+$\diag{x}$ is used to transform a vector into a diagonal matrix.
+We use subscription to indicate substructures of matrices, i.e., $X_i$ is the $i$-th row of matrix $X$ while $X_{\cdot, j}$ is its $j$-th column. Nevertheless, sometimes columns are frequently referred to so we use the subscripted lowercase matrix name $x_j$ to indicate the $j$-th column $X_{\cdot, j}$ of matrix $X$.
+The Hessian of scalar function $l$ w.r.t. to vectorized parameter $\theta$ is $\hessian \defeq \begin{bmatrix} \frac{\partial^2 l}{\partial \theta_i \partial \theta_j} \end{bmatrix}_{i, j}$. Throughout this work the scalar function in the Hessian will be the empirical loss $\ex[(X, Y) \sim \dataset]{\loss(f_\theta, (X, Y))}$. 
+We assume models are stacked with similar modules, each of which contains at least one MLP block. The layer index is indicated with superscription $l$. 
+We assume the hidden features of models on \emph{single} samples are single (column) vectors/tokens $x^l$, as in pure MLPs, or stacked tokens, i.e., matrix $X^l$, where the $j$-th column $x^l_j \defeq X^l_{\cdot, j}$ is the vector for the $j$-th token in Transformers.
+A vanilla $\mlp^l$ block in the $l$-th layer contains two linear layers $\mlp^l_K$ and $\mlp^l_V$, each with a learnable matrix $K^l \in \reals^{n^l \times d^l}$ or $V^l \in \reals^{d^l \times n^l}$ of weights, and a bias $b_K^l \in \reals^{n^l}$ or $b_V^l \in \reals^{d^l}$. $\mlp^l_K$ has a non-linear activation function $\activation$ while $\mlp^l_V$ does not. 
+Following the terminology of \citet{knowledge_neurons} and \citet{mlp_as_database}, $\mlp_K^l$ is called a ``key'' layer while $\mlp_V^l$ is called a ``value'' layer, whose weights are called ``keys'' or ``values'', respectively. 
+They compute the next hidden feature as the following:
+\begin{align}
+    \Alpha^l \defeq& \mlp_K^l\left(X^{l-1}\right)
+    \defeq \activation\left(K^l X^{l-1} + b_K^l\right),\\
+    Z^{l} \defeq&  \mlp_V^l\left(\Alpha^l\right)
+    \defeq V^l \Alpha^l + b_V^l,\\
+    Z^{l} =& \mlp^l\left(X^{l-1}\right) \defeq \mlp_V^l\left(\mlp_K^l\left(X^{l-1}\right)\right).
+\end{align}
+Note that here $\Alpha$ is capitalized ``$\alpha$'' that stands for ``activation'' instead of capitalized ``$a$''.
+For non-stacked tokens $x^{l-1}$, the above equations simplify to
+\begin{align}
+    \alpha^l \defeq& \mlp_K^l\left(x^{l-1}\right) 
+    \defeq \activation\left(K^l x^{l-1} + b_K^l\right)
+    =       \begin{bmatrix} \activation\left(\inner{K^l_i}{x^{l-1}} + \left(b_K^l\right)_i \right)\end{bmatrix}_i \in \reals^{n^l},\\
+    z^{l} \defeq&    \mlp_V^l\left(\alpha^{l}\right)
+    \defeq \activation\left(V^l \alpha^l + b_V^l\right)
+    =       \begin{bmatrix} \activation\left(\inner{V^l_i}{\alpha^l} + \left(b_V^l\right)_i \right)\end{bmatrix}_i \in \reals^{d^l},
+\end{align}
+where $K^l_i, V^l_i$ are the $i$-th rows of weights $K^l, V^l$. In above equations, $\Alpha^l$ and $\alpha^l$ are called the activation pattern of $l$-th $\mlp$ block. Usually, the shapes of $K^l$s and $V^l$s are respectively identical across different $\mlp$ blocks so we drop superscriptions $l$ in $n^l$ and $d^l$.
+In \cref{sec:discussion}, we will investigate the implications of \cref{theorem:main} under a notion of ``pure'' MLP. Our definition of it is models where weight matrices are updated by only one token during backward propagation. Under this definition, the most primitive fully connected network (possibly with residual connections and normalizations) is pure MLP, while CNNs, Transformers and MLP-Mixers are not because hidden features consist of multiple tokens and each MLP block must process all of them.
+
+During proofs, we frequently use the properties of matrix trace due to its connection with (elementwise) norms of vectors and matrices. Unless explicitly pointed out, $\norm{\cdot}_p$ for vectors is $L_p$ norm, and $\norm{\cdot}_q$ for matrices is Schatten $q$-norm, i.e., $L_q$ norm of singular values. In the main text, only real matrices are involved and only $L_2$ matrix norm is used for matrices. So particularly, elementwise $L_2$ norm for matrix, or Frobenius norm, of vector $x$ or matrix $X$ can be computed by trace:
+\begin{align}
+    \trace{x^\transpose x} = \trace{x x^\transpose} = \norm{x}_2^2,
+    \norm{X}_2^2 = \trace{X^\transpose X} = \trace{X X^\transpose} = \norm{X}_F^2,
+\end{align}
+because $\trace{A^T B} = \sum_{i, j} A_{i, j} B_{i, j}.$
+This argument also indicates that elementwise $L_2$ norm coincides with Schatten 2-norm by noting $X^\transpose X$'s eigenvalues are squared singular values of $X$ and are summed by the trace. 
+Therefore, in later proofs we use trace to express $L_2$ norms and use a bunch of trace properties, for example its linearity \arxivonly{
+\begin{align}
+    \trace{a A + b B} = a\trace{A} + b \trace{B}
+\end{align}
+}and the famous cyclic property with matrix products
+\begin{align}
+    \trace{A B C} = \trace{C A B}.
+\end{align}
+When trace is combined with Hadamard product $\hadamard$, i.e., elementwise shape-keeping product, there is
+\begin{align}
+    \trace{A^\transpose (B \hadamard C)} = \sum_{i, j} A_{i, j} B_{i, j} C_{i, j} = \trace{B^\transpose (A \hadamard C)} = \trace{C^\transpose (A \hadamard B)}.
+\end{align}
+When $A, B$ are real symmetric positive semi-definite, the trace of their product can be bounded by their minimum eigenvalue and individual traces:
+\begin{align}
+    \trace{A B} \ge \lambda_{\min}(A) \trace{B}, \label{eq:trace_product_and_eigenvalue}
+\end{align}
+where $\lambda_{\min}(\cdot)$ indicates the smallest eigenvalue of a matrix.
+Finally, Hadamard product can be related to matrix products with diagonal matrices:
+\begin{align}
+    \diag{x} A \diag{y} = \left(x y^T\right) \hadamard A \label{eq:hadamard_and_diagonal}.
+\end{align}
+This is because LHS scales rows of $A$ first and then scales its columns, while RHS computes the scaling factors for elements in $A$ first and then scaling them in the Hadamard product.
+
+\subsection{Sparsity, Activation Sparsity and Gradient Sparsity}\label{sec:preliminary:sparsity}
+
+In the most abstract sense, sparsity is the situation where most elements in a set are zero.
+Many kinds of sparsity exist in neural networks such as weight sparsity, dead neuron, attention sparsity and activation sparsity \citep{sparsity_handbook}. 
+The most static one is weight sparsity, where many elements in weight matrices are zero \citep{stochastic_collapse}. 
+More dynamic ones found in hidden features are of more interest because they lead to potential pruning but without damaging model capacity. An example of them is attention sparsity found in attention maps of Transformers that many previous sparsity works \citep{attention_sparsity_1,attention_sparsity_2,attention_sparsity_3} focus on.
+
+The activation sparsity of our focus is the phenomenon where activations in MLPs of trained models contain only a few non-zero elements as in \cref{def:activation_sparsity}
+\begin{definition}[Activation Sparsity]\label{def:activation_sparsity}
+    Recall the definition of activation pattern
+    \begin{align}
+        \alpha^l \defeq& \mlp_K^l\left(x^{l-1}\right)
+        \defeq \activation\left(K^l x^{l-1} + b_K^{l}\right)
+        =   \begin{bmatrix}
+            \activation\left(\inner{K^l_i}{x^{l-1}} + \left(b_K^l\right)_i\right)
+        \end{bmatrix}_i \in \reals^n.
+    \end{align}
+    For uniformity, define activation sparsity pattern of $\mlp^l$ on sample $X^0$ at token $x^{l-1}$  to be the activation pattern $\alpha^l$.
+
+    Activation sparsity is the phenomenon that most entries in activation sparsity patterns are zero for most samples and tokens.
+    For mathematical convenience, squared $L_2$ norm $\norm{\alpha^l}_2^2$ is used as a proxy for activation sparsity.
+\end{definition}
+Activation sparsity is observed in pure MLPs, CNNs such as ResNet, MLP blocks in Transformers, and channel mixing blocks in MLP-Mixers \citep{observation}. Note that activation sparsity cannot be explained by dead neurons or extreme weight sparsity, because every neuron has its activation for some sample \citep{observation}. Also be noted that it is not done simply by weight decay \citep{sharpness_aware} but by moving pre-activations towards the negative direction in $\relu$ networks. Activation sparsity potentially allows \emph{dynamic} aggressive neuron pruning during inference with zero accuracy reduction \citep{observation}. 
+
+Similar sparsity in forward propagation can be imposed by architectural design such as Mixture of Experts (MoE) \citep{moe_vit,switch_transformer,moe_DG}, where each block is equipped with multiple MLPs and tokens are dynamically and sparsely routed to only 1 or 2 of them. However, MoE has to deal with discrete routing that unstables the training, and emergent imbalanced routing that makes only one expert live and learn. Emergent activation sparsity has no such concerns and can also emerge within each of the experts, and thus still deserves attention even combined with MoE. 
+
+For common activation functions like $\relu$, being activated coincides for itself and its derivative, i.e., activation is zero if and only if its derivative is zero. For other activation functions like GELU and Leaky $\relu$, derivatives in the ``suppressed'' state are also coincidentally small. These coincidences make us wonder if activation sparsity is purely direct activation and if it is actually gradient sparsity to some extent.
+Following this insight, we further propose gradient sparsity as a source of activation sparsity. 
+Gradient sparsity is that most elements in the derivatives $\activation'(K^l x^{l-1} + b^l)$ of activations are zero as in \cref{def:gradient_sparsity}.
+\begin{definition}[Gradient Sparsity]\label{def:gradient_sparsity}
+    Let $\gamma^l$ to be the entrywise derivatives of activation in $\mlp^l$ with activation function $\activation$, i.e., 
+    \begin{align}
+        \gamma^l 
+        \defeq& \activation'\left(K^l x^{l-1} + b_K^l\right)
+        =      \begin{bmatrix}
+            \activation'\left(\inner{K^l_i}{x^{l-1}} + \left(b_K^l\right)_i\right)
+        \end{bmatrix}_i \in \reals^n.
+    \end{align}
+    If the model uses stacked hidden features of $k$ tokens, then let matrix $\Gamma^l \in \reals^{n \times k}$ be the stacked version.
+    Define gradient sparsity pattern of $\mlp^l$ on sample $X^0$ at token $x^{l-1}$ to be $\gamma^l$.
+
+    Gradient sparsity is the phenomenon where most entries in gradient sparsity pattern $\gamma^l$ are zero for most samples and tokens. 
+    For mathematical convenience, squared $L_2$ norm $\norm{\gamma^l}_2^2$ is used as a proxy for gradient sparsity.
+\end{definition}
+\begin{remark}\label{remark:L2_and_L0}
+    We model gradient sparsity by $L_2$ norm for mathematical convenience, which has weaker direct relations to sparsity than $L_1$ norm or $L_0$ ``norm''.
+    However, when $\relu$ is used, its derivative is a $0$-$1$ indicator for activations and derivatives, so the squared $L_2$ norm of activation derivatives is exactly $L_0$ norm of activations as well as derivatives.
+    Our modified activation function $\jrelu$ defined in later \cref{eq:jsrelu} shares the same style of $0$-$1$ jump discontinuity in its derivative at zero, but the derivative increases if the pre-activation further increases. The connection between $L_2$ and $L_0$ norm is weakened by this increase, but when the $L_2$ norm decreases so that it is small enough, the connection will be stronger and one must improve sparsity to achieve a smaller $L_2$ norm after squeezing all pre-activations to near zero.
+\end{remark}
+For activation functions like $\relu$, gradient sparsity coincides with activation sparsity and gives birth to the latter, and the coincidence is why only activation sparsity is proposed in the previous empirical work by \citet{observation}.
+We argue gradient sparsity is more essential and stable than direct activation sparsity. Our theoretical analyses will show that gradient sparsity is a stable cause of activation sparsity through their coincidences, although there is unstable but direct implicit regularization on activation sparsity. Experiments for validation in \cref{sec:v_experiments} show activation can be manipulated to be dense by gradient sparsity and experiments in \cref{sec:t_exp:contribution} show that direct activation sparsity is weak compared to gradient sparsity at least in deep layers. 
+
+Here, we argue the practical importance of gradient sparsity over activation sparsity. Interestingly, activation sparsity itself can be generalized and thus leads to gradient sparsity. To prune most neurons, one actually does not need exact activation sparsity where most activations are zero, but only the fact that most activations have the \emph{same} (possibly non-zero) value that can be \emph{known a priori}. If so, activations can be shifted by the a priori most-likely activation to obtain the exact activation sparsity followed by pruning, and adding the sum of key vectors multiplied by that value back can compensate for the shift. If certain regularities of the activation function (for example, being monotonically increasing like $\relu$) can be assumed, then these most-likely activations must reside in a contiguous interval in the activation function's domain, which leads to gradient sparsity. 
+The conversed version of this argument also shows that gradient sparsity leads to pruning during inference.
+Therefore, in addition to the fact that both of them are sufficient conditions, gradient sparsity is much closer to a necessary condition for massive pruning than activation sparsity.
+Moreover, gradient sparsity also allows aggressive neuron pruning during \emph{training}, which is beneficial especially for academia in the era of large models.
+Therefore, more attention should be paid to gradient sparsity.
+
+A more generalized version, effective gradient sparsity, is the sparsity defined on the gradient w.r.t. pre-activations, or equivalently the Hadamard product, or entrywise product, between the gradient sparsity pattern $\gamma^l$ and the gradient w.r.t. to the activation. Exactly how and why it is defined can be found in \cref{def:effective_gradient_sparsity} to avoid confusion. Using this notion of sparsity, better theoretical results can be obtained. Making these theoretical shifts practically meaningful, gradient w.r.t. activation allows further pruning because neurons with near-zero gradients w.r.t. to themselves 1) have little contribution to gradients back propagated to shallower layers and 2) have little influence on the output during forward propagation if activation is also small.
+As one shall see in \cref{sec:gradients}, from a theoretical and interpretational view, effective gradient sparsity is also what $\mlp$ blocks try to memorize in their key matrices.
+
+\subsection{Empirically Measuring Sparsity}
+
+\citet{observation} utilize the percentage of nonzeros in activations, or equivalently $L_0$ ``norm'' of $\alpha^l$s, on testing samples as a simple measurement of sparsity in $\relu$ network. We adopt a similar measure but it is also conducted on \emph{training} samples in each batch and we observe its revolution during the entire training. We additionally observe training sparsity in order to see how potentially well gradient sparsity reduces training cost, and we restrict samples to those in the current batch because in practical training, samples outside the batch will not be used and are irrelevant to actual training costs. Percentages are further averaged across layers and integrated across steps to approximate the overall reduction in MLPs' training costs.
+
+\subsection{Flat Minima and Stochastic Gradient Noise}\label{sec:flat_minima}
+
+One of the accounts for good generalization unexpected by traditional statistical learning theory in deep networks is the implicit regularization introduced by architectures, training procedures, etc. 
+One of the most considered is the inductive bias toward flat minima, i.e., loss minima given by SGD are very likely to be flat. 
+This flatness in the training loss landscape indicates that the loss landscape near the minima will not rise acutely due to distribution shift and explains small loss increase and good generalization in testing \citep{flat_minima}. 
+
+Bias toward flat minima is usually considered due to stochastic gradient noises (SGN) introduced by SGD or other stochastic optimizers, which drives the parameter to escape from sharp minima \citep{escape}. Although SGD is usually considered to have a stronger flatness bias, parameters optimized by other adaptive optimizers such as Adam still escape sharp minima, only in a slower manner \citep{escape}.
+
+In works that study SGN and flat minima like those by \citet{alpha_stable} and \citet{escape}, the updates of SGD at step $t$ are often written as 
+\begin{align}
+    \theta^{t+1} = \theta^{t} - \eta \nabla_{\theta} \loss(\theta) + \eta U^t,
+\end{align}
+where $\loss(\theta) \defeq \ex[(X, Y)]{\loss(f_\theta, (X, Y))}$ is the full-batch gradient, and noise term $U^t \defeq \nabla_\theta \loss(\theta) - \frac{1}{\size{B_t}} \sum_{s \in B_t} \nabla_{\theta} \loss(\theta, (x_s, y_s))$ is the difference between full-batch gradient and the gradient provided by the current batch $B_t$. If samples in batches are uniformly sampled, the expected mini-batch gradient $\sum_{s \in B_t} \nabla_{\theta} \loss(\theta, (x_s, y_s))$ is naively $\nabla_\theta \loss(\theta)$ and the noise $U^{t}$ is centered by definition. $U^t$ is previously modeled by Gaussian distribution as a result of the Central Limit Theorem. Recent works \citep{alpha_stable,escape} argue that it should better be modeled with symmetric $\alpha$-stable ($\sas$) distribution based on Generalized Central Limit Theorem where finite variance is not necessary. Under this model, the noise norm is long-tailed and the expected norm can be very large since an $\sas$ distribution has infinite variance if it is not Gaussian. 
+
+In this work we only rely on the empirical and theoretical results that parameters are optimized toward flat minima. Using random matrix theory, we are allowed to model SGN in the most direct way without relying on Gaussian or $\sas$ distribution, but by assuming within-batch independence as well as norm and anisotropy bounds on gradient and feature vectors.
+
+Following theoretical works on information bottlenecks \citep{ib_disentangle,chaudhari_stochastic,weight_information_bottleneck}, we start from the nuclear norm of the Hessian at a minimum to measure how flat the minimum is. When a local minimum is reached the Hessian is real symmetric and positive semi-definite, so the nuclear norm equals to its trace, i.e.
+\begin{align}
+    \norm{\hessian}_* = \trace{\sqrt{\hessian^* \hessian}} = \sum_i \abs{\lambda_i} = \sum_i \lambda_i= \trace{\hessian} 
+    % = \trace{\begin{bmatrix}
+        % \frac{\partial^2 \ex[(X, Y) \sim \dataset]{\loss(f_\theta, (X, Y))}}{\partial \theta_i \partial \theta_j}
+    % \end{bmatrix}_{i, j}} 
+    ,
+\end{align}
+where $\lambda_i$ is the $i$-th largest eigenvalues of $\hessian$. For mathematical convenience, the trace $\trace{\hessian}$ is actually used to measure flatness, as \citet{anti_PGD}. We assume as \citet{chaudhari_stochastic}, \citet{weight_information_bottleneck} and \citet{ib_disentangle} that this trace is suppressed during stochastic training.
+For non-minima, there is $\norm{\hessian}_* \ge \trace{\hessian}$, so the explanation will be still meaningful at non-minima if sparsity lowerbounds $\trace{\hessian}$, as we will prove in the following sections.
+
+\subsection{Random Matrix Theory and Marchenko-Pastur Distribution}
+
+The latter half of our theory explaining sparsity's tendency during stochastic training is based on spectral analysis on sample covariance matrix of large random matrices, which are the main focus of random matrix theory (RMT). Particularly about the most classic setting, consider a sequence of random matrices $\set{X^p \in \complexes^{p \times n}}_{p}$ with size increasing to infinity, where all entries in the sequence are centered, standardized and I.I.D. sampled, and $n = n(p) = \Theta(p)$ increases linearly with $p$. The sample covariance of $X^p$ is $S^p \defeq \frac{1}{n} X^p \left(X^p\right)^\transpose$. To measure their spectral properties, define the empirical spectral distribution $F^{S^p}(x) \defeq \frac{1}{p} \sum_{i} \indic{\lambda_i\left(S^p\right) \le x}$ and corresponding density $f^{S^p}$ of eigenvalues for each matrix $S^p$. Note that $F^{S^p}$ is a random variable as $S^p$'s function, but \citet{mp_original} prove that when $p$ goes to infinity, $F^{S^p}$ converges to a non-random distribution later named as Marchenko-Pastur distribution, formally stated in \cref{theorem:singular_value_of_product_of_random_matrices}.
+
+\begin{theorem}[Marchenko–Pastur distribution \citep{mp_distribution}]\label{theorem:singular_value_of_product_of_random_matrices}
+    Let $X_{i, j}$, $1 \le i \le p, 1 \le j \le n$, be I.I.D. complex random variables with $\ex{X_{i, j}} = 0$ and $\ex{X_{i, j}^2} = 1$. Let $X^p \defeq [X_{i, j}]_{i, j} \in \reals^{p \times n}$ be the matrix comprised of these random variables. Let $\lambda_k(\cdot)$ be the $k$-th largest eigenvalues of the symmetric matrix 
+    \begin{align}
+        S^p \defeq \frac{1}{d} X^p \left(X^p\right)^\transpose,
+    \end{align}
+    and define its empirical spectral distribution (ESD) by
+    \begin{align}
+        F_p(x) = F^{S^p}(x) = \frac{1}{p} \sum_{k=1}^{p} \indic{\lambda_k\left(S^p\right) \le x} \label{eq:def:mp_density}.
+    \end{align}
+    and corresponding density $f_p = f^{S^p}$.
+
+    When $p, n\to \infty$ with $p / n \defto c$, $f^p \to f$ in probability, where density $f$ of Marchenko-Pastur distribution is defined by
+    \begin{align}
+        f(x) = \frac{1}{2 x c \pi} \sqrt{(b - x)(x - a)} \indic{a \le x \le b} + \indic{c \ge 1} \cdot \left(1 - \frac{1}{c}\right) \delta(x) \label{eq:mp_density},
+    \end{align} 
+    $a = (1 - \sqrt{c})^2, b = (1 + \sqrt{c})^2$, and $\delta$ is the Dirac delta function.
+\end{theorem}
+
+We will discover $X^p \left(X^p\right)$-like matrices products in \cref{sec:spectral_init} and \cref{sec:spectral_training}, and apply generalized \cref{theorem:singular_value_of_product_of_random_matrices} to them, for example at initialization and in stochastic additive updates, given that hidden features are of several hundreds dimensions and there are millions of steps involved in training. We consider large random matrices as a powerful tool in analyzing behaviors of deep models given their high dimension and randomness.
+
+\subsection{Adversarial Robustness}
+
+It is well known that deep models are prone to adversarial attacks, i.e., small changes in inputs may result in large changes in output or classification.
+Most works on adversarial attack and robustness consider perturbations at the beginning of the network. Given the layered structure of deep networks, we naturally consider perturbations to hidden intermediate features, simulated by perturbations on parameters in shallower layers. 
+We refer to them as implicit adversarial attacks and implicit adversarial robustness and see (effective) gradient sparsity as a necessary step in resistance of them. 
+Following works that connect flat minima or sparsity to adversarial robustness \citep{adversarial_and_flat_minima,adversarial_of_moe}, we use squared $L_2$ norm $\norm{\derivatives{\loss(f_\theta, (x_s, y_s))}{x^l}}_2^2$ of gradients w.r.t. hidden features on \emph{individual samples} to measure adversarial robustness for mathematical convenience.

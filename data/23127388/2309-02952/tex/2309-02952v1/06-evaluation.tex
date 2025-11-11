@@ -1,0 +1,201 @@
+\section{Evaluation}
+\label{sec:evaluation}
+
+% This may be excluded
+%Our evaluation starts with a quick analysis of the network resources required by our protocol.
+%We carry on with an extensive set of experiments, in which \prot's behavior is assessed regarding
+%its handling of node descriptor duplication.
+%Then we evaluate the efficiency of the proposed tit-for-tat communication scheme,
+%and finally, we demonstrate the necessity and efficacy of the proposed redemption cache.
+
+We performed our simulations on the \emph{PeerNet Simulator}~\cite{PeerNet}, a fork of the popular PeerSim \cite{PeerSim} simulation environment, an open-source platform for the development, testing, and deployment of P2P applications, developed in Java.
+
+We conducted a number of simulations with 1,000 and 10,000 nodes, with view lengths ranging from 20 to 50 descriptors per node, various swap lengths, and a number of different test policies and attack scenarios.
+In all experiments, there was an initialization phase, where the overlay was let emerge to a random-graph-like overlay through the protocol's self-organizing properties.
+
+We initially perform an informal analysis of \prot's network resource requirements, and we continue with the evaluation of our protocol through simulations.
+
+\begin{figure*}[t]
+  \includegraphics{figs/vanilla-alexandros/shielded_n1K_m20_v20}
+  \includegraphics{figs/vanilla-alexandros/shielded_n10K_m50_v50} \\
+  \includegraphics{figs/vanilla-alexandros/shielded_n1K_m400_v20}
+  \includegraphics{figs/vanilla-alexandros/shielded_n10K_m4K_v50}
+  \caption{(Top) Same experiments as in \figref{fig:hubattack}, however this time with \prot\ shielding the overlay against adversarial behavior. (Bottom) Same experiments, however this time with malicious nodes accounting for 40\% of the network.}
+  \label{fig:shielded}
+\end{figure*}
+
+
+\subsection{Network Costs}
+\label{subsec:transmission-cost}
+
+
+In our proposed configuration we choose a swap length $s=3$, as it is sufficient for fast convergence in Cyclon, and a view length $\ell=20$.
+We also set the redemption cache (see \secref{subsec:tackling-old-descriptor-duplication}) to hold $r=5$ descriptors.
+
+The node information contained in a descriptor, namely its public key (256 bits), IP address (32 bits), port (16 bits), and timestamp (64 bits), accounts for a total of 368 bits.
+Each time the descriptor is transferred over to a new owner, an extra public key (256 bits), and a signature (256 bits) are appended to it.
+Therefore, a descriptor's size is $368 + 512 \cdot t$ bits, where $t$ is the number of times its ownership has been transferred.
+
+As stated in \cite{voulgaris.jnsm.2005}, each descriptor lives for an average of $\ell$ cycles before getting redeemed, where $\ell$ is the view length.
+As a node participates on average in two gossip exchanges per cycle (one it initiates and one it is invited to), and in each gossip exchange it transfers $s$ out of $\ell$ descriptors to its gossip partner, a descriptor's chance to be transferred is $\frac{s}{\ell}$ per gossip, thus $\frac{2s}{\ell}$ per cycle.
+Therefore, in its lifetime of $\ell$ cycles a descriptor will have been transferred $2s$ times, on average.
+
+Taking a pessimistic scenario of all descriptors having been transferred $2s=6$ times (pessimistic, as younger descriptors have not been transferred as much yet), we get a back-of-the-envelop estimate of a descriptor size being $368+512*6 = 3440$ bits, or 430 Bytes.
+As in each gossip exchange each peer sends to its counterparty $\ell+r = 25$ descriptors, we conclude that a gossip exchange involves the transfer of roughly 10.5 KBytes in each direction.
+
+This is a negligible network overhead, especially when considering that typical gossiping periods would be somewhere between 10 and 60 seconds.
+
+
+\begin{figure*}[t]
+  \begin{tabular}{cc}
+    \includegraphics{figs/non-swappable-links/unshielded_n1K_v20_m0020} &
+    \includegraphics{figs/non-swappable-links/shielded_n1K_v20_m0020}  \\
+    \small{Tit-for-tat: disabled} & \small{Tit-for-tat: enabled} \\
+    \includegraphics{figs/non-swappable-links/unshielded_n1K_v20_m0500} &
+    \includegraphics{figs/non-swappable-links/shielded_n1K_v20_m0500}  \\
+    \small{Tit-for-tat: disabled} & \small{Tit-for-tat: enabled}
+  \end{tabular}
+  \caption{The link-depletion attack: Malicious nodes present an empty view to legitimate ones, in order to deplete their views of their descriptors. Its effect on the percentage of non-swappable descriptors when tit-for-tat is disabled (left) or enabled (right).
+  The effectiveness of the tit-for-tat mechanism is proven for a limited number of malicious nodes (top), and for the adverse scenario where $50\%$ of the nodes are malicious (bottom). The attack starts after cycle 50, at a converged overlay state.}
+  \label{fig:swappable}
+\end{figure*}
+
+
+\subsection{Defending Against The Hub Attack}
+\label{subsec:defending-against-hub}
+
+
+%We first examine the scenario where the smallest group of malicious nodes that could hijack an overlay attempts an attack.
+%Such a group should have a minimum of $\ell$ malicious nodes, as having just one node less would leave space for legitimate nodes to also maintain legitimate links.
+%
+%\figref{fig:shielded}(top) presents two such attempts: one for a network of 1K nodes, $\ell=20$, and 20 malicious nodes ($2\%$ of the nodes) and one for 10K nodes with $\ell=50$ and 50 malicious nodes ($0.5\%$ of the nodes).
+%In these experiments, all nodes operate correctly until cycle 50, during which the percentage of links to malicious
+%nodes is proportional to their population, as expected.
+%After cycle 50, a small spike begins to form in our graphs, indicating that malicious nodes have initialized
+%an attempt to aggressively pollute the overlay.
+%This trend stops abruptly and the percentage of legitimate nodes' links to malicious nodes decreases rapidly, as malicious nodes get detected and removed from the overlay.
+%
+%This figure should be compared to \figref{fig:hubattack}, which corresponds to precisely the same attack on legacy Cyclon, without \prot's security measures in place.
+%Also note that the y-scale in \figref{fig:shielded}(top) extends only to $3\%$ of the network.
+%% Maybe rephrase this or remove it
+%% As more malicious nodes get discovered, the diversity of node descriptors in terms of initial owners becomes narrower, and thus inconsistencies are easier to occur.
+%
+%\figref{fig:shielded}(bottom) explores how our protocol performs in an extreme attack scenario, where the adversary controls half of the node population.
+%As shown, malicious node participation is temporarily increased, approaching $60\%$ of the nodes at its peak.
+%A few cycles later, however, it decreases rapidly, as malicious nodes get purged from the network.
+%
+%It is worth noting that an increased swap length boosts the effectiveness of our protocol, as descriptors revealing malicious actions are propagated to more nodes, increasing their probability to be discovered.
+
+To assess the effectiveness of \prot\ against a hub attack, we assume a modified version of the attack described in \secref{sec:challenges}.
+In this attack, malicious nodes maintain a central pool of descriptors, comprising copies of all the descriptors generated by malicious nodes in recent cycles.
+When gossiping with a legitimate peer, a malicious node presents a fake view consisting exclusively of descriptors to other malicious nodes, selected out of this central pool.
+%When gossiping, malicious nodes select descriptors from the pool uniformly at random, and replace any legitimate descriptors they were supposed to send with duplicates of the selected descriptors.
+
+%Malicious nodes initiate the attack after 50 cycles have passed.
+
+We also assume that all legitimate nodes participate in the \prot\ protocol.
+When a legitimate node discovers a protocol violation, it broadcasts the proof over the links it has acquired through \prot.
+
+We first examine the scenario where the smallest group of malicious nodes that could hijack an overlay attempts an attack.
+Such a group should have a minimum of $\ell$ malicious nodes, as having just one node less would leave space for legitimate nodes to also maintain legitimate links.
+
+\figref{fig:shielded}(top) presents two such attempts: one for a network of 1K nodes, $\ell=20$, and 20 malicious nodes ($2\%$ of the nodes), and one for 10K nodes with $\ell=50$ and 50 malicious nodes ($0.5\%$ of the nodes).
+Malicious nodes start the attack on cycle 50.
+Up until that cycle, the percentage of legitimate nodes' links to malicious nodes is proportional to their population (i.e., $2\%$ and $0.5\%$, respectively), as expected.
+After cycle 50, a small spike begins to form, as malicious nodes have aggressively started to pollute the overlay.
+This trend stops abruptly and the percentage of legitimate nodes' links to malicious nodes decreases rapidly, as malicious nodes get detected and removed from the overlay.
+
+This figure should be compared to \figref{fig:hubattack}, which corresponds to the same attack on legacy Cyclon, without \prot's security measures in place.
+%Also note that the y-scale in \figref{fig:shielded}(top), the population of links to malicious nodes extends only to $6\%$ and $1\%$ of the total links respectively.
+
+\figref{fig:shielded}(bottom-left) explores how our protocol performs in an extreme attack scenario, where the adversary controls $40\%$ of the node population.
+As shown, malicious link population is temporarily increased, reaching values from $60\%$ up to $90\%$ of the total links, depending on the swap-length parameter.
+A few cycles later, however, it decreases rapidly, as malicious nodes get purged from the network.
+It can be noticed that in the cases where the swap length is very high in comparison to the view length, malicious links may not get completely eliminated.
+For $s=8$ and $s=10$, the ratio of malicious links does not drop below $7\%$ and $30\%$, respectively.
+This suggests that the respective percentages of legitimate nodes have been eclipsed due to their exposure to a high number of malicious descriptors.
+Specifically, $7\%$ and $30\%$ of the legitimate nodes have their links controlled by malicious nodes, rendering them unable to receive any new malicious discovery proofs through dissemination.
+
+In \figref{fig:shielded}(bottom-right), it can be observed that despite employing the same swap length as in the previous experiment, no nodes get eclipsed.
+This is due to the fact that the swap length is now far smaller than the view length, making it more challenging for the view to be filled with malicious descriptors.
+Thus, it is important to pick a sufficiently low swap length in order to be able to withstand malicious attacks that involve a high number of malicious nodes.
+Generally, as shown in~\cite{voulgaris.jnsm.2005}, a swap length of 3 is sufficient for fast convergence even in networks with a high number of nodes.
+
+Concluding, we performed the aforementioned experiments with $50\%$ of the nodes being malicious, and we observed that the legitimate nodes manage to effectively tackle the attack if a swap length of 3 is adopted.
+
+\subsection{Tit-for-Tat Evaluation}
+\label{subsec:integration-evaluation}
+
+
+
+To evaluate the tit-for-tat communication mechanism proposed in \secref{subsec:confronting-asymmetrical-communications}, we expose our nodes to the most effective attack that could happen in this regard.
+During a gossip exchange, a malicious node is transmitting an empty view in response to the list of descriptors provided by the legitimate node. % May not be full, especially when legitimate nodes are running out of swappable links!
+The goal of such an attack is to deplete legitimate nodes of their links, effectively letting them with non-swappable links, and rendering the network static.
+
+The attack is depicted in \figref{fig:swappable}, for a network size of 1,000 nodes, with a view length of 20, and various swap lengths.
+Malicious nodes start deploying this attack at cycle 50.
+The figures on the left show the behavior without the tit-for-tat mechanism, while the figures on the right incorporate tit-for-tat.
+
+We first examine a scenario where malicious nodes account for $2\%$ of all nodes, depicted in \figref{fig:swappable}(top).
+After the attack starts, we see a number of non-swappable links proportional to the swap length forming in the left plot, which is reasonable, as with a higher swap length a legitimate node can lose more node descriptors per gossip exchange.
+% This may be excluded
+%It should be noted that the magnitude of non-swappable links stabilizes approximately at cycle 70, owing to the inherent healing properties of Cyclon.
+%As the attack progresses, different nodes get to initialize gossips with malicious nodes.
+%Moreover, legitimate nodes experiencing a scarcity of swappable links will obtain some new ones when gossiping with other legitimate nodes, thereby distributing the burden among their counterparts.
+%As more nodes get involved in the attack, a greater proportion of individual nodes actively contribute to the healing of the overlay.
+%When a sufficient number of legitimate nodes get involved, the per-cycle replaced links prove adequate in preventing further augmentation of non-swappable links.
+The figure on the top right side clearly demonstrates the efficiency of the tit-for-tat mechanism, that effectively minimizes link depletion to a negligible level.
+
+As a second set of experiments, we study the scenario where malicious nodes constitute half of the total node population, depicted in \figref{fig:swappable}(bottom).
+Under the observed scenario, irrespectively of the swap length, nearly all the links in the views of legitimate nodes become non-swappable.
+The healing mechanism of Cyclon enables the retention of a muscle fraction of links as swappable, approximately $4\%$ of the total.
+Even in such a detrimental situation, as depicted in the bottom right plot, the tit-for-tat mechanism successfully limits the proportion of non-swappable links to approximately $27\%$.
+
+% A second observation is that the increasing trend in our graphs ends, in the left figure for most cases around cycle 70 and
+% in the right graph around cycle 90.
+% This occurs because of the healing properties of Cyclon.
+% As we mentioned in \secref{subsec:confronting-asymmetrical-communications}, \prot\ prioritizes the redemption of non-swappable descriptors.
+% As more nodes acquire non-swappable links, more simultaneous redemptions of non-swappable descriptors will occur.
+% The trend stabilizes at the point when the overall pace of non-swappable descriptor redemption catches up to the rate that legitimate nodes lose node descriptors.
+
+% Next, we study the benefits of the sequential communication in an extreme case scenario where the gossip length is high and there
+% is a high malicious node participation.
+% This attack is depicted in \figref{fig:swappable_extreme}, where the nodes of the network are 1000 of which 500 are malicious,
+% view length is 20, and swap length is 10.
+% As we can see, when sequential communication is absent, the non-swappable link slope ceases at $50\%$ non-swappable links, in
+% comparison with \figref{fig:swappable_extreme} where the cease happens at $29\%$.
+% Additionally, sequential communication provides a smoother transmission to the converged state.
+% \newline
+
+
+\subsection{Redemption Cache Evaluation}
+
+
+\begin{figure*}[t]
+  \includegraphics{figs/detect/mal0050}
+  \includegraphics{figs/detect/mal0200}
+  \includegraphics{figs/detect/mal0500}
+  \caption{
+    Detection ratio as a function of (i) the link's age at duplication time, (ii) the redemption cache size, and (iii) the percentage of malicious nodes in the network.
+  }
+  \label{fig:detections}
+\end{figure*}
+
+Concluding, we evaluate our redemption cache mechanism, described in \secref{subsec:tackling-old-descriptor-duplication}.
+\figref{fig:detections} illustrates the correlation between the age at which a descriptor was cloned and its respective detection ratio, for various percentages of malicious node participation and redemption cache sizes.
+
+We observe that, for descriptors duplicated at a low age, the transmission of views is sufficient to detect them with high probability.
+For descriptors duplicated at a higher age, the respective detection ratio drops, and the redemption cache's role becomes evident.
+
+For the scenario of 5\% and 20\% malicious participation, we observe that a redemption cache of just $r=5$ descriptors is able to detect more than 20\% of the illegal duplications.
+Things get worse when the malicious participation takes extreme values, as showcased in the third figure, including a malicious population of 50\% of the network.
+When considering such cases, the redemption cache should be set to a size of 10 descriptors, in order to be able to detect approximately 5\% of duplications.
+
+It should be emphasized that a malicious node should only be found guilty once in order to be deterministically evicted from the network, thus even with a detection ratio of 5\%, malicious nodes will eventually be detected and dropped out.
+
+%As we can observe, because all node descriptors become old and get redeemed at some point, the aforementioned approach boosts the overall discovery
+%probability of malicious duplications independently of the descriptor age.
+%% Maybe add here the corresponding diagram.
+%Something that should be considered is that the higher value is chosen for cache size, the more samples will get transmitted, and thus
+%the higher the network bandwidth will be.
+

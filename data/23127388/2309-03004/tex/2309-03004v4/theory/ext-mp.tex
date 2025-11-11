@@ -1,0 +1,165 @@
+\NewDocumentCommand{\uut}{}{u^p \left(u^p\right)^\transpose}
+\NewDocumentCommand{\utau}{O{u}}{\left(#1^p\right)^\transpose A^p #1^p}
+\NewDocumentCommand{\xtax}{}{\utau[x]}
+
+\section{Proof of \cref{theorem:spectral_of_accumulated}}
+
+\NewDocumentCommand{\sti}{}{Stieltjes}
+\RenewDocumentCommand{\uut}{O{k}}{u_{#1} u_{#1}^\transpose}
+\NewDocumentCommand{\xxt}{O{k}}{x_{#1} x_{#1}^\transpose}
+
+More notations and preliminary information are used in the proof. They are listed in \cref{appendix:more_preliminary}.
+
+To have a clear goal, we first point out how the ratios in \cref{theorem:spectral_of_accumulated} emerge. 
+In random matrix theory (RMT), a powerful tool is \sti{} transform when it comes to spectral distribution. 
+\sti{} transform of a distribution $\mu$ is 
+\begin{align}
+    s^\mu(z) \defeq \int_{\reals} \frac{1}{\lambda - z} \mu(\dd \lambda), \forall z \in \positivecomplex,
+\end{align}
+where $\positivecomplex \defeq \set{u + v i: u, v \in \reals, v > 0} \subset \complexes$.
+It can be seen as the expected value of inverses. So if the \sti{} transform of the spectral distribution' bound is computed and multiplied with the average eigenvalue that can be computed by trace as the sum of eigenvalues, then the expected fraction is bounded. \cref{lemma:sti_and_eigenvalue_ratio} fulfills this intuition.
+
+\NewDocumentCommand{\approxquadratic}{m}{\sqrt{\frac{2}{v} \left(c + #1\right)}}
+\begin{lemma}[\sti{} transform and eigenvalue ratio]\label{lemma:sti_and_eigenvalue_ratio}
+    For any density $\mu$ over real numbers that is only supported on positive numbers, there is
+        \begin{align}
+            \rpart{s^{\mu}(v i)}
+            =&  \int \frac{1}{\lambda + \frac{v^2}{\lambda}} \mu(\dd \lambda) = \ex{\frac{1}{\lambda + \frac{v^2}{\lambda}}},\\
+            \ipart{s^{\mu}(v i)}
+            =&  \int \frac{1}{\left(\frac{\lambda}{\sqrt{v}}\right)^2  + v} \mu(\dd \lambda) = \ex{\frac{1}{\left(\frac{\lambda}{\sqrt{v}}\right)^2 + v}},
+        \end{align}
+    where $v \in \reals^+$.
+    As a result, if upperbound or mean of $\lambda$ is obtained, one can estimate the averaged ratio between eigenvalues.
+\end{lemma}
+\begin{proof}
+    By definition,
+    \begin{align}
+        s^{\mu}(z)
+        \defeq& \int \frac{1}{\lambda - z} \mu(\dd \lambda)
+        =  \int \frac{\lambda - \bar{z}}{\left(\lambda - z\right)\left(\lambda - \bar{z}\right)} \mu(\dd \lambda)
+        =  \int \frac{\lambda - u + v i}{\lambda^2 - 2 u \lambda + u^2 + v^2} \mu(\dd \lambda), \\
+        \rpart{s^{\mu}(z)}
+        =&  \int \frac{\lambda - u}{\lambda^2 - 2 u \lambda + u^2 + v^2} \mu(\dd \lambda)
+        =   \int \frac{1}{\lambda - u + \frac{v^2}{\lambda - u}} \mu(\dd \lambda), \\
+        \ipart{s^{\mu}(z)}
+        =&  \int \frac{v}{(\lambda - u)^2 + v^2} \mu(\dd \lambda).
+    \end{align}
+    By setting $z = 0 + v i$, there is
+    \begin{align}
+        \rpart{s^{\mu}(z)}
+        =&  \int \frac{1}{\lambda + \frac{v^2}{\lambda}} \mu(\dd \lambda),
+        \ipart{s^{\mu}(z)}
+        =   \int \frac{1}{\left(\frac{\lambda}{\sqrt{v}}\right)^2  + v} \mu(\dd \lambda).
+    \end{align}
+\end{proof}
+
+We adapt the proof of Theorem 2.1 from \citet{mp_quadratic_form}, where a quadratic equation $\frac{\ex{S_p}}{1 + \ex{S_p}} - z \ex{S_p} = c + o(1) = \frac{p}{b T} + o(1)$ bridges the \sti{} transform of the spectral distribution and value $c$. We follow a similar path, but in a non-asymptotic and dependent scenario where it is hard to obtain an $o(1)$ residual. So we turn to a generalized form where the residual term is bounded. \cref{lemma:bound_of_sti} explores how we can bound $\ex{S_p}$, which is scaled \sti{} transform of the empirical spectral distribution, by $c$ and the magnitude of the residual term.
+
+\begin{lemma}[Bounds on continuous roots of a equation]\label{lemma:bound_of_sti}
+    Suppose $S$ is a function of $z, p, b, T$ such that
+    \begin{align}
+        \frac{S}{1 + S} - z S = c + t,
+    \end{align}
+    where $z = 0 + v i \in \positivecomplex (v \in \reals^+), c = p / b T \in [0, 1]$, and $t \in \complexes$ is also a function of $z, p, b, T$.
+    Assume $S$ is continuous w.r.t. $z$ and further assume $S$ always has a non-negative real part.
+    Assume $\abs{t}$ is upperbounded by function $\tau(p, b, T) / v$ where $\tau$ is constant w.r.t. $v$.
+    If for some $v_0 \ge 2 c$, there is 
+    \begin{align}
+        \frac{v_0 + (1 - c)}{\sqrt{2}} > \frac{\tau}{v_0} + 2 \sqrt{c v_0} + 2 \sqrt{\tau}
+    \end{align}
+    then for all $v \ge v_0$, there is
+    \begin{align}
+        \abs{\ipart{S}}, \abs{\rpart{S}} \le \abs{S} \le&  \sqrt{\frac{2}{v} \abs{c + t}}.
+    \end{align}
+\end{lemma}
+\begin{proof}
+    Assume $p, b, T$ is fixed and $v \ge v_0$. 
+        
+    First of all, since $t = \frac{S}{1 + S} - z S - c$, where $S$ is continuous w.r.t. $z$, when well defined $t$ is also continuous w.r.t. $z$. Since $S$ is well defined for all $z = v i$ and $S$ has a non-negative real part, meaning $1 + S \neq 0$, $t$ is defined and continuous for all $z = v i$.
+
+    $\frac{S}{1 + S} - z S = c + t$ implies
+    \begin{align}
+        S^2 + \frac{z - 1 + c + t}{z} S + \frac{c + t}{z} = (S + b)^2 - b^2 + \frac{c + t}{z} = 0,
+    \end{align}
+    where $b = \frac{z - 1 + c + t}{2 z}$.
+    Consider a modified version of this quadratic equation by altering the zeroth order term
+    \begin{align}
+        \left(R + b\right)^2 - b^2 + \frac{c + t}{z} u = 0. \label{eq:modified_quadratic}
+    \end{align}
+    where $R = R(z, p, T, u)$ is a solution of the modified equation. Since $z, t, u$  depend on $z, u$ in a continuous manner and there is no singular point given $\rpart{z} > 0$, there exist two continuous solutions $R_1$ and $R_2$ to the equation that is well defined for all $z=v i$ and $u$ where $v \in \reals^+, u \in [0, 1]$. Conversely, all possible solutions $R$ are contained in the union of manifolds given by $R_1$ and $R_2$.
+    Since
+    \begin{align}
+        &\forall u \in [0,1], - b^2 + \frac{c + t}{z} u \neq 0
+        \impliedby  \abs{b^2} > \abs{\frac{c + t}{z}}\\
+        \impliedby& \abs{v i - 1 + c + t} > 2 \sqrt{v \abs{c + t}}
+        \impliedby  \sqrt{v^2 + (1 - c)^2} - \abs{t} > 2 \sqrt{v} \sqrt{c + \abs{t}}\\
+        \impliedby& \sqrt{v^2 + (1 - c)^2} > \abs{t} + 2 \sqrt{v} \sqrt{c + \abs{t}}
+        \impliedby  \sqrt{v^2 + (1 - c)^2} > \frac{\tau}{v} + 2 \sqrt{c v + \tau}\\
+        \impliedby& \frac{v + (1 - c)}{\sqrt{2}} > \frac{\tau}{v} + 2 \sqrt{c v} + 2 \sqrt{\tau} \quad\quad\left(\text{LHS: concavity of $\sqrt{x}$}\right)\\
+        \impliedby& \frac{v_0 + (1-c)}{\sqrt{2}} > \frac{\tau}{v_0} + 2 \sqrt{c v_0} + 2 \sqrt{\tau} \\&    \land \forall v \ge v_0,
+            \frac{\dd \left(\frac{v + (1 - c)}{\sqrt{2}} - \left(\frac{\tau}{v} + 2 \sqrt{c v} + 2 \sqrt{\tau}\right)\right)}{\dd v} = \frac{1}{\sqrt{2}} + \frac{\tau}{v^2} - \frac{\sqrt{c}}{\sqrt{v}} \ge \frac{1}{\sqrt{2}} - \frac{\sqrt{c}}{\sqrt{v}} \ge 0\\
+        \impliedby& \frac{v_0 + (1 - c)}{\sqrt{2}} > \frac{\tau}{v_0} + 2 \sqrt{c v_0} + 2 \sqrt{\tau} \land v_0 \ge 2 c,
+    \end{align}
+    $R_1$ and $R_2$ has no intersection when $v \ge v_0$. As a result, continuous $S$, as $R(u=1)$ for some $R$, can only be found in exactly one of $R_1$ and $R_2$ and thus is either $R_1(u=1)$ or $R_2(u=1)$.
+
+    Consider $R$s' behaviours when $u=0$. $R_1$ and $R_2$ are either $0$ or $-2b$. By their being continuous and disjoint, $R_1$ and $R_2$ can only be universally one of them otherwise there would be discontinuity. Without loss of generality, let
+    \begin{align}
+        R_1(z, p, T, 0) =&  0,\\
+        R_2(z, p, T, 0) =&  -2 b =  \frac{1 - z - c - t}{z} = \frac{-i - v + c i + t i}{v}.
+    \end{align}
+        
+    Assume $S = R_2(u=1)$ for contradiction. If so, $\lim_{v \to \infty} \rpart{R_2(u=1)} \ge 0$. Consider the following trajectory of $(z, u)$ to conclude that $\lim_{v \to \infty} \rpart{R_2(u=1)} \le -0.5$:
+    \begin{enumerate}
+        \item Start from $z=i, u=0$, where $R_2 = -\frac{i}{v} - 1 + \frac{c + t}{v} i$.
+        \item Increase $v$ alone until $v \ge 100 (c + \tau(z, b, p, T) / v)$. After this step, term $\frac{c + t}{v} i$ will not flip the sign of $-1$ given that $\abs{\frac{c + t}{v} i} \le \frac{c + \tau / v}{v} \le \frac{1}{100}$. Therefore, after this step $\rpart{R_2} \le -0.99$.
+        \item Increase $u$ alone to $1$. During this step, the term $\frac{c + t}{z} u$ in \cref{eq:modified_quadratic}, which appears under squared root in $R_2$, changes $R_2$ at most by $\sqrt{\abs{\frac{c + t}{z}}} \le \sqrt{\frac{c + \tau}{v}} \le \frac{1}{10}$. Therefore, it will not flip the sign and $\rpart{R_2} \le -0.89$. 
+        \item Increase $v$ to infinity. The influences of $\frac{c + t}{v}$ and $\frac{c + t}{v} u$ will further drop and become ignorable. So $R_2 \le -0.5$ in later parts of the trajectory.
+    \end{enumerate}
+    Note since $\tau/v$ monotonically decreases as $v$ increases, step (3) will happen when $v < \infty$ and the limit following this trajectory is equal to $\lim_{v \to \infty} R_2(z)$.
+    Therefore, $\lim_{v \to \infty} R_2(z) \le -0.5$, $S \neq R_2$ and $S = R_1(u=1)$. As a result, $S$ can be approximated from $R_1=0$ at $u=0$.
+
+    \NewDocumentCommand{\derivativenorm}{}{\frac{\abs{c + t}}{2 \sqrt{\abs{v^2 b^2 - v(c + t) u}}}}
+    To this end, taking differentiation (the derivative w.r.t. $u$ exists except for a finite number of points given the elementary dependence on it) gives
+    \begin{align}
+        2(R(u) + b) \dd R + \frac{c + t}{z} \dd u = 0
+    \end{align}
+    or
+    \begin{align}
+        \abs{\frac{\dd R}{\dd u}} = \abs{-\frac{c + t}{2 z (R(u) + b)}} = \frac{\abs{c + t}}{2 v \sqrt{\abs{b^2 - \frac{c + t}{z} u}}} \le \derivativenorm.
+    \end{align}
+    Starting from $R(u=0)=0$, there is
+    \begin{align}
+        &\abs{S - R(u=0)}
+        =  \abs{\int_{0}^1 \frac{\dd S}{\dd u} \dd u}\\
+        \le&    \int_{0}^1 \derivativenorm \dd u
+        \le     \frac{1}{2 v}\int_{0}^1 \frac{v \abs{c + t}}{\sqrt{\abs{v^2 \abs{b^2} - v \abs{c + t} u}}} \dd u\\
+        =&      \frac{1}{2 v}\int_{v^2 \abs{b}^2 - v \abs{c + t}}^{v^2 \abs{b}^2} \frac{1}{\sqrt{\abs{w}}} \dd w
+        \le     \frac{1}{2 v}\int_{- v \abs{c + t}/2}^{v \abs{c + t} /2} \frac{1}{\sqrt{\abs{w}}} \dd w
+        =       \sqrt{\frac{2}{v} \abs{c + t}},
+    \end{align}
+    where the second inequality follows the triangle inequality for subtracting edges. The third inequality is done by moving $[v^2 \abs{b}^2 - v \abs{c + t}, v^2 \abs{b^2}]$ towards zero until it is symmetric, during which the end with the largest absolute value is moved to the other end and its absolute value is decreased, enlarging the inverted square root.
+\end{proof}
+
+As a result, if the residual term is bounded, so are the \sti{} transform and the expected fraction. In the proof of \citet{mp_quadratic_form} this quadratic equation is extracted by convergence, which is hard in non-asymptotic analysis. We extract it with approximation, whose error is bounded by vector norm bound $\alpha / p$, anisotropy bound $\beta / p$. 
+
+Some matrices are also involved in the approximation, where a technical lemma by \citet{mp_quadratic_form} is very useful. \cref{lemma:3.1_from_mp_quadratic_form} states that a special matrix, which we will encounter many times in the following proof, has a bounded spectral norm. Combined with Hölder's inequality, bounds on matrices' spectral norms and vector norms ($\alpha/p$) will suppress the approximation error.
+
+\begin{lemma}[Lemma 3.1 by \citet{mp_quadratic_form}]\label{lemma:3.1_from_mp_quadratic_form}
+    Let $C \in \reals^{p \times p}$ be a real symmetric positive semi-definite matrix and $x \in \reals^p$. If $z \in \complexes$ is such that $v = \ipart{z} > 0$, then
+    \begin{enumerate}
+        \item\label{lemma:spectral_bound_of_reverse} 
+            $\norm{\left(C - z I\right)^{-1}} \le 1 / v$ ;
+        \item\label{lemma:x_means_little_in_reversed_sample_covariance}
+            $\abs{\trace{C + x x^\transpose - z I}^{-1} - \trace{C - z I}^{-1}} \le 1 / v$;
+        \item $\abs{x^\transpose\left(C + x x^\transpose - z I\right)^{-1} x} \le 1 + \abs{z} / v$;
+        \item $\ipart{z + z \trace{C - z I}^{-1}} \ge v$ and $\ipart{\trace{C - z I}^{-1}} > 0$;
+        \item $\ipart{z + z x^\transpose (C - z I)^{-1} x} \ge v$.
+    \end{enumerate}
+\end{lemma}
+
+With these three lemmas, we can begin the proof of \cref{theorem:spectral_of_accumulated}. Following \citet{mp_quadratic_form}, we relate \sti{} transform of the spectral distribution with the quadratic equation. The quadratic equation is formed by approximation, whose error becomes $t$ in \cref{lemma:bound_of_sti}. After concluding the bounds of the \sti{} transform, applying \cref{lemma:sti_and_eigenvalue_ratio} gives the final conclusion.
+
+\def\StateSpectralOfAccumulated{proof}
+\input{theory/theorems/ext_mp.tex}
+
+

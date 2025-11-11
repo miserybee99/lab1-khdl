@@ -1,0 +1,34 @@
+\section{Effective Window Size}\label{appendix:effective_window_size}
+
+We argue that the effective window size should be considered by $r = 1 - \eta_{\mathrm{lr}} w$ instead of $\sqrt{r} = \sqrt{1 - \eta_{\mathrm{lr}} w}$ to have better results, where $\eta$ is learning rate and $w$ is the strength of weight decay.
+The argument relies on another formulation of eigenvalues: $\lambda_i(A)$ corresponds to critical points of Rayleigh quotient
+\begin{align}
+    \max_{v \in \reals^n \setminus \set{0}} \frac{v^\transpose A v}{v^\transpose v} = \max_{v \in \reals^n: \norm{v}_2 = 1} v^\transpose A v.
+\end{align}
+Particularly for weight decayed sample covariances where $S = U U^\transpose = \sum_{t, l} \sqrt{r}^{T - t} u_{t, l} \sqrt{r}^{T - t} u_{t, l}^\transpose$, its eigenvalues are given by critical points of
+\begin{align}
+        \max_{v \in \reals^n: \norm{v}_2 = 1} v^\transpose U U^\transpose v
+    =&  \max_{v \in \reals^n: \norm{v}_2 = 1} \sum_{t, l} r^{T - t} \inner{u_{t, l}}{v}^2 \label{eq:all_samples}.
+\end{align}
+
+So terms are weighted by $r$ instead of $\sqrt{r}$. Now consider the situation where effective window $k$ is used to produce $S'$, whose eigenvalues are given by
+\begin{align}
+    \max_{v \in \reals^n: \norm{v}_2 = 1} \sum_{t=T-k+1} \sum_l r^{T - t} \inner{u_{t, l}}{v}^2 \label{eq:effective_window_samples},
+\end{align}
+and consider its difference from those of all samples.
+
+For the smallest non-zero eigenvalues, there is $\lambda_{\min(p, b T)}(S) \ge \lambda_{\min(p, b T)}(S')$ since adding a real symmetric positive semi-definite matrix to $S'$ to obtain $S$ increases all eigenvalues. So we will not be overoptimistic in the smallest non-zero eigenvalues when it comes to bounding the fraction between the largest and smallest non-zero eigenvalues.
+
+\NewDocumentCommand{\sums}{O{} O{} O{\inner{u_{t, l}}{v_{\max}}^2}}{\sum_{t#1}^{#2} \sum_l r^{T - t} #3}
+For the largest eigenvalues, there is $\lambda_1(S) \le \lambda_1(S') + \sums[=1][T-k][\norm{u_{t, l}}_2^2]$.
+To see this, let $v_{\max}$ be the unit vector that achieves $\lambda_1(S)$.
+\begin{align}
+    \lambda_1(S)
+    =&      \sums[=1][T]
+    =       \sums[=T-k+1][T] + \sums[=1][T-k]\\
+    \le&    \max_{\norm{v}_2=1} v^\transpose S' v + \sums[=1][T-k][\norm{u_{t, l}}_2^2]
+    =       \lambda_1(S') + \sums[=1][T-k][\norm{u_{t, l}}_2^2].
+\end{align}
+So at most will be overoptimistic by $\sums[=1][T-k][\norm{u_{t, l}}_2^2]$. 
+
+As a result, if the exponential weight sum of the out-of-window tail, controlled by $r$ instead of $\sqrt{r}$, is small, then the over-optimism will be suppressed.

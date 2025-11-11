@@ -1,0 +1,295 @@
+\section{Empirical Supports for Assumptions}\label{sec:t_experiments}
+
+In this section, evidence of assumptions required in \cref{sec:spectral_init} and \cref{sec:spectral_training} is empirically examined. 
+The observations are taken during or after training from scratch or finetuning described by \cref{sec:p_experiments}.
+
+
+\subsection{Spectral Increase in $\kkT$ and $M$}\label{sec:t_exp:spectral_increase}
+
+\addvalue{kkT}{$\kkT$}
+\addvalue{M}{$M$}
+\addvalue{taskvanilla}{finetuning}
+\addvalue{tasksparsified}{imagenet1k}
+\addvalue{fulltaskvanilla}{finetuning for sparsity}
+\addvalue{modelnamevanilla}{vanilla}
+\addvalue{modelnamesparsified}{modified}
+\addvalue{basemodeldirViT}{imagenet1k}
+\addvalue{basemodeldirT5}{T5}
+\addvalue{fullbasemodelViT}{ViT-Base/16 on ImageNet-1K}
+\addvalue{fullbasemodelT5}{T5-Base on C4}
+The traces of $\kkT$ and $M$ during training from scratch of ViT and T5 are displayed in \cref{figure:spectral_increase_ViT} and \cref{figure:spectral_increase_T5}, respectively.
+
+\foreach \basemodel in {ViT, T5}{
+    \begin{figure}
+        \resetHeight{}
+        \centering
+        \foreach \modeltype in {sparsified, vanilla}{
+            \foreach \matrixtype in {kkT, M}{
+                \begin{subfigure}[t]{0.22\textwidth}
+                    \centering
+                    \myincludegraphics[width=\textwidth]{pic/results/dumps/\usevalue{basemodeldir\basemodel}/from_scratch/\modeltype/spectral_increase/\matrixtype.jpg}
+                    \caption{\tiny \usevalue{\matrixtype} of \usevalue{modelname\modeltype} \basemodel}\label{figure:spectral_increase_\basemodel_\modeltype_\matrixtype}
+                \end{subfigure}
+            }
+        }
+        \caption{
+            The traces of \usevalue{kkT} and \usevalue{M} of \usevalue{fullbasemodel\basemodel} during training from scratch.
+        }\label{figure:spectral_increase_\basemodel}
+    \end{figure}
+}
+
+In \cref{figure:spectral_increase_ViT}, both modified and vanilla ViTs have increasing $\trace{M} = \norm{g^l_K}_2^2$ and $\trace{\kkT}$ that increases rapidly first and decays slowly. Note that the decay in the \emph{late} phase of the training does not directly conflict with the assumption of theoretical results because the sparsity improvements of both modified and vanilla ViTs happen mainly in the \emph{early} stage of the training, where main sparsity improvemnts happen as well according to \cref{figure:productive_vit}. As a result, better implicit adversarial robustness and flatness cannot be obtained by shriking $\kkT$ or $M$.
+Intriguingly in \cref{figure:spectral_increase_T5} for T5, $\kkT$ and $M$ swap their roles. $\trace{M}$ drop rapidly first and then stables. This indicates that although $\norm{g^l_V}_2^2$ decreases flatness can also be parallelly obtained through sparsity.
+
+\subsection{Moderate Alignment in $\eta^l$ between $g^l$ and $\gamma^l$}\label{sec:t_exp:align_eff}
+
+\cref{sec:t_exp:spectral_increase} have demonstrated that $\norm{\eta^l}_2^2$ is not decreased by decreasing $\norm{g^l}_2^2$, at least in ViT. 
+To bring $\eta^l$ and $\gamma^l$ closer, we further demonstrate that decreased $\norm{\eta^l}_2^2 = \norm{g^l \hadamard \gamma^l}_2^2$ is not done by adversarially misaligning $g^l$ with $\gamma^l$, i.e., multiplying gradients $g^l$ of large magnitudes with derivatives of non-activated neurons and leaving gradients of small magnitudes to activated neurons.
+
+We load checkpoints after training models on ImageNet-1K or C4, as described in \cref{sec:p_experiments}. For each checkpoint, we randomly select one batch of samples (2048 samples for ImageNet-1K or 256 samples for C4) to simulate batches encountered in training and use backward propagation to compute $g^l$, gradients w.r.t. activations, at all layers. The layerwise distribution of squared entries in $g^l$ after mixing all samples, tokens and entries together, as well as the distribution conditioned on activated neurons, is displayed in \cref{fig:alignment_eff}.
+
+In \cref{fig:alignment_eff}, we observe that for most layers, activated neurons have gradients with a distribution similar to the distribution of all gradients. Furthermore, the former is even more concentrated, shorter-tailed and righter-shifted than the latter, in both ViT and T5 of both vanilla and modified architectures throughout training.
+This moderate alignment indicates that there is no adversarial misalignment in $\eta^l$ and a considerable portion of entries in $\gamma^l$ have weights from $g^l$ that are relatively large and can be lowerbounded or approximated by $\ex{\norm{g^l}_2^2} / d$. 
+Specifically under $\relu$-activation, \cref{lemma:eff_and_sparsity} is made meaningful, since $\ex{\left(g^l_{K, i, j}\right)^2 \mid \gamma^l_{i, j} > 0}$ is close to or even larger than $\ex{\left(g^l_{K, i, j}\right)^2}$ (see \cref{fig:alignment_ratio_imagenet1k_vanilla} and \cref{fig:alignment_ratio_T5_vanilla}) for most layers, so the former cannot be reduced since the increase in the latter at least in ViT as observed in \cref{sec:t_exp:spectral_increase}, and the only way to reduce effective gradient sparsity measured in $L_2$ norms is to improve gradient or activation sparsity directly measured in $L_0$ norms. As a result, our $\eta^l$-based theories are tightly related to activation sparsity measured in $L_0$ norm for $\relu$ networks and are approximately related for $\jrelu$ networks.
+
+\begin{figure}
+    \centering
+    \resetHeight
+    \foreach \model in {sparsified,vanilla}{
+        \foreach \i in {100,150,200,250,299}{
+            \ifthenelse{\equal{\model}{vanilla} \AND \equal{\i}{100}}
+            {\renewcommand{\i}{101}}
+            {}
+            \pgfmathtruncatemacro{\epochid}{1+\i} 
+            \begin{subfigure}[t]{0.15\textwidth}
+                \myincludegraphics[width=\textwidth]{pic/results/dumps/imagenet1k/gradient_density/\model/\i.jpg}
+                \caption{\tiny Epoch \epochid.}\label{fig:alignment_imagenet1k_\model_\i}
+            \end{subfigure}
+        }
+        \\
+    }
+
+    \foreach \model in {sparsified,vanilla}{
+        \foreach \i in {20000,40000,60000,80000,95000}{
+            \ifthenelse{\equal{\model}{vanilla} \AND \equal{\i}{95000}}
+            {\renewcommand{\i}{100000}}
+            {}
+            \begin{subfigure}[t]{0.15\textwidth}
+                \myincludegraphics[width=\textwidth]{pic/results/dumps/T5/gradient_density/\model/\i.jpg}
+                \caption{\tiny Step \i.}\label{fig:alignment_T5_\model_\i}
+            \end{subfigure}
+        }
+        \\
+    }
+
+    \resetHeight
+    \newcommand{\modelname}{}
+    \newcommand{\taskname}{}
+    \foreach \task in {imagenet1k,T5}{
+        \foreach \model in {sparsified,vanilla}{
+            \begin{subfigure}[t]{0.15\textwidth}
+                \myincludegraphics[width=\textwidth]{pic/results/dumps/\task/gradient_density/\model/ratio.jpg}
+                \ifthenelse{\equal{\model}{sparsified}}
+                    {\renewcommand{\modelname}{Modified}}
+                    {\renewcommand{\modelname}{Vanilla}}
+                \ifthenelse{\equal{\task}{imagenet1k}}
+                    {\renewcommand{\taskname}{ViT}}
+                    {\renewcommand{\taskname}{T5}}
+                \caption{\tiny \modelname{} \taskname{}}\label{fig:alignment_ratio_\task_\model}
+            \end{subfigure}
+        }
+    }
+    \caption{%
+        Empirical distribution of $\log_{10}$-ed squared values of entries in $g^l$, observed in modified (red) and vanilla (blue) ViT-Base/16 (\cref{fig:alignment_imagenet1k_sparsified_100}-\cref{fig:alignment_imagenet1k_vanilla_299}) and T5 (\cref{fig:alignment_T5_sparsified_20000}-\cref{fig:alignment_T5_vanilla_100000}).
+        The top rows indicate the first layers of the encoder while the bottom row indicates the last layer of the encoder or decoder.
+        The semi-transparent distribution indicates the distribution of \emph{all} entries in $g^l$s, while the opaque distribution indicates that of only entries corresponding to activated neurons. The two distributions are visualized in an unnormalized manner using counts in equal-width bins, but the latter distribution is scaled larger to have better visualization.
+        \cref{fig:alignment_ratio_imagenet1k_sparsified}-\cref{fig:alignment_ratio_T5_vanilla} compute $\log_{10} \frac{\ex[X, l, i, j]{\left(g^l_{K, i, j}\right)^2 \mid \alpha^l_{i, j} > 0}}{\ex[X, l, i, j]{\left(g^l_{K, i, j}\right)^2}}$ from the histograms.
+    }\label{fig:alignment_eff}
+\end{figure}
+
+\subsection{Contribution of Gradient Sparsity and Direct Activation Sparsity}\label{sec:t_exp:contribution}
+
+\cref{theorem:main}, \cref{theorem:main_with_hidden_vectors_and_layernorm} and \cref{theorem:main_with_effective_duplication} indicate that gradient sparsity and activation sparsity together lowerbound the implicit adversarial robustness and flatness, with coefficients of $\left(\sqrt{d} - c\right)^2$ and $\norm{g_V^l}_2^2$ empirically. To provide support for our emphasis on gradient sparsity, we compare $\left(\sqrt{d} - c\right)^2$ and $\norm{g_V^l}_2^2$. 
+Since scaling factors are controlled and tracked only in modified models, only results from modified training are provided.
+
+\begin{figure}
+    \centering
+    \resetHeight{}
+    \begin{subfigure}[t]{0.22\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/layernorm.jpg}
+        \caption{\tiny Change of scaling factors in LayerNorm layers.}\label{figure:layernorm}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.22\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/imagenet1k/from_scratch/sparsified/norm_g_V.jpg}
+        \caption{\tiny Average $\norm{g_V^l}_2$ in modified ViT.}\label{figure:g_V_vit}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.22\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/T5/from_scratch/sparsified/norm_g_V_encoder.jpg}
+        \caption{\tiny Average $\norm{g_V^l}_2$ in encoder layers of modified T5.}\label{figure:g_V_T5_encoder}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.22\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/T5/from_scratch/sparsified/norm_g_V_decoder.jpg}
+        \caption{\tiny Average $\norm{g_V^l}_2$ in decoder layers of modified T5.}\label{figure:g_V_T5_decoder}
+    \end{subfigure}
+    \caption{Contribution of gradient and direct activation sparsity.}\label{figure:contribution}
+\end{figure}
+
+\cref{figure:layernorm} shows an intriguing difference between ViT and T5, i.e., the scaling factors in T5 increase slowly while those in ViT stick to $1$, indicating the latter's tendency to hold still or to decrease. Whether it is because of architectural or subtle implementation differences or the more interesting differences between CV and NLP tasks remains mysterious. Nevertheless, \cref{figure:layernorm} indicates that the coefficients of gradient sparsity in ViT and T5 is at least $\left(0.9 \sqrt{d}\right)^2 = 0.81d \approx 622$ and $\sim \left(1.5 \times 0.9\sqrt{d}\right)^2 \approx 1.8 d \approx 1400$, respectively, most of the time.
+On the other hand, \cref{figure:g_V_vit} suggests in ViT, $\norm{g_V^l}_2$ varies a lot across different layers and steps. In shallow layers it can be larger than $25$ in the late phase of training, surpassing the coefficients of gradient sparsity. But in deep layers, it is close to $1$, indicating gradient sparsity's dominance. As a result, for ViT, sparsity in shallow layers and late training relies on direct activation sparsity while that in deep layers is dominated by gradient sparsity. This observation accounts for the gradient sparsity's weakening in late training as displayed in \cref{fig:validation_full} because at that time the activation sparsity has enough coefficients to compete with gradient sparsity.
+In T5, $\norm{g_V^l}_2$ is extremely small, indicating that sparsity is fully due to gradient sparsity instead of direct activation sparsity.
+
+
+\subsection{Spectral Concentration of $\kkT$}\label{sec:t_exp:spectral_concentration}
+
+The log-scaled histograms of eigenvalues of $\kkT$ at several epochs of modified ViT's entire training on ImageNet-1K are displayed in \cref{fig:eigenvalues_of_kkT}.
+\begin{figure}
+    \centering
+    \resetHeight{}
+    \begin{subfigure}[t]{0.22\textwidth}
+        \centering
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/imagenet1k/from_scratch/sparsified/spectral/near_zero_rate.jpg}
+        \caption{\scriptsize Portion of near-zero ($<10^{-3}$) eigenvalues.}\label{fig:near_zero_rate}
+    \end{subfigure}
+    \foreach \i in {0, 50, 100, 150, 200, 250, 299}{
+        \begin{subfigure}[t]{0.2\textwidth}
+            \centering
+            \myincludegraphics[width=\textwidth]{pic/results/dumps/imagenet1k/from_scratch/sparsified/spectral/eigenvalues_\i.jpg}
+            \pgfmathtruncatemacro{\epochid}{1+\i} 
+            \caption{\scriptsize Epoch $\epochid$.}\label{fig:spectral_epoch_\i}
+        \end{subfigure}
+    }
+    \\
+    \begin{subfigure}[t]{0.3\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{pic/results/dumps/imagenet1k/from_scratch/sparsified/spectral/ratio_full.jpg}
+        \caption{\scriptsize Ratios between upper- and lower-bounds of the majority of eigenvalues.}\label{fig:ratio_full}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.3\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{pic/results/dumps/imagenet1k/from_scratch/sparsified/spectral/ratio.jpg}
+        \caption{\scriptsize Ratios between upper- and lower-bounds of the majority of eigenvalues, focusing on deep layers and the later half of training.}\label{fig:ratio}
+    \end{subfigure}
+    \caption{Empirical spectral distribution of the first weight matrices in MLP blocks, observed in modified ViT-Base/16 trained on ImageNet-1K with PyTorch's recipe \citep{pytorch_recipe}. We consider eigenvalues $< 10^{-3}$ as near-zero eigenvalues. \cref{fig:near_zero_rate} displays the portion of near-zero eigenvalues during training. \cref{fig:spectral_epoch_0}-\cref{fig:spectral_epoch_299} display layerwise distributions of \emph{non-near-zero} eigenvalues at different checkpoints by showing the histograms of $\log_{10} \lambda_i$. The top row indicates Layer $1$ while the bottom one represents Layer $12$.  In these distributions, we annotate the majority, i.e., the shortest interval that covers at least 70\% (approximately one sigma) of eigenvalues, with red vertical lines. We compute the width of the majority and un-log it, illustrating the ratio within which the majority varies in \cref{fig:ratio_full} and \cref{fig:ratio}.
+    }\label{fig:eigenvalues_of_kkT}
+\end{figure}
+It can be seen that there is a portion of near-zero ($< 10^{-3}$) eigenvalues, which are well separated from non-near-zero ones. 
+The portion of near-zero values in \cref{fig:near_zero_rate} is stable and consistent with the theoretical expectation computed by the shape of $K^l$.
+For non-near-zero eigenvalues, shallow layers and the last layer tend to have non-concentrating eigenvalues, but all of them still vary within the ratio of $300$ and most of them vary within the ratio of $100$, despite that there are about $3072 \times \frac{1}{4} = 768$ non-near-zero eigenvalues. For deep layers, the majority varies within a ratio of $80$, and the ratio decreases to about $40$ during the ending phase of training, indicating a tendency toward concentration as the training proceeds.
+
+\begin{figure}
+    \centering
+    \resetHeight{}
+    \begin{subfigure}[t]{0.22\textwidth}
+        \centering
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/T5/from_scratch/sparsified/spectral/near_zero_rate.jpg}
+        \caption{\scriptsize Portion of near-zero ($<10^{-1}$) eigenvalues.}\label{figure:spectral_concentration_t5_near_zero_rate}
+    \end{subfigure}
+    \foreach \i in {10000, 30000, 50000, 70000, 90000}{
+        \begin{subfigure}[t]{0.24\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{pic/results/dumps/T5/from_scratch/sparsified/spectral/eigenvalues_\i.jpg}
+            \caption{\scriptsize Step $\i$.}\label{figure:spectral_concentration_t5_step_\i}
+        \end{subfigure}
+    }
+    \begin{subfigure}[t]{0.24\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{pic/results/dumps/T5/from_scratch/sparsified/spectral/ratio_full.jpg}
+        \caption{\scriptsize Ratios between upper- and lower-bounds of the majority of eigenvalues.}\label{figure:spectral_concentration_t5_ratio_full}
+    \end{subfigure}
+    \caption{Empirical spectral distribution of the first weight matrices in MLP blocks, observed in modified T5 trained on C4. We consider eigenvalues $< 10^{-1}$ as near-zero eigenvalues. \cref{figure:spectral_concentration_t5_near_zero_rate} displays the portion of near-zero eigenvalues during training. \cref{figure:spectral_concentration_t5_step_10000}-\cref{figure:spectral_concentration_t5_step_90000} display layerwise distributions of \emph{non-near-zero} eigenvalues at different checkpoints by showing the histograms of $\log_{10} \lambda_i$. The top row indicates Layer $1$ in the encoder while the bottom one represents Layer $12$ in the decoder.  In these distributions, we annotate the majority, i.e., the shortest interval that covers at least 70\% (approximately one sigma) of eigenvalues, with red vertical lines. We compute the width of majority and un-log it, illustrating ratio within which the majority varies in \cref{figure:spectral_concentration_t5_ratio_full}.
+    }\label{figure:eigenvalues_of_kkT_t5}
+\end{figure}
+As displayed in \cref{figure:eigenvalues_of_kkT_t5}, similar phenomena can be observed in the decoder of T5, even though ViT is closer to an encoder. 
+In contrast, the encoder tends to have non-concentrating eigenvalues, demonstrating another interesting difference between encoders and decoders. Nevertheless, the ratio between extreme non-zero eigenvalues in the encoder is not too large during the training. 
+Another difference with ViT is that eigenvalues are much larger in T5, indicating even stronger drives toward (effective) gradient sparsity through the first terms.
+
+\subsection{Applicability of \cref{theorem:spectral_of_accumulated}}\label{sec:t_exp:anisotropy}
+
+We measure anisotropy $\sqrt{p \trace{\left(T - I\right)^\transpose \left(T - I\right)}}$ and $a$ empirically, as required in \cref{sec:spectral_training}. They are compared to hidden dimension $p=d$ or $n$ to build empirical evidence for application of \cref{theorem:spectral_of_accumulated}.
+
+Since hidden dimension and weight decay have to be altered, the experiment is conducted on a small data set MNIST\citep{mnist} and a tiny pure MLP with 1 input layer, 1 classifier layer and $4$ hidden linear layers with $\relu$, each with hidden dimension $d$ to be altered. Skip connections and LayerNorm layers are equipped. The models are trained using Cross Entropy Loss and SGD, according to the implicit assumption of \cref{theorem:spectral_of_accumulated}. Inputs of the hidden layers and gradients w.r.t. linear layers' outputs are collected as $x_k$ vectors and are used to compute $a$, after which $u_k$s are computed by rescaling. 
+\cref{theorem:spectral_of_accumulated} requires normalization on $x_k$ but it is inefficient to  re-normalize after every step. Observing $a S^p$ is scaling invariant w.r.t. $S^p$ and $a$ essentially captures the expected norm upperbound in $u_k$ in the proof, we directly compute $T^p = a S^p$ without normalizing $S^p$ and compute the expected norms in $u_k$, or $\trace{T^p}$ to illustrate $a$.
+
+\arxivonly{\foreach \mywd in {0.0,0.01,0.1,0.3}{
+\begin{figure}
+    \centering
+    \resetHeight{}
+    \begin{subfigure}{0.25\textwidth}
+        \centering
+        \expandafter\myincludegraphics[width=\textwidth]{pic/results/dumps/mp/lr\_epoch100/wd\mywd/sample.jpg}
+        \caption{\tiny $a / p$ and $\beta / p$ of $X^{1:T} \left(X^{1:T}\right)^\transpose$.}\label{fig:spectral_assumption_sample_\mywd}
+    \end{subfigure}
+    \begin{subfigure}{0.25\textwidth}
+        \centering
+        \expandafter\myincludegraphics[width=\textwidth]{pic/results/dumps/mp/lr\_epoch100/wd\mywd/gradient.jpg}
+        \caption{\tiny $a / p$ and $\beta / p$ of $\Eta^{1:T} \left(\Eta^{1:T}\right)^\transpose$.}\label{fig:spectral_assumption_gradient_\mywd}
+    \end{subfigure}
+    \begin{subfigure}{0.25\textwidth}
+        \centering
+        \expandafter\myincludegraphics[width=\textwidth]{pic/results/dumps/mp/lr\_epoch100/wd\mywd/sample_im_bound.jpg}
+        \caption{\tiny Estimated concentration bound given by \cref{eq:im_bound} on $X^{1:T} \left(X^{1:T}\right)^\transpose$}\label{fig:spectral_assumption_sample_im_bound_\mywd}
+    \end{subfigure}
+    \begin{subfigure}{0.25\textwidth}
+        \centering
+        \expandafter\myincludegraphics[width=\textwidth]{pic/results/dumps/mp/lr\_epoch100/wd\mywd/gradient_im_bound.jpg}
+        \caption{\tiny Estimated concentration bound given by \cref{eq:im_bound} on $\Eta^{1:T} \left(\Eta^{1: T}\right)^\transpose$}\label{fig:spectral_assumption_gradient_im_bound_\mywd}
+    \end{subfigure}
+    \begin{subfigure}{0.25\textwidth}
+        \centering
+        \expandafter\myincludegraphics[width=\textwidth]{pic/results/dumps/mp/lr\_epoch100/wd\mywd/sample_re_bound.jpg}
+        \caption{\tiny Estimated concentration bound given by \cref{eq:re_bound} on $X^{1:T} \left(X^{1:T}\right)^\transpose$}\label{fig:spectral_assumption_sample_re_bound_\mywd}
+    \end{subfigure}
+    \begin{subfigure}{0.25\textwidth}
+        \centering
+        \expandafter\myincludegraphics[width=\textwidth]{pic/results/dumps/mp/lr\_epoch100/wd\mywd/gradient_re_bound.jpg}
+        \caption{\tiny Estimated concentration bound given by \cref{eq:re_bound} on $\Eta^{1: T} \left(\Eta^{1: T}\right)^\transpose$}\label{fig:spectral_assumption_gradient_re_bound_\mywd}
+    \end{subfigure}
+    \caption{When weight decay is \mywd, values of $a / p, \beta / p$ required by \cref{theorem:spectral_of_accumulated} and concentration bounds of tiny pure MLPs with different choice of hidden dimension on MNIST. $a / p$ and $\beta / p$ do not change much during training so for each hidden dimension, values of $a / p$ and $\beta / p$ are averaged across steps to ease presentation. Layers are also averaged for the same reason.} \label{fig:assumptions_of_spectral_concentration_\mywd}
+\end{figure}
+}}
+
+\jmlronly{\foreach \mywd in {0.0,0.3}{
+\begin{figure}
+    \centering
+    \resetHeight{}
+    \begin{subfigure}{0.25\textwidth}
+        \centering
+        \expandafter\myincludegraphics[width=\textwidth]{pic/results/dumps/mp/lr\_epoch100/wd\mywd/sample.jpg}
+        \caption{\tiny $a / p$ and $\beta / p$ of $X^{1:T} \left(X^{1:T}\right)^\transpose$.}\label{fig:spectral_assumption_sample_\mywd}
+    \end{subfigure}
+    \begin{subfigure}{0.25\textwidth}
+        \centering
+        \expandafter\myincludegraphics[width=\textwidth]{pic/results/dumps/mp/lr\_epoch100/wd\mywd/gradient.jpg}
+        \caption{\tiny $a / p$ and $\beta / p$ of $\Eta^{1:T} \left(\Eta^{1:T}\right)^\transpose$.}\label{fig:spectral_assumption_gradient_\mywd}
+    \end{subfigure}
+    \begin{subfigure}{0.25\textwidth}
+        \centering
+        \expandafter\myincludegraphics[width=\textwidth]{pic/results/dumps/mp/lr\_epoch100/wd\mywd/sample_im_bound.jpg}
+        \caption{\tiny Estimated concentration bound given by \cref{eq:im_bound} on $X^{1:T} \left(X^{1:T}\right)^\transpose$}\label{fig:spectral_assumption_sample_im_bound_\mywd}
+    \end{subfigure}
+    \begin{subfigure}{0.25\textwidth}
+        \centering
+        \expandafter\myincludegraphics[width=\textwidth]{pic/results/dumps/mp/lr\_epoch100/wd\mywd/gradient_im_bound.jpg}
+        \caption{\tiny Estimated concentration bound given by \cref{eq:im_bound} on $\Eta^{1:T} \left(\Eta^{1: T}\right)^\transpose$}\label{fig:spectral_assumption_gradient_im_bound_\mywd}
+    \end{subfigure}
+    \begin{subfigure}{0.25\textwidth}
+        \centering
+        \expandafter\myincludegraphics[width=\textwidth]{pic/results/dumps/mp/lr\_epoch100/wd\mywd/sample_re_bound.jpg}
+        \caption{\tiny Estimated concentration bound given by \cref{eq:re_bound} on $X^{1:T} \left(X^{1:T}\right)^\transpose$}\label{fig:spectral_assumption_sample_re_bound_\mywd}
+    \end{subfigure}
+    \begin{subfigure}{0.25\textwidth}
+        \centering
+        \expandafter\myincludegraphics[width=\textwidth]{pic/results/dumps/mp/lr\_epoch100/wd\mywd/gradient_re_bound.jpg}
+        \caption{\tiny Estimated concentration bound given by \cref{eq:re_bound} on $\Eta^{1: T} \left(\Eta^{1: T}\right)^\transpose$}\label{fig:spectral_assumption_gradient_re_bound_\mywd}
+    \end{subfigure}
+    \caption{When weight decay is \mywd, values of $a / p, \beta / p$ required by \cref{theorem:spectral_of_accumulated} and concentration bounds of tiny pure MLPs with different choices of hidden dimension on MNIST. $a / p$ and $\beta / p$ do not change much during training so for each hidden dimension, values of $a / p$ and $\beta / p$ are averaged across steps to ease presentation. Layers are also averaged for the same reason.} \label{fig:assumptions_of_spectral_concentration_\mywd}
+\end{figure}
+}}
+
+\cref{fig:assumptions_of_spectral_concentration_0.0}-\cref{fig:assumptions_of_spectral_concentration_0.3} show anisotropies, norms and spectral concentration bounds computed by effective window sizes under weight decay of \arxivonly{$0.0, 0.01, 0.1$ and $0.3$.}\jmlronly{$0.0$ and $0.3$. More results for weight decay $0.01$ and $0.1$ can be found in the Huggingface repository\footnote{\logrepo{}} for this manuscript.}
+From subfigures (a) and (b) in them, $a / p$ significantly drops as $p$ increases while $\beta / p$ increases but never exceeds $1$. Since in bounds \cref{eq:im_bound} and \cref{eq:re_bound}, $\beta / p$ is only found within the square root, the increase of $\beta / p$ has relatively small effects on the bounds. As a result, in subfigures (c)-(f), the estimated bounds decrease as the hidden dimension increases under all experimented weight decay intensities. 
+Among the two bounds, it is theoretically and empirically observed that \cref{eq:re_bound} based on real parts is more desirable.
+
+As discussed in \cref{sec:spectral_training}, weight decay effectively limits $T$ and stops bounds' divergence. From \cref{fig:assumptions_of_spectral_concentration_0.0} to \cref{fig:assumptions_of_spectral_concentration_0.3} we can see that as weight decay intensifies, the bounds computed by effective windows size drop significantly\arxivonly{, especially in \cref{fig:assumptions_of_spectral_concentration_0.3} where $w=0.3$}.
+Weight decay not only upperbounds $\frac{1}{c}$, which happens at approximately $50,000$ steps in \cref{fig:assumptions_of_spectral_concentration_0.3}, but also decreases $a / p$. Note this is not trivial because $\trace{a S^p}$ is scaling invariant. How weight decay causes this drop is worth investigating in future works.
+When training ViTs, weight decay is usually as large as 0.1 or 0.3 \citep{vit,pytorch_recipe}, so bounds estimated in \arxivonly{\cref{fig:assumptions_of_spectral_concentration_0.1} and }\cref{fig:assumptions_of_spectral_concentration_0.3} suit the practices best, where both $X^{1:T} \left(X^{1:T}\right)^\transpose$ and $\Eta^{1: T} \left(\Eta^{1: T}\right)^\transpose$ have relatively low spectral ratio bounds smaller than $400$ or $100$ when hidden dimension is relatively large, which is a low value even though there are hundreds of dimensions.

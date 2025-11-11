@@ -1,0 +1,789 @@
+%%%%%%%% ICML 2024 EXAMPLE LATEX SUBMISSION FILE %%%%%%%%%%%%%%%%%
+
+\documentclass{article}
+
+% Recommended, but optional, packages for figures and better typesetting:
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{booktabs} % for professional tables
+
+% hyperref makes hyperlinks in the resulting PDF.
+% If your build breaks (sometimes temporarily if a hyperlink spans a page)
+% please comment out the following usepackage line and replace
+% \usepackage{icml2024} with \usepackage[nohyperref]{icml2024} above.
+\usepackage{hyperref}
+
+
+% Attempt to make hyperref and algorithmic work together better:
+\newcommand{\theHalgorithm}{\arabic{algorithm}}
+
+% Use the following line for the initial blind version submitted for review:
+% \usepackage{icml2024}
+
+% If accepted, instead use the following line for the camera-ready submission:
+\usepackage[accepted]{icml2024}
+
+% For theorems and such
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{amsthm}
+
+% if you use cleveref..
+\usepackage[capitalize,noabbrev]{cleveref}
+
+% Custom packages
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage[frozencache,cachedir=minted-cache]{minted}
+% \usepackage[finalizecache]{minted}
+\setminted{breaklines}
+% \usepackage{subcaption}
+\usepackage{amsmath}
+\usepackage{multirow}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% THEOREMS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% Todonotes is useful during development; simply uncomment the next line
+%    and comment out the line below the next line to turn off comments
+%\usepackage[disable,textsize=tiny]{todonotes}
+\usepackage[textsize=tiny]{todonotes}
+
+
+% The \icmltitle you define below is probably too long as a header.
+% Therefore, a short form for the running title is supplied here:
+\icmltitlerunning{Rethinking Momentum Knowledge Distillation in Online Continual Learning}
+
+\begin{document}
+
+\twocolumn[
+\icmltitle{Rethinking Momentum Knowledge Distillation in Online Continual Learning}
+
+% It is OKAY to include author information, even for blind
+% submissions: the style file will automatically remove it for you
+% unless you've provided the [accepted] option to the icml2024
+% package.
+
+% List of affiliations: The first argument should be a (short)
+% identifier you will use later to specify author affiliations
+% Academic affiliations should list Department, University, City, Region, Country
+% Industry affiliations should list Company, City, Region, Country
+
+% You can specify symbols, otherwise they are numbered in order.
+% Ideally, you should not use this facility. Affiliations will be numbered
+% in order of appearance and this is the preferred way.
+\icmlsetsymbol{equal}{*}
+
+\begin{icmlauthorlist}
+\icmlauthor{Nicolas Michel}{paris}
+\icmlauthor{Maorong Wang}{tokyo}
+\icmlauthor{Ling Xiao}{tokyo}
+\icmlauthor{Toshihiko Yamasaki}{tokyo}
+\end{icmlauthorlist}
+
+\icmlaffiliation{paris}{Univ Gustave Eiffel, CNRS, LIGM, F-77454 Marne-la-Vallée, France}
+\icmlaffiliation{tokyo}{The University of Tokyo, 7-3-1 Hongo, Bunkyo-ku, Tokyo 113-8656, Japan}
+
+\icmlcorrespondingauthor{Nicolas Michel}{nicolas.michel@esiee.fr}
+
+% You may provide any keywords that you
+% find helpful for describing your paper; these are used to populate
+% the "keywords" metadata in the PDF but will not be shown in the document
+\icmlkeywords{Machine Learning, ICML}
+
+\vskip 0.3in
+]
+
+% this must go after the closing bracket ] following \twocolumn[ ...
+
+% This command actually creates the footnote in the first column
+% listing the affiliations and the copyright notice.
+% The command takes one argument, which is text to display at the start of the footnote.
+% The \icmlEqualContribution command is standard text for equal contribution.
+% Remove it (just {}) if you do not need this facility.
+
+\printAffiliationsAndNotice{}  % leave blank if no need to mention equal contribution
+% \printAffiliationsAndNotice{\icmlEqualContribution} % otherwise use the standard text.
+
+\begin{abstract}
+    Online Continual Learning (OCL) addresses the problem of training neural networks on a continuous data stream where multiple classification tasks emerge in sequence. In contrast to offline Continual Learning, data can be seen only once in OCL, which is a very severe constraint. In this context, replay-based strategies have achieved impressive results and most state-of-the-art approaches heavily depend on them. While Knowledge Distillation (KD) has been extensively used in offline Continual Learning, it remains under-exploited in OCL, despite its high potential. In this paper, we analyze the challenges in applying KD to OCL and give empirical justifications. We introduce a direct yet effective methodology for applying Momentum Knowledge Distillation (MKD) to many flagship OCL methods and demonstrate its capabilities to enhance existing approaches. In addition to improving existing state-of-the-art accuracy by more than $10\%$ points on ImageNet100, we shed light on MKD internal mechanics and impacts during training in OCL. We argue that similar to replay, MKD should be considered a central component of OCL. The code is available at \url{https://github.com/Nicolas1203/mkd_ocl}.
+\end{abstract}
+
+\section{Introduction}
+\label{submission}
+
+Over the past decade, Deep Neural Networks (DNNs) have demonstrated super-human performance in most vision tasks~\cite{he_deep_2015,redmon2016you,caron2021emerging,khosla_supervised_2020}. Nonetheless, current training procedures rely on strong assumptions. Specifically, during training, it is typically assumed that: 1) available data is independently and identically distributed (i.i.d.), and 2) all training data can be seen multiple times. Contrary to humans, DNNs are known to underperform or fail outright when these assumptions are not satisfied and suffer from Catastrophic Forgetting (CF)~\cite{french1999catastrophic,kirkpatrick_overcoming_2017}. Addressing these challenges, Online Continual Learning (OCL) explores methods to mitigate CF in scenarios that violate assumptions 1) and 2). This is done by learning from a continuous stream of \textbf{non-i.i.d. data} where \textbf{only one pass is allowed}. Formally, OCL considers a sequential learning setup with a sequence $\{\mathcal{T}_1,\cdots,\mathcal{T}_K\}$ of $K$ tasks, and $\mathcal{D}_k=(X_k, Y_k)$ the corresponding data-label pairs. For any value $k_1,k_2 \in \{1,\cdots,K\}$, if $k_1\neq k_2$ then $Y_{k_1}\cap Y_{k_2}=\emptyset$. This scenario is known to be especially difficult and numerous approaches have been proposed to address it~\cite{he_online_2021,guo_online_2022,mai_online_2021,mai_supervised_2021,caccia_new_2022,aljundi_online_2019,guo_dealing_2023, vedaldi_gdumb_2020, aljundi_gradient_2019, koh_online_2023, michel_learning_2023}. In this study, we focus on the Class Incremental Learning scenario \cite{hsu_re-evaluating_2019} for OCL.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{figures/teaser_update_mkd.png}
+    \caption{Overview of our MKD framework when applied to a baseline OCL method. Contrary to taking a snapshot at the end of each task, dynamic teacher address the key obstacles in OCL: teacher quality, teacher quantity, and unknown task boundaries.}
+    \vspace{-.5em}
+    \label{fig:teaser}
+\end{figure}
+
+Among various methods, Experience Replay (ER) approaches~\cite{rolnick_experience_2019,buzzega_dark_2020,khosla_supervised_2020,guo_online_2022,caccia_new_2022,michel_learning_2023,guo_dealing_2023} have demonstrated superior performances in OCL. The main component of this strategy is to store a small portion of previous samples to be used when training on new incoming samples. Current state-of-the-art methods in OCL mostly rely on combining replay strategies and specific loss designs. Unlike ER, only a few applications of Knowledge Distillation (KD) to OCL exist and present various limitations. DER~\cite{buzzega_dark_2020} stores previous sample logits and leverages knowledge distillation with ER but yields low performances. While MMKDDA~\cite{han_online_2022} tackles meta-learning with multi-level KD, it requires knowledge of total number of tasks and is computation intensive. Recently, SDP~\cite{koh_online_2023} proposes a hypo-exponential teacher for feature distillation in addition to ER. Even though SDP does not require task boundaries, it remains computationally expensive and architecture-dependent. In this work, we argue that KD has been rather overlooked by previous studies and can be efficiently adapted to OCL. Indeed, we believe that similarly to ER, KD plays an essential role in OCL and can be seamlessly combined with existing approaches.
+
+% Among different types of methods, replay-based~\cite{wang_comprehensive_2023} approaches have demonstrated the best performances in OCL. The main component of this strategy is to store a small portion of previous samples to be used when training on new incoming samples. Current state-of-the-arts in OCL strongly relies on combining replay strategies and specific loss designs. Such approaches can be described as an extension of Experience Replay (ER)~\cite{rolnick_experience_2019}. DER~\cite{buzzega_dark_2020} stores previous sample logits and leverages knowledge distillation with ER. SCR~\cite{khosla_supervised_2020} combines ER with a Supervised Contrastive loss~\cite{khosla_supervised_2020}. OCM~\cite{guo_online_2022} extends ER with a loss maximizing mutual information between previous and current samples. ER-ACE~\cite{caccia_new_2022} and GSA \cite{guo_dealing_2023} introduce an improved version of the cross-entropy loss with ER. SDP~\cite{koh_online_2023} proposes a hypo-exponential teacher for feature distillation in addition to ER. Other works leverage ER with representation learning~\cite{michel_learning_2023,lin_pcr_2023}. As pointed out in recent work~\cite{koh_online_2023}, Knowledge Distillation (KD) applications to OCL remain limited to DER, SDP and MMKDDA~\cite{han_online_2022}. In this work, we argue that KD has been rather overlooked by previous studies and can be efficiently adapted to OCL. Indeed, we believe that similarly to ER, KD plays a central role in OCL and can be seamlessly combined with existing approaches.
+
+
+Understanding the challenges specific to OCL is the key to explain why KD is not widely adopted in this context. Thus, we identify the three main KD challenges in OCL: Teacher Quality, Teacher Quantity and Unknown Task Boundaries. To overcome these challenges, we propose to take advantage of Momentum Knowledge Distillation (MKD)~\cite{caron2021emerging}. Although MKD is a straightforward strategy, our technical contribution is a procedure which allows us to seamlessly integrate MKD with existing state-of-the-art approaches and show considerable improvements, even when compared to other distillation methods. Additionally, we highlight that utilizing MKD for OCL addresses prominent OCL challenges such as task-recency bias~\cite{chrysakis2023online, mai_supervised_2021}, last layer bias~\cite{liang_new_2023,ahn_ss-il_2021,mai_supervised_2021, wu_large_2019}, feature drift~\cite{caccia_new_2022} and feature discrimination. In summary, the contributions of this paper are as follows:
+\begin{itemize}
+    \setlength\itemsep{0.1em}
+    \item We identify the three main obstacles in applying KD to OCL and leverage MKD as a solution to overcome these challenges;
+    \item We propose a strategy to seamlessly combine MKD with existing approaches and give insights on MKD internal mechanics and impacts during training in OCL;
+    \item We experimentally demonstrate that MKD can significantly enhance the performance of existing methods.
+\end{itemize}
+
+\section{Related Work}
+
+\subsection{KD in CL}
+We review KD strategies in both offline and online CL. We define offline CL as the multi-epoch CL training.
+
+\vspace{-1em}
+\paragraph{KD in Offline CL}
+Knowledge Distillation (KD)~\cite{hinton_distilling_2015} aims at transferring knowledge from a teacher model to a student model. This can be done by aligning their outputs, either in the logits space~\cite{hinton_distilling_2015,romero2014fitnets,zhao2022decoupled} or in the representation space~\cite{aguilar2020knowledge,tian_contrastive_2019}. There are numerous KD applications in offline CL~\cite{ahn_ss-il_2021,douillard2020podnet,rebuffi2017icarl,cha_co2l_2021,simon2021learning,hou2018lifelong,wang2022foster,pham2021dualnet}. A common practice is to save the model at the end of each task, treating it as a snapshot, and use this model as a teacher for distillation during subsequent task trainings~\cite{hou2018lifelong,cha_co2l_2021}. Given that each teacher has task-specific knowledge, SS-IL~\cite{ahn_ss-il_2021} leverages task-wise KD. There are also strategies that incorporate spatial distillation~\cite{douillard2020podnet} or feature compression~\cite{wang2022foster}.
+
+\vspace{-1em}
+\paragraph{KD in Online CL}
+Although KD has been widely adopted in offline CL, its adoption in OCL remains limited. DER~\cite{buzzega_dark_2020} retains logits as well as data in memory for distillation in later stages. MMKDDA~\cite{han_online_2022} addresses meta-learning using multi-scale KD. Recently, SDP~\cite{koh_online_2023} introduced a teacher defined as a hypo-exponential moving average of current model for feature distillation. Nonetheless, these methods have their own constraints. DER exhibits suboptimal performance and scales poorly when increasing memory size; MMKDDA requires task boundaries and is resource-intensive; SDP is architecture dependent and computationally expensive.
+
+\vspace{-0.5em}
+\subsection{Blurry Task Boundaries}
+A common assumption in CL is that task boundaries are distinctly recognized during training. Similar to the work of~\cite{michel_learning_2023}, we refer to this as \textit{clear} task boundaries. In OCL, however, we work on a continuous stream of incoming data, which makes \textit{clear} boundaries unrealistic.
+% since transitioning from one task to the other can happen in a progressive manner.
+In that sense, the concept of \textit{blurry} task boundary setting has emerged in recent studies~\cite{caccia_new_2022,michel_learning_2023,bang_online_2022}. The idea is to have a gradual transition between tasks with an intermediate stage where data from both tasks are available in the stream. In this study, we embrace the perspective of unknown task boundaries, referring to it as the \textit{blurry} setting, in opposition to the traditional \textit{clear} setting as in~\cite{michel_learning_2023}.
+
+\vspace{-0.5em}
+\subsection{Evaluation Metrics}
+We use the accuracy averaged across all tasks after training on the last task to compare the methods under consideration. This metric is commonly known as the final average accuracy \cite{kirkpatrick_overcoming_2017,hsu_re-evaluating_2019}. For highlighting the benefits of our approach for retaining past knowledge, we also take into account the Backward Transfer (BT) metric~\cite{mai_online_2021,wang_comprehensive_2023}.
+
+\section{Challenges of KD in OCL}
+\label{sec:challenges}
+In this section, we discuss unique challenges in OCL that make implementation of KD in this context laborious.
+
+\subsection{Teacher Quality}
+Given that incoming data can be seen by the model only once, it is uncertain whether the model has been fully trained at the end of each task. Consequently, taking a snapshot of the model at the end of the previous task may result in a suboptimal teacher. Such a teacher might hinder the student model's training for the subsequent task, leading to further degradation in the quality of teachers for the next task and an overall decline in performance. This problem is magnified when starting from a randomly initialized model, which is a common practice in OCL. Moreover, a model's performance on a specific task greatly depends on the difficulty of said task. Starting with a difficult task can lead to an especially low-quality teacher, further harming the distillation process.
+
+Examples of such performance gaps are shown in Table~\ref{tab:teacher_quality1} with GSA~\cite{guo_dealing_2023}, a state-of-the-art approach. It can be observed that training offline leads to significantly higher performance than training online. Similarly, beginning training with an easy task induces superior performance on said task when compared with a hard task. Additional insights regarding the importance of teacher quality are given in Table~\ref{tab:teacher_quality2} where we show the impact of two distillation strategies on the final performances ER~\cite{rolnick_experience_2019}. Namely, we combine ER with a low-quality teacher that is a snapshot of the model at the end of the previous task. Similarly, we combine ER with a high-quality teacher that is a snapshot of a model trained for 5 epochs on the previous task. We use the training loss defined in Equation~\eqref{eq:loss_kd} after conducting a small hyper-parameter search on $\lambda$. It can be observed that while the impact of a low-quality teacher is limited, the impact of a higher-quality teacher is significant.
+\begin{table}[t]
+    \centering
+    \caption{Accuracy of GSA~\cite{guo_dealing_2023} on the first task of CIFAR100 M=5k splited in 10 tasks, on different training scenarios. We train for 20 epochs for Offline CL, 1 epoch for Online CL.}
+    \begin{tabular}{l|c}
+        \toprule
+        Training Scenario & Accuracy (\%) \\
+        \midrule
+        Offline CL       &     81.8 \\
+        Online  CL       &     61.0 \\
+        \midrule
+        Online CL, Hard task    &   51.6  \\
+        Online CL, Easy task    &   72.1   \\
+        \bottomrule
+    \end{tabular}
+    \vspace{-1em}
+    \label{tab:teacher_quality1}
+\end{table}
+
+\begin{table}[t]
+    \centering
+    \caption{Accuracy of ER~\cite{rolnick_experience_2019} using a low-quality teacher (snapshot of the model at the end of previous task), and a high-quality teacher (snapshot of a model trained for 5 epochs on previous task), on CIFAR100 M=5k splited in 2 tasks. We use $\lambda=0.01$ after conducting a small hyper-parameter search. Means and standard deviations over 5 runs are reported.}
+    \begin{tabular}{l|c}
+        \toprule
+        Method & Accuracy (\%) \\
+        \midrule
+        ER                      &     49.0$\pm$4.6\\ 
+        ER+low\ qual.\ teach.   &     50.7$\pm$4.3\\
+        ER+high\ qual.\ teach.  &     54.6$\pm$3.3\\
+        \bottomrule
+    \end{tabular}
+    \vspace{-1em}
+    \label{tab:teacher_quality2}
+\end{table}
+
+
+\subsection{Teacher Quantity}
+One strategy for applying KD to CL requires taking a snapshot of the model at the end of each task~\cite{rannen2017encoder, ahn_ss-il_2021, hou2018lifelong}. Each snapshot then serves as a teacher for the respective task and is incorporated into the distillation loss. Naturally, this requires storing a copy of the model per task which can be problematic for a large number of tasks, even in standard CL. We emphasize that memory consumption is crucial to OCL because it is presumed that only a small fraction of data can be retained, and all other incoming data is discarded post-usage. Dealing with a growing quantity of teachers is unrealistic and contradicts the implicit storage constraint of the online setup.
+
+To circumvent the issue of continuously increasing teacher numbers, one might consider using just the snapshot from the most recent task as a teacher. However, this solution is also unsatisfactory as this teacher should encapsulate the knowledge from all previous tasks, which is especially complex for long task sequences.
+
+\subsection{Unknown Task Boundaries}
+Most distillation strategies in CL rely on task boundaries information to select the best teachers for distillation. In offline CL, this information is easily available. However in OCL, pinpointing the exact moment of task change is not guaranteed. Figure~\ref{fig:knowing_task_boundaries} illustrates a more realistic scenario where transitions occur progressively, making the determination of the ideal snapshot moment challenging. Choosing a suboptimal teacher can also compromise the quality of distillation.
+
+\begin{figure}[t!]
+\begin{center}
+\centerline{\includegraphics[width=0.7\columnwidth]{figures/blurrynotblurry.png}}
+\caption{Illustration of the \textit{blurry} boundary setting (bottom row) in opposition to the \textit{clear} boundary setting (top row). Detecting task change in the case of \textit{blurry} is not trivial.}
+\vspace{-1em}
+\label{fig:knowing_task_boundaries}
+\end{center}
+\end{figure}
+
+\section{Methodology}
+\subsection{Motivations}
+
+As mentioned in previous sections, KD has been underutilized in OCL. The main reason is that most KD strategies draw inspiration from offline CL where the teacher is typically frozen at the conclusion of the previous task. However, relying on a frozen teacher in OCL can be problematic due to unknown task boundaries and concerns regarding teacher quality. Moreover, a static teacher from the previous task will set an upper limit on the student's learning potential. Consequently, the student is unable to enhance performance on the previous task while mastering the current one. In other words, a simple teacher discourages backward transfer.
+
+To tackle this limitation, we propose the use of an evolving teacher. Contrary to a fixed teacher, the weights of an evolving teacher are updated throughout the training process. This approach allows the teacher to continually improve and not hinder the student's progression. A student learning from an evolving teacher can consistently refine their performance on preceding tasks, thereby promoting backward transfer. Additionally, this kind of teacher eliminates the need for the knowledge of task boundaries. In this paper, we take advantage of an Exponential Moving Average (EMA) of the current model as the evolving teacher and design a novel MKD teacher-dependent weighting scheme for adapting MKD to OCL. While EMA can efficiently solve previously described challenges, its applications to OCL is still in its infancy.
+
+% The goal of our work is to design a  The obtained strategy should be applicable to any model with few adaptations. Therefore, using a fixed model presents two main limitations. 1) As discussed in Challenges of KD in OCL, deciding when to take the snapshot for saving the teacher is non-trivial. 2) When using the previous model at the end of task as a teacher, this fixed teacher acts as an upper-bound to the student's learning. It is unlikely for the student to surpass the teacher on previous task. Since the teacher cannot improve anymore, performance on previous task will very likely decrease. In other words, a fixed teacher discourages backward transfer.
+
+\subsection{Momentum Knowledge Distillation}
+
+We propose a new scheme to leverage Momentum Knowledge Distillation~\cite{he_momentum_2020} (MKD) with an evolving teacher. In this distillation strategy, the teacher architecture mirrors that of the student and its weights are computed as an Exponential Moving Average of the student parameters. The EMA weights are computed online according to the update parameters $\alpha$ such that:
+\begin{equation}
+    \theta_{\alpha}(t)=\alpha*\theta(t) + (1-\alpha)*\theta_{\alpha}(t-1),
+\end{equation}
+where $\theta(t)$ represents the student's model parameters at time $t$. The teacher, parameterized by $\theta_{\alpha}$, is represented as $\mathcal{T}_{\alpha}$.
+% MKD can overcome OCL challenges since it allows to 1) have precise control over the stability-plasticity trade-off while training 2) take advantage of an evolving teacher.
+
+\subsection{Rethinking MKD}
+\begin{figure}[t!]
+\begin{center}
+\centerline{\includegraphics[width=0.6\columnwidth]{figures/alpha_impact.png}}
+\caption{Impact of $\alpha$ on the plasticity-stability trade-off. Lower $\alpha$ values imply a stable teacher with high performances on old tasks. Higher $\alpha$ implies a plastic teacher, with high performances on new tasks.}
+\vspace{-1em}
+\label{fig:plasticity_stability_alpha}
+\vspace{-0.2cm}
+\end{center}
+\end{figure}
+
+\paragraph{Plasticity-stability Control} When designing CL methods, it is common to address the plasticity-stability trade-off~\cite{wang_comprehensive_2023}. Usually, the application of distillation augments the model's stability at the expense of its plasticity. Using Momentum Knowledge Distillation gives a precise control over this trade-off through the parameter $\alpha$. A lower value of $\alpha$ would make the teacher update slower and remember longer timelines, making it retain longer timelines but offering scant knowledge on the current task. A high value of $\alpha$ would help the student learn the current task but with limited insight of previous tasks. In other words, a higher value of $\alpha$ emphasizes plasticity over stability whereas a lower value of $\alpha$ encourages stability over plasticity. This plasticity-stability control characteristic is illustrated in Figure~\ref{fig:plasticity_stability_alpha}. We make concrete usage of this property by designing a teacher-dependent weighting scheme in our model learning.
+
+\paragraph{Model Learning}
+We formulate our loss term using an EMA teacher as described in equation \ref{eq:loss_kd}.
+\begin{equation}
+\begin{aligned}
+\label{eq:loss_kd}
+\mathcal{L}(X,Y)=&\mathcal{L}_{CE}(X,Y) + \\ 
+                    &\lambda_\alpha * KL(\mathcal{T}_{\alpha}(X)/\tau, S(X)/\tau),
+\end{aligned}
+\end{equation}
+where $\mathcal{L}_{CE}$ the Cross-Entropy function, $\lambda_\alpha$ a weighting hyper-parameter depending on $\alpha$, $S$ the student model, $(X,Y)$ the data-label pairs, $KL$ the Kullback–Leibler divergence and $\tau$ the distillation temperature. We further introduce multiview distillation, by making use of a data augmentation procedure $Aug(.)$ and propose to minimize $\mathcal{L}_{MKD}$ defined in Equation~\ref{eq:loss_mkd}.
+%
+\begin{equation}
+\label{eq:loss_mkd}
+\begin{aligned}
+\mathcal{L}_{MKD}(X,Y)=& \mathcal{L}_{CE}(\hat{X},Y) \\ + &\frac{\lambda_\alpha}{2}KL(\mathcal{T}_{\alpha}(X), S(\hat{X}))\\ + & \frac{\lambda_\alpha}{2}KL(\mathcal{T}_{\alpha}(\hat{X}), S(\hat{X})),
+\end{aligned}
+\end{equation}
+where $\hat{X} = Aug(X)$.
+
+The only hyper-parameter is $\alpha$. In Section~\ref{sec:discussion}, we give details on how to efficiently choose $\alpha$ and how to express the teacher-dependent weighting parameter $\lambda_\alpha$. 
+% Having a small number of hyper-parameters is essential in OCL since incoming data cannot be stored, making expensive hyper-parameter search unrealistic.
+Additionally, the simplicity of this process allows for seamless adaptation to existing methods. We provide a PyTorch-like~\cite{paszke2019pytorch} pseudo-code that outlines the strategy for integrating our proposed MKD into other training procedures, as can be found in Algorithm~\ref{code:pseudo_code}.
+
+\begin{algorithm}[t]
+\tiny
+\begin{minted}{python}
+for x, y in dataloader:
+  # Baseline loss
+  loss_baseline = criterion_baseline(model, x, y)
+  loss = loss_baseline
+  
+  # Proposed loss
+  x_aug = transform(x)  # data augmentation
+  l_stu1 = model(x) # logits student
+  l_stu2 = model(x_aug) # logits studenwt
+  l_tea = teacher(x_aug) # logits teacher
+  loss_ce = cross_entropy(x_aug, y)
+  loss_d1 = kl_div(softmax(l_stu1/t), softmax(l_tea/t)) # temperature t 
+  loss_d2 = kl_div(softmax(l_stu2/t), softmax(l_tea/t)) 
+  loss_dist = (loss_d1 + loss_d2)/2  # Eq. 3
+  loss += loss_ce + lam*loss_dist
+  
+  optim.zero_grad()
+  loss.backward()
+  optim.step()
+  update_ema()
+\end{minted}
+ \caption{PyTorch-like pseudo-code of our loss to integrate to other baselines.}
+\label{code:pseudo_code}
+\end{algorithm}
+
+In this pseudo-code, we have omitted a memory buffer for simplicity. Nonetheless, the training procedure remains consistent, using a batch combining stream and memory data.
+
+
+\paragraph{Model Estimation}
+As introduced in the plasticity-stability control section, the knowledge of the teacher and student pertains to different tasks. The student is inclined towards the current task whereas the teacher excels in past tasks. Solely relying on the teacher's or student's weights for inference may not yield optimal performances. Consequently, we introduce a new model estimation strategy that necessitates minimal extra computation. We compute the final model parameters $\theta^\star$ as the average of teacher and student weights such that $\theta^\star=\frac{\theta_S + \theta_T}{2}$, where $\theta_S$ and $\theta_T$ denote the parameters of the student and teacher, respectively. A similar model estimation strategy has been employed in conventional image classification~\cite{tarvainen2017mean}. We show in Section~\ref{sec:ablation_studies} that this strategy can enhance performance.
+
+\section{Experiments}
+\subsection{Implementation Details}
+For each method, we use random retrieval and reservoir sampling~\cite{vitter_random_1985} for memory management. We use a full ResNet18~\cite{he_deep_2015} (untrained) for every method. For all baselines, we perform a small hyperparameter search on CIFAR100, M=5k, applying the determined parameters across other configurations. More details are given in the Appendix. We use the same hyperparameters when incorporating our loss. Throughout the training process, the streaming batch size is set to 10, and data retrieval from memory is capped at 64. Data augmentation includes random flip, grayscale, color jitter, and random crop. The \textit{blurry} datasets are created following the code given in~\cite{michel_learning_2023} with a scale of 500. Some methods require task boundary inference to be adapted to the \textit{blurry} setting, which is detailed in Appendix. The temperature $\tau$ designated for KD is $4$. For MKD, we use $\alpha=0.01$ and $\lambda_\alpha=5.5$ accordingly for every method. For more details regarding experiments, please refer to the Appendix.
+
+\subsection{Baselines}
+To show the efficiency of our proposed approach, we integrate our approach as described in our pseudo code into several baselines and the state-of-the-art methods in OCL.\\
+\textbf{ER}~\cite{rolnick_experience_2019}: A basic memory based method leveraging a Cross-Entropy loss and a replay buffer. \textbf{DER++}~\cite{buzzega_dark_2020}: A replay-based approach doing distillation of old stored logits with using task boundaries. \textbf{ER-ACE}~\cite{caccia_new_2022}: A replay-based method using an Asymmetric Cross Entropy to overcome feature drift. \textbf{DVC}~\cite{gu_not_2022}: A replay-based approach leveraging consistency between image views in addition to minimizing cross entropy. \textbf{OCM}~\cite{guo_online_2022}: A replay-based method maximizing mutual information between old and new samples representation. \textbf{GSA}~\cite{guo_dealing_2023}: A replay-based method dealing with cross-task class discrimination with a redefined loss objective using Gradient Self Adaptation. \textbf{PCR}~\cite{lin2023pcr}: A replay-based method leveraging a proxy-based contrastive loss for OCL. \textbf{Temp. Ens.}~\cite{soutif--cormerais_improving_2023} leverages temporal ensembles in OCL. Specifically, the authors use the EMA of the current model for inference, although it is not used for distillation. We report the performances of Temp. Ens. combined with ER for comparison. \textbf{SDP}~\cite{koh_online_2023} uses a hypo-exponential evolving teacher. We report the performances of SDP combined with ER for comparison.
+
+For reproducibility, we re-implemented the methods mentioned above and make the code public.
+
+\subsection{Experimental Results}
+% We experimented in both \textit{clear} and \textit{blurry} settings.
+
+\paragraph{Clear Boundary Setting}
+To demonstrate the effectiveness of our approach, we applied the procedure described to all the considered baselines and compared the performances. Average accuracy at the end of training for the \textit{clear} setting is displayed in Table~\ref{tab:clear_setting_all}. It can be observed that for most of the considered methods, datasets and memory sizes, applying our procedure improves performance. In most cases, this gain in performance is significant. Specifically, the combinations \textit{GSA + ours} and \textit{OCM + ours} have the potential to surpass the current state-of-the-art methods. Additionally, the standard deviation is also significantly reduced when applying our approach, showing that the use of a momentum teacher can help stabilizing the training procedure. More interestingly, the introduction of our distillation procedure can enhance performance, even if distillation is already incorporated in the method (e.g., \textit{DER++}).
+
+\input{tables/all_acc_clear.tex}
+\input{tables/all_acc_blurry.tex}
+
+\paragraph{Blurry Boundary Setting}
+To further demonstrate the capabilities of MKD, we also conducted experiments with \textit{blurry} task boundaries. Average accuracy at the end of training is shown in Table \ref{tab:clear_setting_all}. However, we did not implement GSA in this context since it requires knowledge of the exact class-task relationships and is not easily adaptable to this setup. Additionally, we inferred task boundaries for OCM as it is required to apply the method. Details on how the task boundaries are inferred in this setup are given in Appendix. Similar to the \textit{clear} boundary setting, incorporating MKD as per our procedure can significantly enhance performance. This performance gain becomes even more pronounced when the original method experiences a drop in effectiveness due to the challenging nature of the setting. For example, OCM performances on CIFAR100 M=5k drop from $41.87\%$ to $38.14\%$ while \textit{OCM + ours} performances remain stable around $51.4\%$.
+
+\paragraph{Comparison with SDP}
+SDP~\cite{koh_online_2023} uses a hypo-exponential evolving teacher, akin to our approach. While initially proposed as a standalone method, SDP can be combined with existing techniques. We integrated SDP with \textit{ER} and \textit{GSA}, and results in Table~\ref{tab:clear_setting_all} reveal that, although SDP enhances \textit{ER}, \textit{ER + SDP} performs less effectively than \textit{ER + ours}. Additionally, for \textit{GSA}, the inclusion of SDP leads to decreased performance, confirming MKD's superiority over SDP. Computationally, as SDP operates in representation space, it demands more resources compared to MKD, which is computed in logit space. Further details on the computational constraints are provided in the Appendix. The introduction of SDP has a more substantial impact on the time consumption of \textit{ER} and \textit{GSA} than MKD.
+% ~\footnote{https://github.com/yonseivnl/sdp}
+
+\subsection{Ablation Studies}
+\label{sec:ablation_studies}
+
+\paragraph{Impact of the Final Weight Estimation}
+To demonstrate the impact of averaging weights from the teacher and the student, we experimented using either the teacher or the student exclusively for inference. Results are displayed for \textit{ER} on Table \ref{tab:ablation}. In both cases, employing solely the student or the teacher results in inferior performance compared to using their averaged weights, with a minimum drop in accuracy of $0.5\%$. Additionally, the teacher performs worse than the student, which can be due to the fact that for remembering enough from past tasks, the teacher update must be quite slow. In that sense, the teacher might perform worse overall but improve the students' stability.
+
+\begin{table}[t]
+    \centering
+    \caption{Final average accuracy (\%) on CIFAR100, \textit{clear} boundary setting, for \textit{ER + ours} and varying memory sizes. \textit{Student} corresponds to the student performance and \textit{teacher} to the teacher performance. \textit{no aug} corresponds using the distillation loss with a single view as defined in Section~\ref{sec:ablation_studies}. Mean and standard deviations over 5 runs are displayed.}
+    \resizebox{0.9\columnwidth}{!}{
+    \begin{tabular}{l|lll}
+        \multicolumn{1}{c|}{Dataset}         & \multicolumn{3}{|c}{CIFAR100} \\
+        \hline
+        \multicolumn{1}{c|}{Memory Size M}   &  \multicolumn{1}{|c}{1000} &   \multicolumn{1}{c}{2000}    &   \multicolumn{1}{c}{5000}    \\ 
+        \hline\hline
+        ER + ours       &   38.5{\scriptsize±0.5} &   45.2{\scriptsize±0.2} &   52.1{\scriptsize±0.5} \\       
+        ER + ours (student)      &   37.7{\scriptsize±0.7}       & 44.7{\scriptsize±0.5}      &  51.2{\scriptsize±0.6} \\          
+        ER + ours (teacher)     &   37.2{\scriptsize±0.7}       & 43.0{\scriptsize±0.8}       &  49.4{\scriptsize±0.6}  \\          
+        ER + ours (student, single view)       &   34.8{\scriptsize±0.6}      & 41.8{\scriptsize±0.6}       &  47.9{\scriptsize±0.4}  \\    
+        \hline
+    \end{tabular}}
+    \label{tab:ablation}
+\end{table}
+
+\paragraph{Impact of Multiview Distillation}
+As described in the Model Learning section, we employ both augmented and raw images (two views) in our distillation process. In Table~\ref{tab:ablation} we show the performance of \textit{ER + ours} when trained using a single view. Namely, minimizing $\mathcal{L}(X,Y)=\mathcal{L}_{CE}(\hat{X},Y) + \lambda_\alpha KL(\mathcal{T}_{\alpha}(\hat{X}), S(\hat{X}))$. The results indicate that employing this multiview distillation strategy has a significant impact, yielding at least a $2.9\%$ points boost in accuracy.
+
+\section{Discussions}
+\label{sec:discussion}
+In this section, we analyze the working mechanisms of MKD for OCL.
+\vspace{-1em}
+% \subsection{Choosing $\alpha$ and expressing $\lambda_\alpha$}
+% In the following we give guidelines on how to select $\alpha$ and express $\lambda_\alpha$.
+\subsection{Choosing $\alpha$}
+Since $\alpha$ directly influences the teachers' knowledge, it has a significant impact on performances. Finding the best value of $\alpha$ can be done by grid search. Figure \ref{fig:lambda_alpha1} shows the final average accuracy for various values of $(\alpha,\lambda_\alpha)$, in log scale for \textit{ER + Ours} on CIFAR100 M=5K. To avoid computation-intensive grid search, we show in the subsequent section that $\alpha$ can be selected from a broad range, provided the relation between $\alpha$ and $\lambda_\alpha$ is maintained.  
+\vspace{-1em}
+\subsection{Expressing $\lambda_\alpha$}
+Figure~\ref{fig:lambda_alpha2} illustrates a strong interdependence between $\alpha$ and $\lambda_\alpha$. The optimal value for $\lambda_\alpha$ given $\alpha$ follows the formula $\lambda_\alpha = a*\log_{10}(\alpha) + b$, with $a=9/2$ and $b=29/2$. Notably, lower values of $\alpha$ correspond to lower values of $\lambda$. This correlation arises from the fact that a larger $\alpha$ leads to a teacher closely resembling the student, resulting in a low distillation loss and a higher $\lambda_\alpha$ for compensation.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.62\linewidth]{figures/alpha_v2.png}
+\caption{Impact of $\lambda_\alpha$ and $\alpha$ on the final performances or \textit{ER} on CIFAR100 M=5k, \textit{clear} setting.}
+\label{fig:lambda_alpha1}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.62\linewidth]{figures/alpha3.png}
+    \caption{Relation between $\log{\alpha}$ and and the best corresponding $\lambda_\alpha$ value, $\lambda_{best}$. The displayed relation is linear.}
+    \label{fig:lambda_alpha2}
+\end{figure}
+\vspace{-1em}
+\subsection{Reducing Task-Recency Bias}
+A common issue in Continual Learning is the task-recency bias~\cite{chrysakis2023online, mai_supervised_2021}. This is the problem of over-predicting the classes belonging to the last task seen. Figure~\ref{fig:confusion_matrices} displays confusion matrices at the end of training for considered baselines, with and without MKD. While most baselines suffer from task-recency bias at the end of training, it can be observed qualitatively that adding MKD reduces this bias by diminishing the amount of last task false positives.
+\vspace{-1em}
+\subsection{Reducing Last Layer Bias}
+Another identified issue when training with Cross Entropy is the presence of bias in the last Fully Connected (FC) layer~\cite{liang_new_2023,ahn_ss-il_2021,mai_supervised_2021, wu_large_2019}. To demonstrate the presence of the last FC bias, one can make use of the Nearest Class Mean (NCM) trick~\cite{mai_supervised_2021} with intermediate representations given by the model. Since we work with memory based approaches, we compare the model's performance using logits with performances obtained by training an NCM classifier using intermediate representation of memory data at the end of training. In other words, we drop the last FC layer and fine-tune with a simple NCM classifier on memory. The NCM trick yields substantial performance improvement in the presence of a pronounced last layer bias, as indicated in Table~\ref{tab:NCM_trick}. Across various baselines, with and without MKD, the NCM trick consistently enhances performances, underscoring the influence of a strong last FC bias. Intriguingly, when our approach is applied to these baselines, leveraging the NCM actually leads to performance degradation. This suggests a neutralization of the last FC layer bias, possibly due to the distillation loss occurring in the logit space, where the last FC layer is tightly constrained.
+\begin{table}[t]
+    \centering
+    \caption{Final Average Accuracy (\%) on CIFAR100 M=1k of several baselines, with and without using the NCM trick. Logits Acc. refers to the accuracy of the model using predicted logits while NCM Acc. refers to NCM accuracy trained on intermediate representations from memory at the end of training.}
+    \resizebox{0.62\columnwidth}{!}{
+    \begin{tabular}{l|ll}
+        Method      & Logits Acc. & NCM Acc. \\
+        \hline\hline
+        ER~\text{[NeurIPS`19]}              &   23.0{\scriptsize±0.8}    &   29.0{\scriptsize±0.3} ($\uparrow$6.0) \\
+        ER + ours                           &   38.5{\scriptsize±0.5}    &   31.5{\scriptsize±0.5} ($\downarrow$7.0)           \\
+        DER++~\text{[NeurIPS`20]}           &   22.8{\scriptsize±1.8}    &   26.6{\scriptsize±3.4} ($\uparrow$3.8)           \\
+        DER++ + ours                        &   32.1{\scriptsize±0.5}    &   28.7{\scriptsize±1.4} ($\downarrow$3.4)           \\
+        ERACE~\text{[ICLR`22]}              &   27.4{\scriptsize±0.6}    &   28.1{\scriptsize±0.7} ($\uparrow$0.7)           \\
+        ERACE + ours                        &   37.0{\scriptsize±0.7}    &   34.2{\scriptsize±0.2}  ($\downarrow$2.8)           \\
+        GSA~\text{[CVPR`23]}                &   29.7{\scriptsize±1.5}    &   32.6{\scriptsize±1.6} ($\uparrow$2.9)           \\
+        GSA + ours                          &   40.1{\scriptsize±1.0}    &   36.2{\scriptsize±0.5} ($\downarrow$3.9)          \\
+        \hline
+    \end{tabular}}
+    \label{tab:NCM_trick}
+\end{table}
+\vspace{-1em}
+\subsection{Reducing Feature Drift}
+When training in OCL, one potential issue is the feature drift~\cite{caccia_new_2022}. Feature drift occurs when changing tasks causes the representation of old classes to conflict with the representations of new classes, inducing large changes in past representations. Experimentally, we demonstrate that MKD can inherently reduce feature drift. Figure~\ref{fig:feature_drift} shows the feature drift $d_t=\vert\vert f_{\theta_t}(X_{old})-f_{\theta_{t+1}}(X_{old})\vert\vert_2$, where $X_{old}$ are memory images of \textit{old} classes and $f_{\theta_t}$ is the model parameterized by $\theta$ from which we removed the last FC layer. As we can see, using MKD greatly reduces feature drift throughout training. For \textit{ER + ours} (MKD), the feature drift is not only lower but also more stable.
+
+\begin{figure}[t]
+    \centering
+    \begin{subfigure}[c]{0.6\linewidth}
+    \includegraphics[width=0.97\linewidth]{figures/feature_drift.png}
+    \end{subfigure}
+    \begin{subfigure}[c]{0.15\linewidth}
+        \includegraphics[width=0.97\linewidth]{figures/fd_legend.png}
+    \end{subfigure}
+    \caption{Feature drift $d_t$ of \textit{ER} and \textit{ER + ours} (MKD) on CIFAR100 M=5k.}
+    \label{fig:feature_drift}
+\end{figure}
+\vspace{-1em}
+\subsection{Improving Feature Discrimination}
+Feature discrimination is a desirable property of any learning process. Specifically in Continual Learning, it is important to obtain distinctive features at the end of training. In Figure~\ref{fig:tsne}, we present the t-SNE results on memory data at the end of training of \textit{ER} and \textit{ER + ours} (MKD). Clearly, the obtained representation using MKD is significantly more discriminative than the one obtained without MKD. Even though our distillation loss is proposed in the logit space, it can still greatly improve learned feature quality.
+
+\begin{figure}[t]
+\centering
+\begin{subfigure}{0.43\linewidth}
+    \includegraphics[width=0.97\linewidth]{figures/tsne_er.png}
+    \caption{ER}
+    \label{fig:first}
+\end{subfigure}
+\begin{subfigure}{0.43\linewidth}
+    \includegraphics[width=0.97\linewidth]{figures/tsne_er_ema.png}
+    \caption{ER + ours (MKD)}
+    \label{fig:third}
+\end{subfigure}
+\begin{subfigure}{0.12\linewidth}
+    \includegraphics[width=0.97\linewidth]{figures/caption_tsne.png}
+    \label{fig:sec}
+\end{subfigure}
+\caption{(a) t-SNE of memory data at the end of training \textit{ER} on CIFAR10, M=1k. (b) t-SNE of memory data at the end of training \textit{ER + ours} (MKD) on CIFAR10, M=1k.}
+\label{fig:tsne}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.9\linewidth]{figures/confusions.png}
+    \caption{Confusion matrix on the evaluation set at the end of training on CIFAR100 with M=1K for considered baselines. Classes are shown in training order. The top row is the confusion matrices for baselines without the MKD procedure. The bottom row is the confusion matrices when adding MKD.}
+    \label{fig:confusion_matrices}
+\end{figure}
+% \vspace{-1em}
+
+\begin{table}[t]
+    \centering
+    \caption{Backward Transfer (\%) at the end of training on CIFAR100, M=5k and Imagenet100, M=10k for several baselines. Higher is better. Means over 5 runs are displayed.}
+    \resizebox{0.62\columnwidth}{!}{
+    \begin{tabular}{l|ll}
+        Method         &  CIFAR100 & ImageNet100 \\
+        \hline\hline
+        ER             &     -16.7{\scriptsize±1.2 }& -17.5{\scriptsize±1.5 }\\
+        ER + ours      &       +\textbf{8.15{\scriptsize±0.8}}  & -\textbf{1.3{\scriptsize±2.3}} \\
+        DER++          &     -27.5{\scriptsize±3.4 } & -18.9{\scriptsize±2.5 }\\
+        DER++ + ours   &      -\textbf{10.4{\scriptsize±5.6}}    & -\textbf{14.4{\scriptsize±2.5}} \\
+        GSA            &     -4.9{\scriptsize±1.2 }  & -17.0{\scriptsize±1.3 }\\
+        GSA + ours     &      -\textbf{2.5{\scriptsize±3.1}}   & -\textbf{15.5{\scriptsize±1.0}} \\
+        \hline
+    \end{tabular}}
+    \label{tab:backward_tf}
+\end{table}
+
+\subsection{Improving Backward Transfer}
+As the plasticity-stability dilemma is central in CL, a variety of metrics have been designed to adequately measure either plasticity or stability~\cite{mai_online_2021, wang_comprehensive_2023}. We empirically found that leveraging KD in OCL helps retain past information and enhances the model's stability during training. To showcase this effect, we look at the BT of considered baselines, with and without MKD. Table~\ref{tab:backward_tf} shows the BT at the end of training. In every scenario, our method improves BT. Specifically, for \textit{ER}, leveraging MKD can yield a positive BT, implying that the models keep improving on old classes even after a task change. This property is especially important in OCL because the student is unlikely to have fully learned the past task when training on the current task.
+
+
+\section{Conclusions}
+In this paper, we studied the problem of Online Continual Learning from the perspective of Knowledge Distillation. While KD has been widely studied in the context of offline continual learning, it remains under-used in OCL. To understand the current state of KD in OCL, we identified OCL-specific challenges for applying KD: Teacher Quality, Teacher Quantity, and Unknown Task Boundaries. Moreover, we proposed to address these challenges by designing a new distillation procedure based on Momentum Knowledge Distillation. This approach benefits from a powerful plasticity-stability control for OCL and employs an evolving teacher to overcome the previously introduced challenges. We experimentally demonstrated the efficiency of our approach and achieved more than $10\%$ points improvement over state-of-the-art methods on several datasets. Additionally, we provided insightful explanations on how using MKD can help solve multiple OCL known issues: task-recency bias, last layer bias, feature drift, feature discrimination, and backward transfer. Our approach is architecture-independent and computationally efficient. In conclusion, we have shed new light on distillation for OCL and advocate for its efficiency and its potential as a central component for addressing OCL.
+
+\section*{Acknowledgments}
+This work has received support from Agence Nationale de la Recherche (ANR) for the project APY, with reference ANR-20-CE38-0011-02 and was granted access to the HPC resources of IDRIS under the allocation 2022-AD011012603 made by GENCI. This work benefited from an international mobility grant from Paris Est Sup which enabled the collaboration between the Gustave Eiffel University and the University of Tokyo.
+
+\section*{Impact Statement}
+This paper presents work whose goal is to advance the field of Machine Learning. There are many potential societal consequences of our work, none which we feel must be specifically highlighted here.
+
+\bibliography{references}
+\bibliographystyle{icml2024}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% APPENDIX
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\appendix
+\onecolumn
+\section{Additional Experiments}
+
+\subsection{Task-Recency Bias}
+
+In the main paper, we discussed how our approach addresses the task-recency bias in OCL for only a limited number of methods due to space constraints. In Figure~\ref{fig:supp_confusion_matrices}, we share confusion matrices for every considered method from the main paper.
+
+\begin{figure*}[ht]
+    \centering
+    \includegraphics[width=1.0\linewidth]{figures/confusions_all.png}
+    \caption{Confusion matrix on the evaluation set at the end of training on CIFAR100 with M=1K for considered baselines. Classes are shown in the same order of those during training such that left columns of confusion matrices correspond to first classes seen during training. The top row presents the confusion matrices for baselines without the MKD procedure. The bottom row is the confusion matrices when adding MKD.}
+    \label{fig:supp_confusion_matrices}
+\end{figure*}
+
+\subsection{Last layer Bias}
+In Table~\ref{tab:all_ncm_trick} we share extra experiments regarding the impact of the NCM trick. Specifically, OCM and DVC are not included in the main paper.
+\begin{table}[ht]
+    \centering
+    \resizebox{0.5\columnwidth}{!}{
+    \begin{tabular}{l|ll}
+        Method      & Logits Acc. & NCM Acc. \\
+        \hline\hline
+        ER~\text{[NeurIPS`19]}              &   23.0{\scriptsize±0.8}    &   29.0{\scriptsize±0.3} ($\uparrow$6.0) \\
+        ER + ours                           &   38.5{\scriptsize±0.5}    &   31.5{\scriptsize±0.5} ($\downarrow$7.0)           \\
+        DER++~\text{[NeurIPS`20]}           &   22.8{\scriptsize±1.8}    &   26.6{\scriptsize±3.4} ($\uparrow$3.8)           \\
+        DER++ + ours                        &   32.1{\scriptsize±0.5}    &   28.7{\scriptsize±1.4} ($\downarrow$3.4)           \\
+        DVC~\text{[CVPR`22]}           &   19.5{\scriptsize±2.1}    &   21.1{\scriptsize±1.5} ($\uparrow$1.6)           \\
+        DVC + ours                        &   27.0{\scriptsize±2.0}    &   27.4{\scriptsize±1.7} ($\uparrow$0.4)           \\
+        ERACE~\text{[ICLR`22]}              &   27.4{\scriptsize±0.6}    &   28.1{\scriptsize±0.7} ($\uparrow$0.7)           \\
+        ERACE + ours                        &   37.0{\scriptsize±0.7}    &   34.2{\scriptsize±0.2}  ($\downarrow$2.8)           \\
+        OCM~\text{[ICML`22]}                &   29.1{\scriptsize±1.4}    &   29.3{\scriptsize±1.2} ($\uparrow$0.2)           \\
+        OCM + ours                          &   37.1{\scriptsize±0.7}    &   31.6{\scriptsize±0.2} ($\downarrow$5.5)          \\
+        GSA~\text{[CVPR`23]}                &   29.7{\scriptsize±1.5}    &   32.6{\scriptsize±1.6} ($\uparrow$2.9)           \\
+        GSA + ours                          &   40.1{\scriptsize±1.0}    &   36.2{\scriptsize±0.5} ($\downarrow$3.9)          \\
+        \hline
+        
+    \end{tabular}}
+    \caption{Final Average Accuracy (\%) on CIFAR100 M=1k of various baselines, with and without using the NCM trick. Logits Acc. refers to the accuracy of the model using predicted logits while NCM Acc. refers to NCM accuracy trained on intermediate representations from memory at the end of training.}
+    \label{tab:all_ncm_trick}
+\end{table}
+
+\subsection{Feature Drift}
+We show additional experiments concerning the impact of MKD on feature drift on Figure~\ref{fig:supp_feat_drift}. It can be observed that for \textit{GSA} and \textit{ERACE}, introducing MKD can greatly help in reducing feature drift. However, this phenomenon is not as pronounced with \textit{DVC} and \textit{DER++}. Since \textit{DVC} encourages representations to be augmentation-invariant, it is expected to observe more stability against feature drift with \textit{DVC}. Notably, the drift values of \textit{DVC} and \textit{DVC + ours} are considerably lower than any other considered method. 
+Additionaly, we observe the opposite effect for OCM, which also incorporate feature stability by leveraging a contrastive objective~\cite{guo_online_2022}. Even though MKD cannot reduce feature drift for OCM, experimental results still demonstrate a significant improvement in performances.
+
+\begin{figure*}[t]
+\centering
+\begin{subfigure}[c]{0.3\textwidth}
+    \includegraphics[width=0.9\linewidth]{figures/ER_fd.png}
+    % \caption{ }
+\end{subfigure}
+\begin{subfigure}[c]{0.3\textwidth}
+    \includegraphics[width=0.93\linewidth]{figures/DER_fd.png}
+    % \caption{ }
+\end{subfigure}
+\begin{subfigure}[c]{0.3\linewidth}
+    \includegraphics[width=0.9\linewidth]{figures/DVC_fd.png}
+\end{subfigure}
+\begin{subfigure}[c]{0.3\linewidth}
+    \includegraphics[width=0.9\linewidth]{figures/ERACE_fd.png}
+    % \caption{ }
+\end{subfigure}
+\begin{subfigure}[c]{0.3\linewidth}
+    \includegraphics[width=0.9\linewidth]{figures/GSA_fd.png}
+    % \caption{ }
+\end{subfigure}
+\begin{subfigure}[c]{0.3\linewidth}
+    \includegraphics[width=0.9\linewidth]{figures/OCM_fd.png}
+    % \caption{ }
+\end{subfigure}
+\caption{Feature drift $d_t$ of \textit{ER}, \textit{DER++}, \textit{DVC}, \textit{ERACE}, \textit{GSA}, \textit{OCM} and their MKD adaptations on CIFAR100, M=5k.}
+\label{fig:supp_feat_drift}
+\end{figure*}
+
+\subsection{Feature Discrimination}
+To showcase the impact of MKD on feature discrimination, we presented t-SNE results on memory data at the end of training for \textit{ER} and \textit{ER + ours}. In Figure~\ref{fig:all_tsne} we present additional t-SNE experiments for remaining baselines. We used a perplexity of $30$ for these experiments.
+
+\begin{figure*}[t]
+\centering
+\begin{subfigure}[c]{0.24\textwidth}
+    \includegraphics[width=0.85\linewidth]{figures/ER_tsne.png}
+    \caption{ER}
+\end{subfigure}
+\begin{subfigure}[c]{0.24\textwidth}
+    \includegraphics[width=0.85\linewidth]{figures/ER_mkd_tsne.png}
+       \caption{ER + ours}
+\end{subfigure}
+\begin{subfigure}[c]{0.24\linewidth}
+    \includegraphics[width=0.85\linewidth]{figures/DERpp_tsne.png}
+    \caption{DER++}
+\end{subfigure}
+\begin{subfigure}[c]{0.24\linewidth}
+    \includegraphics[width=0.85\linewidth]{figures/DERpp_mkd_tsne.png}
+    \caption{DER++ + ours}
+\end{subfigure}
+
+\begin{subfigure}[c]{0.24\linewidth}
+    \includegraphics[width=0.85\linewidth]{figures/DVC_tsne.png}
+    \caption{DVC}
+\end{subfigure}
+\begin{subfigure}[c]{0.24\linewidth}
+    \includegraphics[width=0.85\linewidth]{figures/DVC_mkd_tsne.png}
+    \caption{DVC + ours}
+\end{subfigure}
+\begin{subfigure}[c]{0.24\linewidth}
+    \includegraphics[width=0.85\linewidth]{figures/ERACE_tsne.png}
+    \caption{ERACE}
+\end{subfigure}
+\begin{subfigure}[c]{0.24\linewidth}
+    \includegraphics[width=0.85\linewidth]{figures/ERACE_mkd_tsne.png}
+    \caption{ERACE + ours} 
+\end{subfigure}
+
+\begin{subfigure}[c]{0.24\linewidth}
+    \includegraphics[width=0.85\linewidth]{figures/GSA_tsne.png}
+    \caption{GSA}
+\end{subfigure}
+\begin{subfigure}[c]{0.24\linewidth}
+    \includegraphics[width=0.85\linewidth]{figures/GSA_mkd_tsne.png}
+    \caption{GSA + ours}
+\end{subfigure}
+\begin{subfigure}[c]{0.24\linewidth}
+    \includegraphics[width=0.85\linewidth]{figures/OCM_tsne.png}
+   \caption{OCM}
+\end{subfigure}
+\begin{subfigure}[c]{0.24\linewidth}
+    \includegraphics[width=0.85\linewidth]{figures/OCM_mkd_tsne.png}
+    \caption{OCM + ours}
+\end{subfigure}
+\caption{t-SNE visualization of \textit{ER}, \textit{DER++}, \textit{DVC}, \textit{ERACE}, \textit{GSA}, \textit{OCM} and their MKD adaptations on CIFAR100, M=5k.}
+\label{fig:all_tsne}
+\end{figure*}
+
+\subsection{Backward Transfer}
+In Table~\ref{tab:backward_tf_app} we present additional experiments concerning the impact of MKD on Backward Transfer (BT). Specifically, OCM and DVC are not included in the main paper because of the limited space.
+\begin{table}[t]
+    \centering
+    \resizebox{0.35\columnwidth}{!}{
+    \begin{tabular}{l|ll}
+        Method         &  CIFAR100 & ImageNet100 \\
+        \hline\hline
+        ER             &     -16.7{\scriptsize±1.2 }                &           -17.5{\scriptsize±1.5 }\\
+        ER + ours      &       +\textbf{8.15{\scriptsize±0.8}}      &           -\textbf{1.3{\scriptsize±2.3}} \\
+        DER++          &     -27.5{\scriptsize±3.4 }                &           -18.9{\scriptsize±2.5 }\\
+        DER++ + ours   &      -\textbf{10.4{\scriptsize±5.6}}       &           -\textbf{14.4{\scriptsize±2.5}} \\
+        ERACE          &        -3.0{\scriptsize±1.6}              &           -6.5{\scriptsize ±1.3}\\
+        ERACE + ours   &      +\textbf{8.6{\scriptsize±1.6}}       &           -\textbf{5.6{\scriptsize±1.4}} \\
+        DVC             &     -32.5{\scriptsize ±4.7}             &           -34.3{\scriptsize ±5.9} \\
+        DVC + ours      &     -\textbf{20.9{\scriptsize ±6.6}}      &       -\textbf{31.5{\scriptsize ±0.8}}    \\
+        OCM             &     -5.0±{\scriptsize 3.0}              &           +1.1±{\scriptsize 1.6}\\
+        OCM + ours      &       +\textbf{14{\scriptsize±1.8}}       &       +\textbf{3.9{\scriptsize ±0.8}}     \\
+        GSA            &     -4.9{\scriptsize±1.2 }                 &           -17.0{\scriptsize±1.3 }\\
+        GSA + ours     &      -\textbf{2.5{\scriptsize±3.1}}        &           -\textbf{15.5{\scriptsize±1.0}} \\
+        \hline
+    \end{tabular}}
+    \caption{Backward Transfer (\%) at the end of training on CIFAR100, M=5k and Imagenet100, M=10k for various baselines. Higher is better. Mean and standard deviations over 5 runs are displayed.}
+    \label{tab:backward_tf_app}
+\end{table}
+
+\section{Experimental Details}
+\subsection{Datasets}
+We use variations of standard image classification datasets~\cite{krizhevsky_learning_2009,le_tiny_2015,deng2009imagenet}. The original datasets are split into several tasks of non-overlapping classes. Specifically, we experimented on CIFAR10, CIFAR100, Tiny ImageNet, and ImageNet-100.\\
+\textbf{CIFAR10} contains 50,000 32x32 train images and 10,000 test images and is split into 5 tasks, each containing 2 classes, for a total of 10 distinct classes.\\
+\textbf{CIFAR100} contains 50,000 32x32 train images and 10,000 test images and is split into 10 tasks, each contains 10 classes, for a total of 100 distinct classes.\\
+\textbf{Tiny ImageNet} is a subset of the ILSVRC-2012 classification dataset and contains 100,000 64x64 train images as well as 10,000 test images and is split into 20 tasks, each containing 10 classes,  for a total of 200 distinct classes.\\
+\textbf{ImageNet-100} is another subset of ILSVRC-2012 containing only the first 100 classes with 1,300 224x224 images per class for training and 50 for testing.
+
+\subsection{Data Augmentation}
+Several methods have demonstrated improved performance through the use of simple augmentations rather than more intricate ones. To ensure optimal performance comparison among the various methods, we employed two distinct augmentation strategies: the \textit{partial} and the \textit{full} strategies.
+
+\paragraph{\textit{Partial} Augmentation Strategy.} The \textit{partial} augmentation strategy comprises only a subset of the augmentations utilized in the \textit{full} strategy. Specifically, it involves a sequence of random cropping and random horizontal flipping, both with a probability $p$ of 0.5.
+
+\paragraph{\textit{Full} Augmentation Strategy.} The \textit{full} augmentation strategy encompasses a wider array of augmentations. It involves a sequence of random cropping, horizontal flipping, color jitter, and random grayscale transformations. The parameters for color jitter are set to $(0.4, 0.4, 0.4, 0.1)$ with a probability $p$ of 0.8. The application probability for random grayscale is set at 0.2.
+
+These strategies have also been chosen during the hyper-parameter search.
+
+\subsection{Task boundaries inference}
+For experimenting on the \textit{blurry} setting with OCM~\cite{guo_online_2022}, it is necessary to infer the task change. Inferring task change in this setup can be cumbersome and grandly impact performances. For simplicity, we detect task change by applying two simple rules. We consider the task has changed if:
+\begin{itemize}
+    \item A new class (never seen by the model) appears in the stream;
+    \item The last task change appeared at least $100$ iterations previous to the current one.
+\end{itemize}
+
+\subsection{Hyper-parameters table}
+Different hyper-parameters values used in grid search for considered methods are reported in Table~\ref{tab:all_hp}. This grid search has been conducted on CIFAR100, M=5k. Note that we used parameters from the original paper for OCM~\cite{guo_online_2022} due to computational constraints.
+\begin{table}[!ht]
+    \setlength{\tabcolsep}{4pt}
+    \centering
+    \resizebox{0.6\columnwidth}{!}{\begin{tabular}{c|cc}
+    Method & Parameter & Values \\
+    \midrule
+    \multirow{5}*{ER}    & optim         & [SGD, Adam] \\
+                        & weight decay  & [0, 1e-4] \\
+                        & lr            & [0.0001, 0.001, 0.01, 0.1] \\
+                        & momentum      & [0, 0.9] \\
+                        & aug. strat.   & [full, partial] \\
+     \midrule
+    \multirow{5}*{ER-ACE}   & optim         & [SGD, Adam] \\
+                        & weight decay  & [0, 1e-4] \\
+                        & lr            & [0.0001, 0.001, 0.01, 0.1] \\
+                        & momentum      & [0, 0.9] \\
+                        & aug. strat.   & [full, partial] \\
+    \midrule
+    \multirow{7}*{DER++}    & optim         & [SGD, Adam] \\
+                        & weight decay  & [0, 1e-4] \\
+                        & lr            & [0.0001, 0.001, 0.01, 0.03] \\
+                        & momentum      & [0, 0.9] \\
+                        & aug. strat.   & [full, partial] \\
+                        & alpha         & [0.1, 0.2, 0.5, 1.0] \\
+                        & beta          & [0.5, 1.0] \\
+    \midrule
+    \multirow{5}*{DVC}   & optim         & [SGD, Adam] \\
+                        & weight decay  & [0, 1e-4] \\
+                        & lr            & [0.0001, 0.001, 0.01, 0.1] \\
+                        & momentum      & [0, 0.9] \\
+                        & aug. strat.   & [full, partial] \\
+    \midrule
+    \multirow{5}*{GSA}  & optim         & [SGD, Adam] \\
+                        & weight decay  & [0] \\
+                        & lr            & [0.0001, 0.0005, 0.01, 0.05, 0.01] \\
+                        & momentum      & [0] \\
+                        & aug. strat.   & [full, partial] \\
+    \midrule
+    \multirow{5}*{ER+SDP}  & optim         & [Adam] \\
+                        & weight decay  & [0] \\
+                        & lr            & [0.0003] \\
+                        & momentum      & [0] \\
+                        & $\mu $          & [10, 100, 1000, 10000] \\
+                        & $c^2$          & [0.5, 0.75, 0.9] \\
+    \midrule
+    \multirow{5}*{PCR}   & optim         & [Adam] \\
+                        & weight decay  & [0] \\
+                        & lr            & [0.0005] \\
+                        & momentum      & [0.9] \\
+                        & aug. strat.   & [full] \\
+    \midrule
+    \multirow{6}*{ER+Temp. Ens.}   & optim         & [Adam] \\
+                        & weight decay  & [0] \\
+                        & lr            & [0.0005] \\
+                        & momentum      & [0.9] \\
+                        & aug. strat.   & [full] \\
+                        & $\alpha$      & [0.01, 0.05, 0.1, 0.5, 0.9, 0.95, 0.99] \\
+                    \end{tabular}}
+\caption{Hyper-parameters tested for every method on CIFAR100, M=5k, 10 tasks.\label{tab:all_hp}}
+\end{table}
+
+\subsection{Hardware and computation}
+
+For the compared methods, we trained on RTX A5000 and V100 GPUs. Figure~\ref{fig:time_consumption} references the training time of each method on CIFAR100 M=5k.
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=0.5\linewidth]{figures/time_consumption.png}
+    \caption{Time consumption (minutes) of compared methods when training on CIFAR100, M=5k with V100 GPUs.}
+    \label{fig:time_consumption}
+\end{figure*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\end{document}
+
+
+% This document was modified from the file originally made available by
+% Pat Langley and Andrea Danyluk for ICML-2K. This version was created
+% by Iain Murray in 2018, and modified by Alexandre Bouchard in
+% 2019 and 2021 and by Csaba Szepesvari, Gang Niu and Sivan Sabato in 2022.
+% Modified again in 2023 and 2024 by Sivan Sabato and Jonathan Scarlett.
+% Previous contributors include Dan Roy, Lise Getoor and Tobias
+% Scheffer, which was slightly modified from the 2010 version by
+% Thorsten Joachims & Johannes Fuernkranz, slightly modified from the
+% 2009 version by Kiri Wagstaff and Sam Roweis's 2008 version, which is
+% slightly modified from Prasad Tadepalli's 2007 version which is a
+% lightly changed version of the previous year's version by Andrew
+% Moore, which was in turn edited from those of Kristian Kersting and
+% Codrina Lauth. Alex Smola contributed to the algorithmic style files.

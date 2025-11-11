@@ -1,0 +1,149 @@
+Given the identified limitations of MI, we now describe the discriminative clustering framework based on the expected distance equation of the mutual information. We then detail the different statistical distances we can use to extend MI to the Generalised Mutual Information (GEMINI).
+
+\subsection{The discriminative clustering framework for GEMINIs}
+\label{ssec:discriminative_clustering}
+
+We only consider two random variables: the data $\vec{x}$ which can be continuous or discrete and the cluster assignment $y$ which is discrete. Instead of viewing the mutual information as a dependence-seeking objective (Eq.~\ref{eq:mutual_information_1}), we view it as a clustering objective that aims at separating the data distribution given cluster assignments $p(\vec{x}|y)$ from the data distribution $p(\vec{x})$ according to the KL divergence:
+\begin{equation}\label{eq:base_mi}
+    \I(\vec{x};y) = \E_{y\sim p(y)} \left[ D_\text{KL}(p(\vec{x}|y)\|p(\vec{x}))\right].
+\end{equation}
+To highlight the discriminative clustering design, we explicitly do not set any hypothesis on the data distribution by writing $\pdata$. The only part of the model that we design is a conditional distribution $\pyx$ that assigns a cluster $y$ to a sample $\vec{x}$ using the parameters $\theta$ of some learnable function $\psi$~\cite{minka_discriminative_2005}:
+\begin{equation}\label{eq:conditional_model}
+y|\vec{x} \sim \text{Categorical}(\psi_\theta(\vec{x})).
+\end{equation}
+This learnable function $\psi_\theta$ can typically be a neural network of adequate design regarding the data, e.g. a CNN, or a logistic regression. Consequently, the cluster proportions are controlled by $\theta$ because $\py=\mathbb{E}[\pyx]$ and so is the conditional distribution $\pxy$ even though intractable because we cannot compute the data distribution:
+
+\begin{equation}
+    \p(\vec{x},y) = \pdata \pyx.
+\end{equation}
+
+This questions how Eq. (\ref{eq:base_mi}) can be computed. Fortunately, well-known properties of MI can invert the distributions on which the KL divergence is computed~\cite{bridle_unsupervised_1992,krause_discriminative_2010} via Bayes' theorem:%The intractability of the likelihood $\pxy$ questions how Eq. (\ref{eq:base_mi}) can be computed. Fortunately, well-known properties of MI can invert the distributions between which the KL divergence is performed~\cite{bridle_unsupervised_1992,krause_discriminative_2010} via Bayes' theorem:
+\begin{equation} \label{eq:tractable_discriminative_mi}
+    \I(\vec{x};y) = \E_{\vec{x} \sim \pdata} \left[ D_\text{KL} (\pyx \| \py)\right],
+\end{equation}
+which is possible to estimate. Since we highlighted earlier that the KL divergence in the MI can lead to inappropriate decision boundaries, we are interested in replacing it by other distances or divergences. However, changing it in Eq. (\ref{eq:tractable_discriminative_mi}) would focus on the separation of cluster assignments from the cluster proportions which may be irrelevant to the data distribution. We rather alter Eq. (\ref{eq:base_mi}) to clearly show that we separate data distributions given clusters from the entire data distribution because it allows us to take into account the data space geometry.
+
+\subsection{The GEMINI}
+\label{ssec:gemini}
+
+\subsubsection{Replacing the Kullback-Leibler divergence with other distances}
+
+The goal of the GEMINI is to separate data distributions according to an arbitrary distance $D$, i.e. changing the KL divergence for another divergence or distance in the MI. This brings the definition of our first GEMINI, the \emph{One-vs-All} (OvA):
+\begin{equation}\label{eq:gemini_ova}
+    \I^\text{OvA}_D(\vec{x};y) = \E_{y \sim \py} \left[ D(\pxy\|\pdata)\right],
+\end{equation}
+as it compares the distance between the distribution of a specific cluster $\pxy$ against the entire data distribution $p(x)$.  There exist other distances than the KL to measure how far two distributions $p$ and $q$ are one from the other. We can make a clear distinction between two types of distances, Csiszar's $f$-divergences~\cite{csiszar_information-type_1967} and Integral Probability Metrics (IPM)~\cite{sriperumbudur_integral_2009}. Unlike $f$-divergences, IPM-derived distances like the Wasserstein distance or the Maximum Mean Discrepancy (MMD)~\cite{gneiting_strictly_2007,gretton_kernel_2012} bring knowledge about the data throughout either a distance $c$ or a kernel $\kappa$: these distances are geometry-aware. %We now review different statistical distances to consider in the GEMINI framework.
+
+
+
+\subsubsection{\texorpdfstring{$f$}{f}-divergence GEMINIs} These divergences involve a convex function $f:\mathbb{R}^+\rightarrow\mathbb{R}$ such that $f(1)=0$. This function is applied to evaluate the ratio between two distributions $p$ and $q$, as in Eq.~(\ref{eq:f_divergences_definition}):
+\begin{equation}
+\label{eq:f_divergences_definition}
+D_\text{f-div}(p,q) = \E_{\vec{z} \sim q(\vec{z})} \left[ f\left(\frac{p(\vec{z})}{q(\vec{z})}\right)\right].
+\end{equation}
+We will focus on three $f$-divergences: the KL divergence, the Total Variation (TV) distance and the squared Hellinger distance. While the KL divergence is the usual divergence for the MI, the TV and the squared Hellinger distance present different advantages among $f$-divergences. First of all, both of them are bounded between 0 and 1. It is consequently easy to check when any GEMINI using those is maximised contrarily to the MI that is bounded by the minimum of the entropies of $\vec{x}$ and $y$~\cite{gray_maximum_1977}. When used as distance between data conditional distribution $\pxy$ and data distribution $\pdata$, we can apply Bayes' theorem in order to get an estimable equation to maximise (see App.~\ref{app:deriving_geminis}), which only involves cluster assignment $\pyx$ and marginals $\py$ as summarised in Table~\ref{tab:all_geminis}, generalising thus the work of Bridle et al.~\cite{bridle_unsupervised_1992}. Note that all $f$-divergences are maximised when the two distributions $p$ and $q$ have disjoint supports~\cite{liese_divergences_2011}. Common $f$-divergence like the KL, the squared Hellinger or the Pearson $\chi^2$ divergence, except the total variation distance, are specific cases of the $\alpha$-divergence subclass. The convex function of $\alpha$-divergence is parameterized by a real number $\alpha$ with:
+
+\begin{equation}\label{eq:alpha_divergence_function}
+    f_\alpha(t) = \left\{\begin{array}{cc}
+        \frac{t^\alpha-\alpha t+(\alpha-1)}{\alpha(\alpha-1)}, &  \alpha\neq0, \alpha\neq1,\\
+        t\ln{t}, &\alpha =1,\\
+        -\ln{t},&\alpha=0.
+    \end{array}\right.
+\end{equation}
+
+However, this class of $\alpha$-divergence is inappropriate in some cases for clustering. Indeed, we show with Proposition~\ref{prop:alpha_div_maximisation} (proof in App.~\ref{app:proof_alpha_div_maximisation}) that the maximisation of $\alpha$-divergences can lead to any clustering of the data space with balanced clusters as the discriminative model $\pyx$ converges to a Dirac distribution.
+
+\begin{proposition}\label{prop:alpha_div_maximisation}
+Let $\{\mathcal{X}_k\}_{k=1}^K$ a partition of $\mathcal{X}$ such that $\mathbb{P}(\vec{x} \in \mathcal{X}_k) = \frac{1}{K}$. Then for any $\alpha$-divergence with $\alpha>0$, the OvA GEMINI is upper bounded by a function which only depends on the proportions of the clusters. If the clustering model follows a Dirac distribution: $\p(y=k|\pmb{x})=\mathbf{1}_{[\vec{x}\in\mathcal{X}_k]}$, then the upper bound is tight and the GEMINI cannot be improved.
+%Let $D$ an $\alpha$-divergence and $p(y|\vec{x})$ a clustering model with $\vec{x}$ a continuous variable and $y$ and discrete variable taking $K$ values. If $\alpha>0$, then any Dirac model $p(y=k|\vec{x})=\pmb{1}_{[\vec{x}\in\mathcal{X}_k]}$ with the data space $\mathcal{X}$ split into supplementary disjoint spaces $\{\mathcal{X}_k\}_{k=1}^K$ maximises the OvA GEMINI $\I^\text{ova}_{D_\alpha}(\vec{x};y)$. The global maximum is reached when $p(y=k)=K^{-1},\forall k$.
+\end{proposition}
+
+It is worth mentioning in Proposition~\ref{prop:alpha_div_maximisation} that the proportions of the cluster $p(y=k)$ do not matter for the specific case of $\alpha=2$ to achieve the global maximum, i.e. for the Pearson $\chi^2$-divergence. We can infer from Proposition~\ref{prop:alpha_div_maximisation} the specific Corollary~\ref{cor:mi_maximisation} since the MI is a case of OvA $\alpha$-divergence-GEMINI with $\alpha=1$. We conclude that MI maximisation is a poor objective when a discriminative model can converge to a Dirac distribution.
+
+\begin{corollary}\label{cor:mi_maximisation}
+%Any Dirac model $p(y=k|\vec{x})=\pmb{1}_{[\vec{x}\in\mathcal{X}_k]}$ on partition $\{\mathcal{X}_k\}_{k=1}^K$ of the data space $\mathcal{X}$ with $p(\vec{x}\in\mathcal{X}_k)=\frac{1}{K}$ maximises the mutual information.
+Let $\{\mathcal{X}_k\}_{k=1}^K$ a partition of $\mathcal{X}$. Then the mutual information of a discriminative distribution $p(y|\vec{x})$ is upper bounded by the entropy of $\vec{x}$ and the upper bound is tight if the distribution is a Dirac model $p(y=k|\vec{x})=\pmb{1}_{[\vec{x}\in\mathcal{X}_k]}$. The highest upper bound is reached when the partition is balanced.
+\end{corollary}
+
+\subsubsection{IPM GEMINIs} The IPM is another class of distance that incorporates knowledge from the data through a function $f$:
+
+\begin{equation}\label{eq:ipm}
+    D_\text{ipm}(p,q) = \sup_{f\in\mathcal{F}} \E_{\vec{z} \sim p(\vec{z})}[f(\vec{z})] -\E_{\vec{z}\sim q(\vec{z})}[f(\vec{z})],
+\end{equation}
+where $\mathcal{F}$ is a set of functions. As backpropagation through suprema could be intractable, we choose to focus on two specific variations of the IPM for the GEMINI: the MMD and the Wasserstein distance. Note however that not all Wasserstein distances are IPMs and while some of our propositions are formulated for IPMs, we consider as well the entire class of the Wasserstein distances.
+
+The MMD corresponds to the distance between the respective expected embedding of samples from the distribution $p$ and the distribution $q$ in a reproducible kernel Hilbert space (RKHS) $\mathcal{H}$:
+\begin{equation}\label{eq:mmd_definition}
+    \text{MMD}(p\|q) = \| \E_{\vec{z} \sim p(\vec{z})} [\varphi(\vec{z})] - \E_{\vec{z}\sim q(\vec{z})} [\varphi(\vec{z})]\|_\mathcal{H},
+\end{equation}
+where $\varphi$ is the RKHS embedding. To compute this distance we can use the kernel trick~\cite{gretton_kernel_2012} by involving the kernel function $\kappa(\vec{a},\vec{b})=\langle\varphi(\vec{a}),\varphi(\vec{b})\rangle$. We use Bayes' theorem to uncover a version of the MMD that can be estimated through Monte Carlo using only the predictions $\pyx$.
+
+The Wasserstein distance is an optimal transport distance. It corresponds to the minimal amount of energy to transform a distribution into another according to an energy function yielding the cost $c$ of moving the mass of a sample from one location to another:
+\begin{equation}\label{eq:wasserstein_definition}
+    \mathcal{W}_c^d(p,q) = \left(\inf_{\gamma \in \Gamma(p,q)} \E_{\vec{x}, \vec{z} \sim \gamma(\vec{x},\vec{z})}\left[c(\vec{x},\vec{z})^d \right]\right)^{\frac{1}{d}},
+\end{equation}
+where $\Gamma(p,q)$ is the set of all couplings between $p$ and $q$, $c$ a distance function in $\mathcal{X}$ and $d$ a real positive number. Computing the Wasserstein-$d$ distance between two distributions $\p(\vec{x}|y=k)$ and $\p(\vec{x})$ is difficult in our discriminative context because we only have access to a finite set of samples $N$. Note that in the remainder of the paper, we will focus on the Wasserstein-1 metric. The idea of an expected Wasserstein distance was first proposed by Harchaoui~\cite[Eq. 48]{harchaoui_2020_learning} under the one-vs-rest name with an additional cluster proportion factor. However, we found this additional factor to be not grounded enough. Moreover, we can show that for the Wasserstein-1 metric the one-vs-rest Wasserstein preliminary work~\cite{harchaoui_2020_learning} is equivalent to the one-vs-all Wasserstein-GEMINI. To achieve the Wasserstein-GEMINI, we instead use approximations of the distributions with weighted sums of Diracs:
+
+\begin{multline}\label{eq:dirac_approximation}
+\p(\vec{x}|y=k) \approx \sum_{i=1}^N m_i^k \delta_{\vec{x}_i} = p_N^k,\\\text{with}\quad m_i^k = \frac{\p(y=k|\vec{x}_i)}{\sum_{j=1}^N\p(y=k|\vec{x}_j)},
+\end{multline}
+where $\delta_{\vec{x}_i}$ is a Dirac located on sample location $\vec{x}_i\in\mathcal{X}$. For the distribution $\pdata$, we set all importance weights to $1/N$. We state in Prop.~\ref{prop:wasserstein_convergence} that this empirical estimate of the Wasserstein distance converges to the correct Wasserstein distance. These importance weights are compatible with the \verb+emd2+ function of the python optimal transport package~\cite{flamary_pot_2021} which gracefully supports automatic differentiation. We describe other maximisation strategies in Appendix~\ref{app:other_wasserstein_distances}.
+
+\begin{proposition}\label{prop:wasserstein_convergence}
+    Let $p(\vec{x}|y=k_1)$ and $p(\vec{x}|y=k_2)$ two cluster distributions that we empirically approximate with importance-weighed Dirac estimators $p_N^{k_1}= \sum_{i=1}^N m_i^{k_1}\delta_{\vec{x}_i}$, resp. and  $p_N^{k_2}= \sum_{i=1}^N m_i^{k_2}\delta_{\vec{x}_i}$. Then the Wasserstein distance between estimates converges to the Wasserstein distance between the cluster distributions.
+\end{proposition}
+
+We refer to Appendix~\ref{app:wasserstein_convergence} for proof of convergence.
+
+\subsection{The One-vs-One GEMINI}
+
+We question the relevance of evaluating a distance between the distribution of the data given a cluster assumption $\pxy$ and the entire data distribution $\pdata$ when the geometry is taken into account. We argue that it is intuitive in clustering to compare the distribution of one cluster against the distribution of \emph{another cluster} rather than the data distribution. Indeed, considering the geometry of the data space through a kernel in the case of the MMD or a distance in the case of the Wasserstein metric implies that we can effectively measure how two distributions are close to one another. In the formal design of the mutual information, the distribution of each cluster $p(\vec{x}|y)$ is compared to the complete data distribution $p(\vec{x})$. Therefore, if one distribution of a specific cluster $p(\vec{x}|y)$ were to look alike the data distribution $p(\vec{x})$, for example up to a constant in some areas of the space, then its distance to the data distribution could be 0, making it unnoticed when maximising the OvA GEMINI.
+
+\input{figs_tex/mi_to_gemini/fig_3_clusters}
+
+Take the example of 3 distributions $\{p(\vec{x}|y=i)\}_{i=1}^3$ with respective different expectations $\{\mu_i\}_{i=1}^3$. We want to separate them using the OvA MMD-GEMINI with linear kernel. The mixture of the 3 distributions creates a data distribution with expectation $\mu=\sum_{i=1}^3 p(y=i)\mu_i$. However, if the distributions satisfy that this data expectation $\mu$ is equal to one of the sub-expectations $\mu_i$, then the associated distribution $i$ will have will not provide any information since its MMD to the data distribution is equal to 0. We illustrate this example in figure~\ref{fig:example_ova_ovo}.
+
+To address this issue, we introduce the second GEMINI named \emph{one-vs-one} (OvO) in which we compare cluster distributions from independently drawn cluster assignments $\ya$ and $\yb$:
+\begin{equation}\label{eq:gemini_ovo}
+    \I^\text{OvO}_D(\vec{x};y) = \E_{\ya,\yb \sim \py} \left[ D(\pxya \| \pxyb)\right].
+\end{equation}
+
+The example of Figure~\ref{fig:example_ova_ovo} is tackled by the OvO GEMINI since the distance between each pair of the 3 clusters is non-null. Conceptually, the idea of optimising the OvO MMD-GEMINI in clustering can be found as well by França et al.~\cite{franca_kernel_2020} who derived a regularised squared MMD in a one-vs-one setting through restrictions to Dirac distributions. Note that for most distances, the OvO GEMINI is an upper bound of the OvA GEMINI; proof of Proposition~\ref{prop:ovo_greater_ova} in App.~\ref{app:proof_ovo_greater_ova}.
+
+\begin{proposition}\label{prop:ovo_greater_ova}
+Let $D$ be an $f$-divergence or an IPM and $\p(y|\vec{x})$ a clustering distribution. Then: $\mathcal{I}^\text{ova}_D(\vec{x},y) \leq \mathcal{I}^\text{ovo}_D(\vec{x},y)$.
+%Let $D$ an $f$-divergence or an IPM and $p(\vec{x}|y)$ a distribution with $\vec{x}$ a continuous variable and $y$ and discrete variable taking $K$ values. Then: $\mathcal{I}^\text{ova}_D(\vec{x},y) \leq \mathcal{I}^\text{ovo}_D(\vec{x},y)$.
+\end{proposition}
+
+In the case of binary clustering, using an IPM distance implies equality between the OvA GEMINI and the OvO GEMINI; proof of Proposition~\ref{prop:equality_ova_ovo_ipm} in App.~\ref{app:proof_equality_ova_ovo_ipm}:
+
+\begin{proposition}\label{prop:equality_ova_ovo_ipm}
+Let $D$ be an IPM and $p(y|\vec{x})$ a clustering distribution $y$ taking $K=2$ values. Then: $\mathcal{I}^\text{ova}_D(\vec{x},y) = \mathcal{I}^\text{ovo}_D(\vec{x},y)$.
+%Let $D$ an IPM and $p(\vec{x}|y)$ a distribution with $\vec{x}$ a continuous variable and $y$ and discrete variable taking $2$ values. Then: $\mathcal{I}^\text{ova}_D(\vec{x},y) = \mathcal{I}^\text{ovo}_D(\vec{x},y)$.
+\end{proposition}
+
+While the OvA GEMINI is maximised with Dirac clustering of the data space for some $\alpha$-divergence, we can extend Proposition~\ref{prop:alpha_div_maximisation} to all $f$-divergences for the OvO GEMINI with Proposition~\ref{prop:ovo_fdiv_maximisation} (Proof in App.~\ref{app:proof_ovo_fdiv_maximisation}). We notably conclude that for the total variation and the squared Hellinger distance, Dirac distributions on an even partition of the data space are the only optimal solutions.
+
+\begin{proposition}\label{prop:ovo_fdiv_maximisation}
+Let $D$ be an $f$-divergence, $\p(y|\vec{x})$ a clustering distribution such that $\p(y=k)=\frac{1}{K}$. The OvO GEMINI is then upper bounded by a function depending only on the cluster proportions. For the upper bound to be tight, a sufficient condition is to have disjoint supports between cluster distributions $\p(\vec{x}|y=k)$. The condition is necessary if the function $f$ satisfies $f(0) + g(0)< \infty$ where $g(t)=tf\left(\frac{1}{t}\right)$ is the convex conjugate of $f$.
+%Let $D$ be an $f$-divergence, $\p(y|\vec{x})$ a clustering distribution such that $\p(y=k)=\frac{1}{K}$. The OvO GEMINI is then upper bounded. If the distributions $\p(\vec{x}|y=k)$ have disjoint supports, then the upper bound is tight. The opposite is true if the function $f$ satisfies $f(0) + g(0)< \infty$ where $g(t)=tf\left(\frac{1}{t}\right)$ is the convex conjugate of $f$.
+%Let $D$ an $f$-divergence and $p(\vec{x}|y)$ a distribution with $\vec{x}$ a continuous variable and $y$ and discrete variable taking $K$ values. Then, the OvO GEMINI is maximised with proportions $p(y=k)=\frac{1}{K}$ if /iff $p(\vec{x}|y=k)\perp p(x|y=k^\prime), \forall k \neq k^\prime$. The latter holds if the $f$-divergence's function $f$ satisfies $f(0) + g(0)< \infty$ where $g(t)=tf\left(\frac{1}{t}\right)$ is the convex conjugate of $f$.
+\end{proposition}
+
+\subsection{Using GEMINIs}
+
+\input{figs_tex/mi_to_gemini/tab_geminis}
+
+\subsubsection{Choosing a GEMINI}
+
+We stated in Section~\ref{ssec:discriminative_clustering} that we present the GEMINI as a distance between distributions evaluated in the data space $\mathcal{X}$ so that the distance $D$ can take into account the topology of the data. In practice, we only design a discriminative model $\pyx$. Thus, we need to compute all formulas of the GEMINI through Bayes' theorem to get equations depending on $\pyx$ and $\py$. We summarise the equations from all aforementioned GEMINIs in Table~\ref{tab:all_geminis} (see Appendix~\ref{app:deriving_geminis} for derivations). We give details on the complexity of GEMINIs in Appendix~\ref{app:exp_complexity} to help choose one. We propose as well some theoretical speed-ups in App.~\ref{app:wasserstein_speedup}. It is also important to consider the experimental purposes and context to choose a GEMINI. Indeed, when it is easier to design a distance than a kernel, the Wasserstein-GEMINI is more compatible than the MMD-GEMINI and vice-versa. Moreover, the MMD-GEMINI inherently computes expectations in a Hilbert Space which allows computing centroids deemed representative of the clusters. This notion of centroid is less straightforward when using the Wasserstein metric. %\textbf{FIXME: Do I add a mention regarding the $f$-divergence gradient to help people choosing even though we discourage $f$-divergences?}
+
+\input{figs_tex/mi_to_gemini/fig_mse_gemini}
+
+\subsubsection{Estimating a GEMINI}
+
+All GEMINIs in Table~\ref{tab:all_geminis} can be estimated using Monte Carlo making them compatible with mini-batch learning, with batch sizes of a few hundred for large datasets similarly to prior works~\cite{hu_learning_2017,ji_invariant_2019, hjelm_learning_2019}. We highlight the importance of the batch size when using GEMINIs. With the use of mini-batch for training, the complete GEMINI is not evaluated on the entire dataset and hence a bias may rise from the empirical estimate. This bias then has consequences on the gradient, which in turn alters training. To illustrate this point, we generated 1000 predictions from a Dirichlet distribution with 10 clusters. These predictions are a proxy for the output of any discriminative model $\pyx$. We then compute the true GEMINI on all samples before evaluating it 50 times for different randomly sampled batches of increasing size. We report in Figure~\ref{fig:mse_gemini} the Mean Squared Error of all GEMINIs. We see that past 200 samples for both the OvA and the OvO models, the mean squared error is already close to or below $10^{-2}$, except for the OvO Wasserstein- and MMD-GEMINIs. This implies an upper bound of $10^{-2}$ for the bias of the estimates. We conclude that there is possibly a bias in GEMINIs estimates, but it remains small enough to be negligible.
+
+\subsubsection{Code}
+
+The original implementation for all experiments regarding GEMINI can be found here: \url{https://github.com/oshillou/GEMINI}. However, later works led to the development of python package for small-scale datasets on CPU: \emph{gemclus} at \url{https://gemini-clustering.github.io/}.

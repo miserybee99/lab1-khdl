@@ -1,0 +1,44 @@
+\section{Related Work}
+\label{sec:related-work}
+
+
+In~\cite{TowardsSecureEpidemics} a general methodology for discovering illicit actions and identifying malicious nodes
+in gossip protocols is described.
+The solution proposed utilizes signed communication records in order to hold nodes accountable for their actions.
+The consistency of a node's communication history is verified through anonymous auditioning.
+Apart from the discovery of frequency violations, it is not clear how this solution could be adjusted in order to resolve
+violations in peer sampling protocols.
+Furthermore~\cite{TowardsSecureEpidemics} relies heavily on anonymous auditions of nodes in addition to the standard protocol
+communication, which may prove unreliable in certain cases, % in networks with high churn,  SV: Το έβγαλα για να μην μας κατηγορήσουν κι εμάς για churn που δεν έχουμε βάλει!
+and which increases the overall bandwidth costs.
+
+A series of works have particularly attempted to tackle the Hub Attack~ \cite{SecurePeerSamplingService}, \cite{IdentifyingMaliciousPeers}, \cite{SecurePeerSampling}, \cite{PuppetCast}.
+In~\cite{SecurePeerSamplingService} and~\cite{IdentifyingMaliciousPeers}, each node attempts to profile the nodes it interacts with by comparing the descriptors they receive with those present in their own views.
+The underlying rationale behind this approach is that since malicious behavior often revolves around duplicating peers, if a received set of descriptors shares a significant number of common descriptors with a node's view, it strongly implies that the sender is malicious with high probability.
+In Secure Peer Sampling~\cite{SecurePeerSampling}, nodes attempt to estimate the indegrees of their neighbors by performing extra communication steps.
+When a node is estimated to have an indegree that is considerably higher than the estimated average indegree of all nodes, it undergoes local blacklisting.
+
+In the aforementioned approaches, it is not possible to deterministically establish the malicious nature of nodes.
+Additionally, due to the possibility of false-positives, a malicious node is never completely held accountable for its actions.
+On the contrary, \prot\ strives to uncover and remove malicious nodes, unburdening the overlay from further malicious behavior and impactful attack attempts.
+Furthermore, because in the aforementioned approaches malicious nodes are continuously presented with a second chance, the pollution in the overlay never declines to zero.
+
+In PuppetCast \cite{PuppetCast}, each node possesses a static view that is issued by a trusted authority, and a mutable view that is continuously altered by inserting descriptors from other nodes' static views.
+This approach effectively addresses the view violations described in Section~\ref{sec:challenges}, as nodes exchange only the static views that are certified by the central authority.
+On the other hand, the adoption of central nodes opens a new vector of attacks and could introduce performance bottlenecks.
+Our approach, on the contrary, is completely decentralized.
+
+%TODO Say that our protocol implements the mechanisms that slow down eclipse Attacks by design
+Brahms~\cite{Brahms} adopts a different strategy in which every node establishes an unbiased random set of neighbors by applying a number of independent permutations on node IDs that have been previously observed by the node.
+Consequently, only a small part of the view of each node comprises unbiased descriptors, with the rest of it
+consisting of descriptors collected through gossiping without any guarantees.
+
+As demonstrated in Raptee~\cite{RAPTEE}, despite the fact that~\cite{Brahms} prevents partitioning, it fails to restrict the presence
+of duplicated node descriptors.
+Raptee achieves a drastic reduction in the prevalence of malicious over-representation observed in~\cite{Brahms}, by utilizing nodes with attested computing capabilities provided by a specific software guard extension.
+It does so by allowing attested nodes to generate a higher quantity of node descriptors compared to non-trusted nodes.
+Our approach exceeds Raptee as it eliminates the number of malicious node descriptors instead of bounding them.
+
+By categorizing peers based on their IP prefixes, HAPS~\cite{HAPS} instructs nodes to pick neighbors with a high diversity of IP prefixes.
+The underlying rationale behind~\cite{HAPS} is based on the notion that the acquisition of IP addresses with diverse IP prefixes entails significant costs, rendering it difficult for a malicious party to consolidate a large number of descriptors in a single node's view.
+%Our approach results in an overlay graph that possesses properties that are similar to a random graph, in contrast to HAPS, where the resulting overlay is affected by the IP space distribution.

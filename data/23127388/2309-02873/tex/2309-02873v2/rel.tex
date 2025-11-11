@@ -1,0 +1,44 @@
+% !TEX root = neurips_2021.tex
+\section{Related Work} \label{section:rel}
+HM is an emerging trend and a certain type of grey-box modeling. 
+While general grey-box models often respect structural prior knowledge as energy-preservation, invariants etc. \citep{NEURIPS2019_26cd8eca, gaussprinciple2020geist, geist2021corl}, HM combines physics-based simulations with data-driven models.
+Many works consider HM for dynamical systems or time-series.
+Like us, \citet{Linial2020GenerativeOM} approach their HM task with RNNs.
+In particular, they infer the initial states and the parameters of an ODE via an LSTM. 
+However, in contrast to our setting, the system can be fully explained by the simulator with optimized parameters.
+Another common approach in HM is extending a physics-based dynamics model, e.g. additively, with neural ODEs \citep{yin2021augmenting, qian2021integrating, 9337893} or modeling unknown parts of the dynamics with NNs \citep{SU1992327}.
+\citet{rackauckas2021universal} present a unified view on these types of models, allowing to jointly learn physical and NN parameters. 
+Recently, variational autoencoders are used to decode the latent states of observations and simulator from data and encode predictions from latent states and the physical model \citep{takeishi2021physicsintegrated}. 
+Existing approaches are extended in \citep{wehenkel2023robust} via a data augmentation concept improving the behavior on unseen data. 
+However, all these models assume direct access to the latent simulator states. 
+In contrast, we consider black-box simulators that provide access only to output trajectories.
+
+However, some approaches consider black-box simulators as well. 
+One branch of HM with black-box simulators deals with optimizing parameters of the simulator \citep{DBLP:conf/iclr/RuizSC19, aushev2020likelihoodfree}.
+However, this is not the setting that we consider since the simulator is fully informative once the parameters are adapted. 
+A typical approach in our setting is to learn the errors or residua of simulator predictions and data \citep{Forssell97combiningsemi-physical, Suhartono_2017}.
+Similar to our approach, \citet{ensinger2023combining} aim to control the long-term behavior of the predictions via the simulator.
+To this end, they propose a complementary filtering approach. 
+However, in contrast to their approach, our method is not restricted to simulators with correct low-frequency behavior. 
+Furthermore, none of these works informs the latent states of the learning-based component. 
+Another possibility is to provide the simulator as control input to an RNN \citep{SCHON202219, 10.1145/3447814}.
+As discussed in detail in Sec. \ref{sec:method}, this can easily lead to an underestimation of the simulator. 
+
+KKL observers have been combined with learning in different ways.  
+In \citep{9304163}, nonlinear regression via NNs is performed in order to learn the nonlinear
+transformation of a KKL observer. \citet{2204.00318} build up on the approach by optimizing the choice of
+the controllable pair. \citet{9683485} propose a learning-based observer design by learning the nonlinear
+transformation of a KKL observer with autoencoders. In contrast to our approach, all of these works consider
+observer design for a dynamical system with \emph{known} dynamics.
+However, some approaches consider KKL observers in the context of dynamics model learning.
+\citet{buisson-fenet2023recognition} propose a KKL-based recognition model for neural ODEs. 
+The initial latent state is obtained by running a KKL observer forward or backward. 
+In contrast to our setting, the remaining rollout is not observer-based.
+Furthermore, they do not consider HM. 
+\citet{9683277} propose to construct an output predictor via a KKL observer.
+The framework can be trained similar to standard recurrent architectures.
+But in contrast to those architectures, mathematical guarantees for the output predictor can be obtained.
+However, they do not consider HM. 
+In contrast, we leverage the properties of KKL observers in order to control the behavior of the system by informing the latent states via the simulator. 
+
+

@@ -1,0 +1,45 @@
+An important challenge in local motion planning is to find a feasible path that matches the robot's capabilities while being safe to traverse.
+Prior to identifying such a path, it is essential to accurately map the immediate surroundings of the robot, thereby representing its local environment.
+A popular representation of the robot surroundings is the occupancy grids, introduced by \citet{elfes1989using}.
+The main idea of the occupancy grids is to tessellate the environment into cells and to store in each cell the information of occupancy.
+\citet{coue2006bayesian} enhanced the previous idea by adding a Bayesian layer to the approach.
+Their work led to the \ac{BOF} techniques.
+
+%
+Using these Bayesian occupancy grids, standard motion planning frameworks plan collision-free paths by assessing the probability of collision of each potential robot path.
+However, assessing only the risk of colliding with an obstacle will always lead the robot to go around them.
+Therefore, the collision risk does not fully exploit the robot ability.
+Indeed, a mobile robot can cross tall grass or a speed bump even if it results in collisions.
+To allow robots to make more insightful choices, several approaches propose to integrate the notion of risk in motion planning by using risk maps.
+%
+Unlike conventional Bayesian occupancy grids, where each cell stores the occupancy probability of a given position, a risk map stores the risk at this position.
+\citet{schroder2008path} designed a risk map for cognitive vehicles.
+The defined risk map is used to prevent the robot from approaching the hazardous obstacles, such as pedestrians or cars.
+\citet{pereira2011toward} used historical shipping traffic and bathymetry data of coastal regions to create a risk map for underwater vehicles.
+Assigning a probabilistic risk value to each position that is likely to be occupied allows to avoid potential hazardous collisions.
+\citet{primatesta2019risk} used a risk map to quantify the risk of an unmanned aerial vehicle flying over a given position to cause lethal incidents in an inhabited area.
+Even though these techniques produce good results, they all make the assumption that the risk is only dependent on the robot position, while intuitively the risk depends also on the robot state and capabilities.
+As such, our work proposes a risk model that exploits both the state of the environment and the robot ability to assess the risk of a given path.
+
+In risk-aware navigation, \citet{majumdar2020should} provide insight about which metrics should be used.
+Among them, the expected value and the \ac{CVaR} are identified as valid candidates.
+The \ac{CVaR} is used to capture the worst-case expected hazardous event that could happen over a given horizon of time, and has been used by several recent works \cite{rockafellar2000optimization,ROCKAFELLAR20021443}.
+\citet{hakobyan2019risk} measure the risk of colliding with randomly moving obstacles.
+They define the problem of path planning as a constrained optimization where the distance to the obstacles must be superior or equal to a fixed threshold.
+They demonstrate that this formulation allows to plan an effective path for a quadrotor in a 3D environment, while adjusting the safety and prudence of the motions.
+For mobile robots, \citet{fan2021step} enhance the previous work by adding multiple sources of risk, such as the slippage risk.
+A new risk map is then created by aggregating the risks that come from these different sources.
+\citet{cai2022risk} quantify the risk by converting a learned speed distribution map to a risk cost value.
+In constrast to our work, traversability is captured via experienced trajectories.
+\citet{koval2022experimental} propose another risk-aware path planning which is also based on a priori data, precisely on a known map.
+In \cite{laconte2019lambda}, the authors introduce the Lambda-Field, a generic method to assess a physical risk over a continuous path.
+The risk is defined as the expected force of collision along a path.
+They introduced a new mapping framework where each cell stores the density of collisions that could be hazardous to the robot.
+%
+In contrast to the Bayesian occupancy grids framework, the Lambda-Field framework computes the integral of the risk over a given path.
+This approach has the ability to retain the physical units of the risk.
+They have demonstrated the relevance of the approach in 2D static environments.
+They extended their work to unstructured \cite{Laconte_2021} and dynamic environments \cite{laconte2021dynamic}, yet still only considering 2D obstacles.
+%
+In this article, we adapt their framework to 3D static environments and propose a new physically coherent risk measure.
+%

@@ -1,0 +1,61 @@
+\section{Discussion}
+This section begins with two key lessons learned from the research, specifically related to the format of Live Charts and the generation of Live Charts. 
+The limitations of our research are discussed as follows.
+
+\subsection{The Live Chart format}
+Reducing cognitive burden is crucial as visualizations become more prevalent across diverse media. Traditionally, individuals relied on their knowledge and experience to understand charts. 
+However, the advent of Live Charts can potentially transform this dynamic, offering a new method of information consumption.
+According to our evaluation results, \lives{} are enjoyable, tell insightful stories, and improve data understanding.
+% analytics
+We received positive feedback from multiple users affirming that Live Charts offer enhanced accessibility for individuals with visual impairments by providing a multi-sensory experience.
+Our adopted accessible narration method~\cite{lundgard2021accessible} has proven instrumental in enabling BLVIs to gain a comprehensive understanding of the data presented, even without visual perception.
+Moving forward, further advancements can be made by integrating non-speech audio representations of data~\cite{hoque2023accessible, sharif2022voxlens} and efficient navigation strategies~\cite{zong2022richa,thompson2023chart}.
+We believe the potential applications of Live Charts are vast, as they can enhance the way information is presented and communicated in various visualizations, including data articles and slideshows.
+First, incorporating Live Charts into data articles to replace static ones can transform storytelling, offering readers a more engaging and informative experience. 
+Users can access the information conveyed in data news by playing the Live Charts. According to expert feedback, they do not need to be fully focused on the news while watching; instead, they can absorb the information while multitasking.
+Slideshows are another example of the application.
+As a substitute for static chart images, Live Charts can enliven slides by employing a multi-sensory method of conveying information. For instance, replacing static charts with Live Charts in teaching materials in educational settings can significantly enhance students' learning experiences. This learning process fosters a more profound comprehension of intricate lessons.
+
+\subsection{The creation of Live Charts}
+\label{sec: discussion_creation}
+We utilize an auto-reviving method that dynamically changes frames with narration guiding users through the information presented.
+
+\textbf{Auto-generated Live Charts}
+We have proposed a GNN-based model for recognizing basic charts in SVG format.
+Compared with pixel-based charts, vector graphics own higher precision, enabling us to extract data with greater confidence.
+Our model shows promise in effectively handling three fundamental chart types compared with pixel-based methods (\autoref{sec: performance}): bar charts, pie charts, and line charts. 
+Going forward, we can generalize this model for more chart types~\cite{deng2022kb4va}.
+For instance, we anticipate applying this model to scatterplots, which may pose challenges in pixel-based format due to the occlusions. 
+Furthermore, existing in-depth analysis~\cite{sarikaya2018scatterplots} underscores an opportunity to recover the embedded data within the scatterplot.
+Moreover, while our approach currently shows modest adaptability to infographics with embedded charts~\cite{ying2022glyphcreator, lin2023graph}, it carries the potential for broadening its applicability, encompassing the personalized design of infographics~\cite{ying2022metaglyph}.
+We also explored the use of \gpt{}, a popular LLM, to generate text narration for our data visualizations.
+For one thing, by adopting a prompt chain containing various insights, the LLM can generate narrations that cater to our needs, deriving fluent and natural-sounding narrations with key insights.
+For another, the LLM's training on online news data can assist in inferring the underlying reasons behind certain insights. For instance, in the example of a line chart, as shown in ~\autoref{fig:teaser}(a1-a5), the LLM can infer that ``The box office earnings in 2020 were significantly lower than in previous years due to the COVID-19 pandemic.'' 
+This information may not be directly visible in the chart, but with the LLM's assistance, audiences can better understand the context and the story behind the data. Looking ahead, as LLMs continue to evolve and improve, they can potentially incorporate real-time information and help narrations remain relevant and timely. 
+
+\textbf{Opportunities for human-machine collaboration.}
+Developing a fully auto-generated Live Chart that satisfies every user's needs and ensures the quality of the narration by GPT-3~\cite{bowman2023eight} is an arduous task, if not impossible, as our user study confirms the challenge due to participants' diverse preferences for Live Chart styles. 
+To address this issue, human-machine collaboration is a promising solution~\cite{li2023why, li2023where}. 
+We allow users to first select their preferred scenario, tone, and length with the assistant from the LLM. 
+Our methods enable the generation of an initial draft of the chart that users can customize to align with their specific narration and animation requirements, reducing the time and effort.
+In addition, human involvement becomes crucial for assessing the quality of outcomes, given that LLMs are prone to producing inaccuracies~\cite{ge2023openagi}.
+Although existing methods, as discussed in \autoref{sec:narration}, are used to address errors, the rapid evolution of LLMs presents a challenge for automatic error detection as it is not controllable.
+Incorporating human judgment into the process maybe a valuable solution, as humans can quickly identify and correct errors at an early stage, avoiding unnecessary downstream efforts. 
+Furthermore, there is an expectation for future models to include automated verification features.
+We also acknowledge the importance of on-the-fly collaboration, as highlighted by experts we interviewed. To facilitate this, we plan to integrate our functionality as extensions into existing tools, such as data processing applications (e.g., Excel or Tableau) and web browsers. This integration will address the inconvenience of switching between different tools. Users can export charts in diverse formats by incorporating our solution into data processing tools, facilitating data sharing and presentation across various platforms and devices. Meanwhile, integrating with web browsers will enable convenient conversion of online static charts for sharing or presentation purposes.
+
+
+\subsection{Limitations}
+Our research has limitations.
+First, we use predefined animations, which may result in limited diversity and somewhat repetitive visual effects.
+For example, our highlight animation effect utilized fixed colors without regard to the holistic color scheme. 
+In the future, we intend to extend the animation library, ensuring greater diversity and context-aware visual effects.
+Second, the generalizability of our understanding model needs improvement. It performs well in dealing with SVGs generated by declarative and imperative language. However, challenges may arise when handling visualizations created with highly flexible tools (e.g., Adobe Illustrator~\footnote{https://www.adobe.com/products/illustrator}) or hand-coded approaches (e.g., Vue, React). Future research could focus on refining the generalizability of our GNN-based approach to address diverse visualization structures.
+Third, the outcomes generated by GPT may include errors~\cite{tian2023chartgpt}. 
+Despite the use of rule-based methods to minimize errors, these approaches are not exhaustive in resolving all issues~\cite{ge2023openagi}.
+Moving forward, we hope that improvements in LLMs will lead to more precise and high-quality answers.
+Fourth, we adopt a fixed narration outline in this work for a gradual narration. 
+However, we acknowledge the limitations associated with this approach and propose to leave it as future work for LLMs to generate more adaptable outlines.
+Fifth, the participants in both the user study and the expert interview have limited coverage.
+While we have made efforts by enlisting individuals with varied backgrounds and experiences, we recognize certain limitations, such as the unequal gender distribution in the user study and the absence of specific types of experts in the expert interview. 
+In the future, we hope to gain a more comprehensive understanding of how Live Charts support data presentation for a diverse user base in long-term, real-world applications, thereby addressing these limitations.

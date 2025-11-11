@@ -1,0 +1,72 @@
+\subsection{Illustration}\label{sec:illustration}
+
+Deep networks are built by stacking. Between layers, hidden intermediate features are generated and passed to deeper parts of the network. 
+The first important intuition is that the output of shallower layers can be seen as the input of deeper layers, which allows us to see the \emph{parameters} of shallower layers as a part of \emph{inputs} to deeper layers and apply notions previously defined at the real inputs $x^0$, for example, the notion of (implicit) adversarial robustness.
+
+For deeper layers to have adversarial robustness, a way is to reduce the norm of activations' derivatives, because the gradients w.r.t. $x^{l-1}$ is calculated by multiplying the gradients by $x^l$ with derivatives of the activations and weights. 
+So by suppressing the gradient norm of activations to the extreme, i.e., promoting gradient sparsity, adversarial robustness increases for sure.
+Note that good sparsity and implicit adversarial robustness do not necessarily hinder approximability because they only imply local flatness and naturally distinct samples differ so much that there are multiple flat regions between them in the output-input landscape, i.e., approximability may be achieved by drastically changing which neurons are activated \citep{parameter_growth}.
+
+Without explicit adversarial training, adversarial samples may come from perturbations in shallower layers.
+The inputs to deeper layers are not static and even not stable, because gradient noises in stochastic training are driving the parameters to run around randomly, which gives birth to adversarial robustness.
+Note that the idea of wrapping perturbations in weights into hidden features has been used by \citet{weight_information_bottleneck}, where this technique is implicitly applied to define representation information bottleneck, but they did not explicitly consider the perturbations to shallow parameters as those to hidden features.
+This explains how deep neural networks gain implicit adversarial robustness and then gradient sparsity from stochastic optimization in standard training.
+
+From a more static point of view, i.e., considering the parameter after training, we model the perturbations in a virtual way as illustrated in \cref{fig:illustration}.
+\begin{figure}
+    \centering
+    \includegraphics[width=8cm]{pic/illustration.jpg}
+    \caption{Illustration of virtual perturbations to shallow layers. Given a trained parameter at a flat minimum, if a small change around $0$ in shallow parameters is added, the loss will not drastically increase due to the flatness. These virtual perturbations in shallow parts, their outputs and the final output are illustrated in red, while frozen inputs and deeper parts are in blue. The minor increase in loss, colored by pale red, indicates that the deep layers have to learn adversarial robustness w.r.t. hidden features.}\label{fig:illustration}
+\end{figure}
+If the trained parameter is a flat minimum, then slight changes in its parameters do not drastically increase loss.
+Changes restricted to the shallow layers inherit this property. So parameter perturbations that are reflected in hidden features cause no drastic increase in losses.  As explained before, the frozen deep layers must have learned implicit adversarial robustness to ensure flatness w.r.t. virtually perturbed inputs for deep layers to mitigate these virtual perturbations to hidden features.
+This intuition leads to the notion of flat minima and we will follow it in \cref{sec:three_elements} by proving that both implicit adversarial robustness and some sparsity-related inner products are upperbounded by the measure of flatness, i.e., $\trace{\hessian}$.
+
+
+Following this line, one question to answer is how diverse the perturbations are to hidden features. 
+Perturbations to parameters have to go through non-linear operations, which hinders the expressibility of parameter perturbations especially in non-activated neurons. 
+To make things worse, \emph{parameter sharing} creates hidden features whose dimension is much larger than the parameter that directly produces it, in contrast with explicit adversarial training where perturbations are directly added to $x^0$ in a full-dimensional way. As a result, the perturbation to parameters creates correlated perturbations in hidden features, which cannot cover explicit adversarial attacks that may perturb in an uncorrelated manner.
+We consider the problem from parameter sharing to be extremely sever in CNN because normally a small ($\sim 4 \times 4$) convolution kernel should produce a large feature map. This problem in Transformers is moderate because there are seemingly full-dimensional parameters (e.g. weights and bias in value matrices and MLPs), but tens of tokens are subject to the same parameter so it is low in this token-stacking dimension. Pure MLPs have the smallest problem because its weights and biases are full-dimensional and there is only one token as features, but the perturbations are still subjected to activation functions.
+
+To alleviate these problems through adding \emph{non-shared} parameters \emph{after} activation functions, we propose Doubly Biased MLP ($\dbmlp$) by introducing an extra bias $D^l$ or $d^l$, called zeroth bias (ZB) due to its position, before other operations (so it is after activation functions of previous layers). ZB is a \emph{matrix} of the same shape with hidden features if they are matrices of stacked tokens, i.e.
+\begin{align}
+    \dbmlp^l(X^{l-1})
+    \defeq& \mlp^l(X^{l-1} + D^{l}),
+\end{align}
+where $D^l$ is the zeroth bias of current $\dbmlp$. For hidden features of single tokens, it writes
+\begin{align}
+    \dbmlp^l(x^{l-1})
+    \defeq& \mlp^l(x^{l-1} + d^l) = \mlp_V^l\left(\activation(K^l (x^{l-1} + d^l) + b^l)\right).
+\end{align}
+For single-token hidden features, the zeroth bias removes the hindering effect of activation functions on the previous layer's bias $b^{l-1}$, and for matrix hidden features, $D^l$ of the same shape allows full-dimensional perturbations. Note that zeroth biases are added to hidden features, meaning that they share gradients. This property will ease the analyses bridging flatness and implicit adversarial robustness.
+
+Another implication of the above illustration is that activation function matters in gradient and/or activation sparsity, because its derivatives are multiplied when computing gradients w.r.t. hidden features to compute gradient norm that proxies implicit adversarial robustness. 
+In \cref{sec:v_experiments}, we design strange activation to differentiate gradient and activation sparsity and show that activation sparsity is lost to reach gradient sparsity defined by the activation function.
+On the other hand, one problem of common $\relu$ and $\gelu$ is that their derivatives are almost piecewisely constant for most regions, having difficulties in guiding the second-order search for flat minima. By squaring $\relu$, which coincides with \citet{primer}, the non-constant derivatives of activations provide guidance to sparser neighbors, and $\Omega(x)$-large derivatives for large activations drive the parameters into sparse ones. 
+However, in tentative experiments, we found that the derivatives are too small around zero and provide little drive toward sparsity, so we shift the non-zero parts left and give
+\begin{align}
+    \jrelu(x) \defeq \begin{cases}
+        0   &   x < 0,\\
+        \frac{1}{2} \left( (x + 1)^2 - 1 \right) & x \ge 0,
+    \end{cases} \label{eq:jsrelu}
+\end{align}
+where ``J'' means jumping across the ignored interval $[0, 1]$ and $\frac{1}{2}$ is used to calibrate derivatives at $x=0$ to $1$, approximating $\relu$'s and $\gelu$'s behaviors near $0$. The visualization of $\relu$, $\textrm{Squared-ReLU}$ and $\jrelu$ can be found in \cref{figure:activations}.
+
+\addvalue{relu}{$\relu$}
+\addvalue{relu2}{$\textrm{Squared-ReLU}$}
+\addvalue{jsrelu}{$\jrelu$}
+\begin{figure}
+    \centering
+    \foreach \act in {relu,relu2,jsrelu}{
+        \begin{subfigure}{0.3\textwidth}
+            \includegraphics[width=\textwidth]{pic/activation/\act.jpg}
+            \caption{\usevalue{\act}}
+        \end{subfigure}
+    }
+    \caption{Visualization of $\relu$, $\textrm{Squared-ReLU}$ and $\jrelu$. Activation and its derivative are indicated by blue and dashed red lines, respectively.}\label{figure:activations}
+\end{figure}
+
+
+One of the benefits of our architectural modifications is that they are plug-and-play, not only for training from scratch, but also for directly loading weights of vanilla architectures with changes plugged in and finetuning for sparsity, given that $D^l$ and $d^l$ can be initialized to $0$ for any weights, and $\jrelu$ approximates $\relu$ or $\gelu$ to the first order at $0$. Due to their simplicity, they are also likely orthogonal to other potential methods.
+
+Now we have established the framework of our explanation. A formal analysis following this framework, based on $\dbmlp$, is conducted in the following three subsections. We will first calculate gradients in MLP blocks. Starting the analyses, we relate flatness to implicit adversarial robustness, and then implicit adversarial robustness to gradient sparsity in \cref{sec:three_elements}. After that, we exclude alternative sources of implicit robustness and flatness. To give the most general form of results, we assume $\dbmlp$ in later subsections, if $\mlp$ is not explicitly pointed out. To obtain results for $\mlp$, simply remove the ZB-related term (usually the first term) in inequalities.

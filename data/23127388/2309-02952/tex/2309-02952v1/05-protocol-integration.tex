@@ -1,0 +1,84 @@
+\section{Protocol Integration}
+\label{sec:protocol-integration}
+
+
+The enhancements proposed by \prot\ over the original Cyclon protocol may affect certain aspects of the latter's operation.
+In this section, we identify and address these cases.
+
+\subsection{Repairing Empty View Slots}
+\label{subsec:re-establishing-lost-descriptors}
+
+In a real-world setting, losing node descriptors is inevitable.
+We identify three scenarios in which descriptors may be missing from a node's view:
+
+\begin{enumerate}
+    \item When a node does not respond to a gossip request.
+    This may occur due to a node failure, a network failure, or as a consequence of a non-responding malicious node.
+    In this situation, the gossip initiator simply drops the unreachable node's descriptor, skips this cycle, and waits for the next cycle to initiate another gossip exchange.
+    In the meantime, its view is left with one descriptor less.\
+
+    \item In the case of an asymmetric exchange of node descriptors.
+    Gossip exchanges are not guaranteed to be atomic.
+    That is, it is possible for descriptor swapping to take place only in one direction, with the gossip partner failing or refusing to fulfill its part of the communication after having acquired a list of descriptors from the initiator.
+    In the classic Cyclon protocol, this does not constitute a problem, as the node not receiving new descriptors is allowed to retain and reuse the descriptors it shipped to its counterparty in the incomplete exchange.
+    In our approach, however, after having transferred some descriptors' ownerships to some other node, the sending node
+    should discard the sent descriptors.
+    Attempting to reuse the same descriptors exposes it to the risk of being accused of descriptor cloning.
+
+    \item When a node joins the network overlay.
+    Although this case does not classify as a loss of node descriptors, the state of a joining node is analogous to the state of the nodes of the aforementioned scenarios, with the distinction that a newly joined node has a completely empty view rather than a small number of empty slots in it.
+    Thereby we confront the scenario of a node joining in a similar manner to the previous two scenarios.
+\end{enumerate}
+In all aforementioned scenarios, a node ends up in a state in which its view is not fully populated with node descriptors.
+
+To allow nodes to populate empty slots in their views, we introduce the concept of \emph{non-swappable descriptors}.
+A node with an empty slot in its view is allowed to keep a copy of a descriptor whose ownership it has transferred to some other peer, however marking it as \emph{non-swappable}.
+As their name suggests, a node is not allowed to swap non-swappable links in gossip exchanges.
+It can use them exclusively as gossiping tokens, that is, to redeem them to initiate an exchange with their creator when they become the oldest descriptors in its view.
+Thus, a node should accept gossip invitations by nodes who present a valid non-swappable descriptor created by that node, provided the descriptor is marked as non-swappable.
+The non-swappable link is redeemed, and a fresh (swappable) link of the initiator is created, thus allowing the use of non-swappable links to initiate gossiping does help in gradually repairing empty slots from nodes' views.
+
+The non-swappable descriptor mechanism can be abused by a group of malicious nodes aiming to attack a given target node.
+Specifically, such a group of nodes could pass a target descriptor's ownership around among themselves, so that they can all retain non-swappable versions of that descriptor, granting them all permission to initiate gossip exchanges with the target victim at the moment of the attack.
+
+To tackle this malicious behavior we place the following restrictions.
+First, a node must not accept more than one non-swappable link redemption for the same descriptor.
+Second, a node must not accept more than one non-swappable link redemption of different descriptors in the same cycle.
+Third, a node could optionally limit the number of descriptors it is willing to swap in a gossip exchange that was allowed on behalf of a non-swappable descriptor.
+
+For newly joining nodes, it suffices to acquire some non-swappable links (e.g., through a bootstrapping procedure), in order to start gossiping and to build a healthy view, gradually populated with swappable node descriptors.
+
+
+\subsection{Non-Atomic Gossip Exchanges}
+\label{subsec:confronting-asymmetrical-communications}
+
+
+As mentioned in the previous section, after a (malicious) node has been granted the ownership of some descriptors in a gossip exchange, it may opt not to respond, letting the other node with some empty view slots that will be filled in with non-swappable node descriptors.
+This may be an explicit attack vector, which we coin the \emph{link-depletion attack}, aiming at depleting legitimate nodes of their links. 
+
+To tackle the link-depletion attack, we alter the process of performing gossip exchanges, introducing a \emph{tit-for-tat} mechanism.
+Instead of swapping all $s$ descriptors in one single message in each direction, the nodes perform $s$ round-trip communications, transferring the ownership of one descriptor at a time.
+The gossip initiator goes first, by transferring its own fresh descriptor to the recipient.
+If any of the nodes quits the process halfway, the other one does not send any more descriptors.
+This way, the contacted node runs zero risk of losing a descriptor.
+Only the initiator may end up with one descriptor too few.
+However, as nodes act as gossip initiators exactly once per cycle, while they can be contacted multiple times in the same cycle, it is preferable to place the risk of losing a descriptor on the initiator rather than on the contacted node.
+
+It should be noted that the tit-for-tat mechanism applies only to descriptor ownerships, which should be transferred one at a time.
+The remaining descriptors from each node's view that are sent only as samples without transferring the respective ownerships, may be included altogether in the first message in each direction.
+
+As presented in our evaluation, our approach in combination with the healing properties of Cyclon restricts the number of non-swappable node descriptors in the network.
+
+
+\subsection{Cloning Old Descriptors}
+\label{subsec:tackling-old-descriptor-duplication}
+
+
+A malicious party may exploit the fact that, in Cyclon, nodes redeem the \emph{oldest} node descriptor to initiate a gossip exchange.
+Specifically, when a node descriptor with a very high age is received, it is likely to get redeemed imminently, without getting the chance to be transferred to yet another node.
+If that descriptor was cloned by a malicious node, its chances to be crosschecked against other clones of the same descriptor diminish.
+
+To address this threat, we introduce a technique to our protocol referred to as the \emph{redemption cache}.
+When a node redeems a descriptor, it stores a copy of that descriptor for a small number of cycles.
+When gossiping, a node always sends the descriptors of its redemption cache along with the contents of its view to the other node, as sample descriptors.
+The resource remands of this technique are negligible, as the redemption cache is typically configured to retain the last five or six redeemed descriptors.

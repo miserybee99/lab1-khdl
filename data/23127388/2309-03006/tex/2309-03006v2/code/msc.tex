@@ -1,0 +1,46 @@
+%!TEX root = ../main.tex
+\begin{figure}[t]
+\begin{lstlisting}[language=rust, breaklines=true, escapechar = !,caption ={Solana program to withdraw funds from a vault. This program contains a missing signer and owner check. We mark additional checks with {\color{OliveGreen}+} and green highlighting.}, captionpos = b, label = {lst:msc}]
+fn withdraw(program_id: Pubkey, accounts: [AccountInfo], amount: u64) -> ProgramResult {
+
+    // The accounts from the transaction are attacker-controlled,
+    // including wallet_info and wallet
+    let wallet_info = accounts[0];
+    let wallet = deserialize(wallet_info.data);
+    
+    let vault = accounts[1];
+    let authority = accounts[2];
+    
+    // An attacker can forge the authority and vault fields 
+    // of the wallet account, to pass both of these checks
+    !\label{line:check2}!assert(wallet.authority == authority.key);
+    !\label{line:check3}!assert(wallet.vault == vault.key);
+    
+!\settikzmark{patch1s}\color{OliveGreen}{+}!   // FIX: check owner of account from!\settikzmark{patch1e}!
+!\label{line:ownercheck}\settikzmark{patch2s}\color{OliveGreen}{+}!   assert(wallet_info.owner == program_id);!\settikzmark{patch2e}!
+
+!\settikzmark{patch3s}\color{OliveGreen}{+}!   // FIX: the following line adds the required signer check!\settikzmark{patch3e}!
+!\label{line:signercheck}\settikzmark{patch4s}\color{OliveGreen}{+}!   assert(authority.is_signer); !\settikzmark{patch4e}!
+
+    // check for sufficient funds
+    if amount > from.lamports {
+        raise InsufficientFundsException;
+    }
+    
+    // transfer lamports
+    !\label{line:vlamports}!vault.lamports -= amount;
+    authority.lamports += amount;
+
+    // XXX: Missing signer and owner check vulnerability
+    // Funds can be transfered to and from unauthorized accounts
+    Ok(())
+}
+\end{lstlisting}
+\begin{tikzpicture}[remember picture, overlay]
+    \highlight{patch1s}{patch1e}
+    \highlight{patch2s}{patch2e}
+    \highlight{patch3s}{patch3e}
+    \highlight{patch4s}{patch4e}
+  \end{tikzpicture}
+%   \vspace{-6ex}
+\end{figure}

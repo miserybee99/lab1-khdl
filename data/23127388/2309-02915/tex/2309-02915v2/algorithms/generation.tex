@@ -1,0 +1,29 @@
+\SetKwComment{Comment}{/* }{ */}
+\SetKw{Required}{Require:}
+\SetKw{Return}{Return}
+
+\begin{algorithm}[!t]
+\SetAlgoLined
+\caption{Code-Mixed Text Generation with {\modelname}}\label{algo:generation}
+\Required{Trained model $\mathcal{M} = (enc, dec)$, user id $u$, historical utterance $x_u$, prompt word $\{w_1\}$, decoder vocabulary $V$}
+
+\Required{$max\_length \in \mathbb{N}$}
+
+$L \leftarrow \{\texttt{[CLS]}, w_1\}$;
+
+$\Tilde{w} \leftarrow \emptyset$;
+
+$i = m$;
+
+\While{$\Tilde{w} \neq$ \texttt{[SEP]} and $i < max\_length$}{
+  $h_{(x_{u},u)} = enc(x_{u},u)$;
+  
+  $P_{i+1} = dec(L,h_{(x_{u},u)})$;
+  
+  $\Tilde{w} \leftarrow \operatorname*{arg\,max}_V P_{i+1}$;
+  
+  $L \leftarrow L \cup \{\Tilde{w}\}$;
+}
+
+\Return{L}
+\end{algorithm}

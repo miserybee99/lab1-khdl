@@ -1,0 +1,492 @@
+\documentclass[reprint,amsmath,amssymb,aps,superscriptaddress]{revtex4-2}
+
+\usepackage{amssymb,amsthm,bm,xcolor}
+\usepackage{graphicx}% Include figure files
+\usepackage{dcolumn}% Align table columns on decimal point
+\usepackage{bm}% bold math
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{physics}
+\hypersetup{
+	colorlinks=true,
+	urlcolor=purple,
+	citecolor=purple,
+	linkcolor=purple,
+	breaklinks}
+ 
+\usepackage{float}
+\usepackage{times}
+
+\usepackage[normalem]{ulem}
+
+
+\newcommand\bigO[1]{$\mathcal{O}(#1)$}
+
+\begin{document}
+
+\preprint{APS/123-QED}
+
+
+\title{Realizing the Nishimori transition across the error threshold for constant-depth quantum circuits}
+
+\author{Edward H. Chen}
+\email{ehchen@ibm.com}
+\affiliation{IBM Quantum, Almaden Research Center, San Jose, CA 95120, USA}
+\affiliation{IBM Quantum, Research Triangle Park, NC 27709, USA}
+
+\author{Guo-Yi Zhu}
+\email{gzhu@uni-koeln.de}
+\affiliation{Institute for Theoretical Physics, University of Cologne, Z\"ulpicher Straße 77, 50937 Cologne, Germany}
+
+\author{Ruben Verresen}
+\email{rubenverresen@g.harvard.edu}
+\affiliation{Department of Physics, Harvard University, Cambridge, MA 02138, USA}
+
+\author{Alireza Seif}
+\affiliation{IBM Quantum, T. J. Watson Research Center, Yorktown Heights, NY 10598, USA}
+
+\author{Elisa B\"aumer}
+\affiliation{IBM Quantum, IBM Research, Zurich, R\"uschlikon, Switzerland.}
+
+\author{David Layden}
+\affiliation{IBM Quantum, Almaden Research Center, San Jose, CA 95120, USA}
+\affiliation{IBM Quantum, T. J. Watson Research Center, Yorktown Heights, NY 10598, USA}
+
+\author{Nathanan~Tantivasadakarn}
+\affiliation{Walter Burke Institute for Theoretical Physics and Department of Physics, California Institute of Technology, Pasadena, CA 91125, USA}
+\affiliation{Department of Physics, Harvard University, Cambridge, MA 02138, USA}
+
+\author{Guanyu Zhu}
+\affiliation{IBM Quantum, T. J. Watson Research Center, Yorktown Heights, NY 10598, USA}
+
+\author{Sarah Sheldon}
+\affiliation{IBM Quantum, T. J. Watson Research Center, Yorktown Heights, NY 10598, USA}
+
+\author{Ashvin Vishwanath}
+\affiliation{Department of Physics, Harvard University, Cambridge, MA 02138, USA}
+
+\author{Simon Trebst}
+\affiliation{Institute for Theoretical Physics, University of Cologne, Z\"ulpicher Straße 77, 50937 Cologne, Germany}
+
+\author{Abhinav Kandala}
+\affiliation{IBM Quantum, T. J. Watson Research Center, Yorktown Heights, NY 10598, USA}
+
+\date{\today}
+%\begin{abstract}
+%Preparing quantum states across many qubits is necessary to unlock the full potential of quantum computers.
+%%
+%However, a key challenge is to realize efficient preparation protocols which are stable to noise and gate imperfections. 
+%%
+%Here, using a measurement-based protocol on a 127 superconducting qubit device, we study the generation of the simplest long-range order---Ising order, familiar from  Greenberger-Horne-Zeilinger (GHZ) states and the repetition code---on 54 system qubits.
+%%
+%Our efficient implementation of the constant-depth protocol and classical decoder shows higher fidelities for GHZ states compared to size-dependent, unitary protocols.
+%%
+%By experimentally tuning coherent and incoherent error rates, we demonstrate stability of this decoded long-range order in two spatial dimensions, up to a critical point which corresponds to a transition belonging to the unusual Nishimori universality class.
+%%
+%Although in classical systems Nishimori physics requires fine-tuning multiple parameters, here it arises as a direct result of the Born rule for measurement probabilities---locking the effective temperature and disorder driving this transition.
+%%
+%Our study exemplifies how measurement-based state preparation can be meaningfully explored on quantum processors beyond a hundred qubits.
+%\end{abstract}
+\maketitle
+\textbf{
+Preparing quantum states across many qubits is necessary to unlock the full potential of quantum computers.
+%
+However, a key challenge is to realize efficient preparation protocols which are stable to noise and gate imperfections. 
+%
+Here, using a measurement-based protocol on a 127 superconducting qubit device, we study the generation of the simplest long-range order---Ising order, familiar from  Greenberger-Horne-Zeilinger (GHZ) states and the repetition code---on 54 system qubits.
+%
+Our efficient implementation of the constant-depth protocol and classical decoder shows higher fidelities for GHZ states compared to size-dependent, unitary protocols.
+%
+By experimentally tuning coherent and incoherent error rates, we demonstrate stability of this decoded long-range order in two spatial dimensions, up to a critical point which corresponds to a transition belonging to the unusual Nishimori universality class.
+%
+Although in classical systems Nishimori physics requires fine-tuning multiple parameters, here it arises as a direct result of the Born rule for measurement probabilities---locking the effective temperature and disorder driving this transition.
+%
+Our study exemplifies how measurement-based state preparation can be meaningfully explored on quantum processors beyond a hundred qubits.
+}
+
+
+Traditionally, measurements have been synonymous with extracting information from physical systems. Yet in the quantum realm, the extraordinary nature of measurements allows them to actively modify and steer quantum states, forging a new route to entanglement generation. 
+%
+Among the more interesting entangled states are those with long-range correlations \cite{BravyiHastingsVerstraete06,Hastings2010,ChenGuWen11A,ChenGuWen11B,ZengWen15,HuangChen2015,Haah2016}; however, these cannot be prepared by any constant-depth unitary circuits, making them more sensitive to the finite coherence times of current quantum processors~\cite{mooney2021whole,mooney_generation_2021,wei2020verifying}. In contrast, recent theoretical studies have shown that the use of measurements, which are non-unitary operations, can be used to efficiently create quantum states with long-range order \cite{Raussendorf2001,Raussendorf2005,PhysRevLett.127.220503,Nat2021measure,Verresen2021cat,Bravyi2022,Lu22,zhu_nishimoris_2022,tantivasadakarn_hierarchy_2023,PhysRevLett.131.060405,Lee22,li2023symmetryenriched,buhrman2023state} and critical quasi-long-range order \cite{zhu_nishimoris_2022,Lee22,lu_mixed-state_2023}. 
+In essence, measurement-based approaches trade off circuit depth for number of mid-circuit measurements and operations \cite{friedman2023locality}
+as compared to exclusively unitary approaches.
+
+In this work, we study such measurement-induced long-range order and criticality. In particular, we consider the `hydrogen atom' of long-range entangled (LRE) states, the Greenberger-Horne-Zeilinger (GHZ) state $\ket{\text{GHZ}} \propto \ket{00\cdots00} + \ket{11\cdots11}$, which can be thought of as one representative of a more general `Ising' phase of matter. 
+%
+A necessary condition for realizing GHZ is a long-range Ising order which organizes the individual qubits into a macroscopic state.
+%
+While recent experiments show the practicality of measurement-based protocols to create such Ising-like order in one-dimensional qubit geometries where stability is not guaranteed~\cite{moses_race_2023}, theoretical works suggest that this order should be robust against a range of imperfections when using a two-dimensional (2D) protocol~\cite{Preskill2002,zhu_nishimoris_2022,Lee22}. 
+Here, we implement this 2D protocol on a superconducting qubit processor and, by tuning particular imperfections, we experimentally create a critical ensemble of these long-range ordered states in agreement with theoretical predictions for their stability. 
+
+The unavoidable randomness of quantum measurements generates a `glassy' version of the sought-after long-range Ising order,
+e.g.\ $\ket{00110} + \ket{11001}$, requiring some form of decoding to tame the structured randomness.
+This makes it crucial to record the measurement outcomes, and then use either post-selection, feedforward, or post-processing to recover the long-range order.
+In our setup, we implement post-processing to decode the hidden long-range order and determine the decoding threshold 
+beyond which the order is unrecoverable \cite{Lee22} . This decoding threshold is where our quantum system exhibits a Nishimori transition, or criticality~\cite{Nishimori1981, Nishimori1993decoding},
+for both incoherent \cite{Preskill2002} and coherent errors \cite{zhu_nishimoris_2022,Lee22}. 
+We argue that the observed Nishimori criticality is, in fact, unavoidable in our protocol and a natural consequence 
+of Born's rule -- a striking distinction from materials studies in labs seeking to observe the Nishimori criticality only by fine-tuning disorder within the material against environmental temperatures.\\
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure*}[ht]
+\includegraphics[width=2\columnwidth]{images_final_0925/Nishi_NatPhy_Figs_0910_Fig1.pdf}
+
+\caption{
+\textbf{
+Circuit protocol, decoder, and phase diagram under coherent and incoherent errors. 
+} 
+\textbf{a.} The heavy-hexagonal lattice of 127 qubits. For the 125 active qubits, the inset shows the building block using constant-depth entangling circuits for the three nearest neighbors (gray circles) of each system qubit (black circles) in the presence of noise (lightning). The $R_{ZZ}$ gates are executed in order from blue, red, then gray bonds within three layers. The auxiliary outcomes, $s$, on the bonds of the lattice (gray) can be used to inform a decoder for the data outcomes, $\sigma$, on the vertices of the lattice (black).
+\textbf{b.} The quantum device outputs a data bit-string $\{\sigma\}$ together with an auxiliary outcome $\{s\}$. In the presence of noise, the auxiliary outcomes become $\{s'\}$ before being passed to a classical decoder to determine a classical replica of the bit-string $\{\sigma'\}$. Their element-wise product, $\{\sigma\sigma'\}$, serves as the decoded bit-string. A measurement error (lightning) can corrupt the communication channel between the quantum replica and the classical replica. 
+\textbf{c.} The trivial and long-range ordered phases sweep out distinct regions depending on the strength of coherent and incoherent noise. Within a finite threshold, a stable phase (gray), of which the GHZ is a special case (red circle), exhibits long-range entanglement in the absence of other sources of noise (e.g. without dephasing). Even in the presence of dephasing (not shown), classical long-range \textit{ordering} remains. The boundary separating the trivial and long-range phase is described by the Nishimori criticality.
+Our experiments have incoherent error rates as low as $\approx$0.05, which is indicated by the green star.
+\textbf{d.} Schematic phase diagram of the classical RBIM. The solid black line is the Nishimori line, which captures the {\it entire} phase diagram in \textbf{c}. 
+}\label{fig:fig1}
+\end{figure*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+{\bf Protocol and device operation.\ }
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+In our protocol, we divide the qubits on our heavy-hexagonal device into system qubits on the vertex `sites', and auxiliary qubits on the `bonds' of a honeycomb lattice (Fig.~\ref{fig:fig1}a).
+%
+We will refer to the Pauli matrices on each qubit as $X,Y,Z$.
+%
+To turn an initial product state of system qubits in $+1~X$ eigenstates into a GHZ-type state, 
+we measure the $ZZ$ parities on all nearest neighbor system (site) qubits, using the auxiliary qubit in between. If the auxiliary outcome is +1, it means the two spins are perfectly anti-ferromagnetic, in the $-1$ eigenstate of $ZZ$.
+%
+A crucial element of our protocol is that we implement a coupling to the auxiliary qubit beyond a simple Clifford CNOT gate 
+by an $R_{ZZ}(2t_A)=e^{-it_AZZ}$  rotation with a control parameter $2t_A$, for the $A$ sublattice (Fig.~\ref{fig:fig1}a). By varying $t_A$ away from $\pi/4$ (the Clifford limit), we can
+perform tunable weak measurements or, equivalently, control the level of coherent errors.
+Due to the degree-3 connectivity of the system qubits, we need to repeat the above coupling only three times before simultaneously measuring all the auxiliary qubits -- resulting in a constant-depth circuit independent of the number of qubits. 
+
+The measurement outcomes of the auxiliary qubits in the $X$ basis, denoted by $s_{ij}=\pm 1$ for each bond $\langle ij\rangle$, are then fed as syndromes to the decoder, operated on a classical computer. The decoder produces an estimate of the quantum sample based on its limited knowledge in the form of $\{s'\}$~\cite{Preskill2002, Garratt22, Lee22,lee2023symmetry}, where $\{s'\}$ is a copy of $\{s\}$ corrupted by a finite probability $p_s$ of noise that can come from either the quantum circuit or the classical communication, as shown in Fig.~\ref{fig:fig1}b. We employ a fast decoder~\cite{Lee22} which outputs a bit-string $\{\sigma'=\pm 1\}$ as a classical ground state for each $\{s'\}$. 
+%
+By denoting the bit-string of the system qubits measured in $Z$ basis as $\{\sigma=\pm 1\}$, 
+the element-wise product, $\{\sigma\sigma'\}$, between the quantum sample and the classic replica serves as the decoded bit-string. 
+%
+This is equivalent to correcting the system qubits by one layer of $X$ gates for those sites with $\sigma'=-1$, in a feed-forward manner. 
+
+We performed experiments on \textit{ibm\_sherbrooke}, which is one of the IBM Quantum Eagle processors with 127 qubits; entangling gates generated by Echoed Cross-Resonance interactions~\cite{chow2011simple,sheldon2016ecr,malek2020ecr,sundaresan2020ecr} had typical error rates of $0.0077$ and square root of Pauli-X gates with error rates of $0.0002$ (\footnote{IBM Quantum. \href{https://quantum-computing.ibm.com/}{https://quantum-computing.ibm.com/}, 2021. (Downloaded August 6, 2023).}). 
+The typical device measurement error rates of $0.010$, which were sufficiently below the decoding threshold needed for the preparation of the long-range ordered state.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Results}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+{\bf Conceptual understanding of protocol.\ }
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+In previous theoretical work by some of the present authors \cite{zhu_nishimoris_2022}, it was shown that deviations from the Clifford limit by coherent errors induced by $t_A < \pi/4$ are tolerable up to a finite threshold.
+Here we expand this perspective by also treating \textit{incoherent} errors (corrupting the syndromes)
+in an analytically exact manner 
+and show that the presence of both types of errors leads to a threshold line as shown in Fig.~\ref{fig:fig1}c,
+which in its entirety is captured by the Nishimori criticality.
+%
+To see this, let us consider measuring the auxiliary qubits, which collapses the system's wave function into
+\begin{equation}\label{eqn:isinglre}
+\begin{split}
+|\psi(s_{ij})\rangle = e^{-\frac{\beta}{2}\sum_{\langle ij\rangle}s_{ij}  Z_iZ_j} |+\rangle ^{\otimes N} \,,
+\end{split}
+\end{equation}
+where $\beta = 2\tanh^{-1}\tan(t_A)$~\cite{zhu_nishimoris_2022}, and $N$ denotes the number of system qubits. 
+%
+The probability of such a measurement outcome follows from Born's rule
+\begin{equation}
+P(s_{ij}) = \norm{\psi(s_{ij})}^2 \propto \sum_{\sigma}e^{-\beta\sum_{\langle ij\rangle}s_{ij}  \sigma_i\sigma_j} \ ,
+\label{eq:Bornrule}
+\end{equation}
+which resembles the partition function of the random bond Ising model (RBIM)~\cite{zhu_nishimoris_2022}. 
+%
+Concretely, by Eq.~\eqref{eq:Bornrule} we analytically map our protocol onto a RBIM precisely tracking the Nishimori line~\cite{supplement} with an effective disorder probability
+\begin{equation}
+	\tilde{p} = \frac{1- (1-2p_s)\sin(2t_A)}{2} \ ,
+	\label{eq:disorder_probability}
+\end{equation}
+as a joint action of {\it both} coherent and incoherent errors that drives the phase transitions across the blue line in Fig.~\ref{fig:fig1}c. In particular, this implies that every point in the extended transition line shares the same Nishimori criticality. This scenario for the quantum protocol is quite distinct from the classical RBIM, whose schematic phase diagram is shown in Fig.~\ref{fig:fig1}d, where the Nishimori line only occurs at the fine-tuned solid line -- demonstrating an unprecedented robustness
+of Nishimori criticality in the quantum case. \\
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure}[t]
+\includegraphics[width=\columnwidth]{images_final_0925/Nishi_NatPhy_Figs_0925_Fig2.pdf}
+\caption{\label{fig:fig2}
+\textbf{Decoded fidelity estimation by randomly sampling GHZ stabilizers.}
+\textbf{a.}
+Because our decoder was implemented as Pauli corrections on the system qubits, the characterization of random stabilizers, which is measured in basis rotated by single-qubit rotations (small gray boxes), needed to be done in conjunction with the implemented decoder (symbolized by the monitor). 
+\textbf{b.} Estimated fidelities relative to GHZ states for measurement-based (filled blue circles) and unitary-based (red X-marks) preparation of long-range Ising ordered states on two-dimensions. The error bars represent the standard deviation of the fidelities estimated from bootstrap resampling random sets of stabilizers (See Methods). The error bars for the unitary results (red) are comparable to the fidelity itself, thereby extending far below what is visible on a logarithmic plot; for exact values, see data. The theoretically predicted fidelities for measurement-based protocol (dashed gray line) were based on an inferred noise model with auxiliary and site readout errors with a range of parameters giving rise to a 25th-75th percentile confidence interval in shaded gray~\cite{supplement}. The inset shows the ratio of the experimentally evaluated measurement- to unitary-based fidelities increasing for system size up to 54 sites.
+}
+\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure}[b]
+\includegraphics[width=\columnwidth]{images_final_0925/Nishi_NatPhy_Figs_0925_Fig3.pdf}
+\caption{\label{fig:fig3}
+\textbf{Experimentally measured local observables used to generate the state.}
+\textbf{a.} For two observables, we plot the ideally expected outcomes (dashed lines), the unprocessed experimental data (dots), and a {\it one parameter} fit (solid line) for each observable for sweeping 
+$t_A$ from $0$ (trivial) to $\pi/4$ (long-range ordered). The average 3-qubit-bond (red) observable reached as high as 0.8 across the 72 total bonds, while the average 6-qubit-plaquette (blue) observable reached 0.5 across the 18 plaquettes. Although in a noiseless setting both were expected to reach unity, the measured values agree well with the fit by $p_s=5.6\%$, and $p_\sigma=2.3\%$, which are approximately consistent with the known errors on the device~\cite{supplement}. The experimental data exhibits an absence of a singularity in these observables, consistent with expectations for both local shallow quantum circuit, and the internal energy of Nishimori line. 
+\textbf{b.} 125 of the 127 qubits used on \textit{ibm\_sherbrooke} where each bond ($\langle ZXZ \rangle$) and plaquette ($\langle W \rangle$) observable values are shaded according to the measured value. The numbers inside plaquettes (b) show $\langle W\rangle$ with parenthesis show standard error.
+}
+\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure*}[ht]
+\includegraphics[width=\textwidth]{images_final_0925/Nishi_NatPhy_Figs_0925_Fig4.pdf}
+\caption{\label{fig:fig4}
+\textbf{Nishimori transition by tuning coherent errors.} 
+\textbf{a.} The distribution of $M$ at $t_A=\pi/4$ for system sizes of 10 (black), 28 (red) and 54 (blue) system qubits
+using 21, 63, and 125 total qubits, respectively. Solid envelope lines are theoretical estimates using a two-parameter noise model.
+\textbf{b.} The sum of two-point correlation function $f$ signals the growth of long-range correlation when increasing $t_A$ and system sizes. Beyond a critical threshold for $t_A\geq t_A^c\approx 0.20\pi\sim0.21\pi$ (dark gray), the state exhibits long-range order (light gray). The estimated $t_A^c$ varied depending on the system size studied. The inset shows the size scaling of experimentally measured $f$ (X marks) at the peak location  of $g$
+agreeing well with the theoretically predicted noiseless values (square markers) scaling with $\propto L_y ^ {1.9}$.
+\textbf{c.} The peak locations of $g$ converge to the finite threshold that separates the long-range ordered phase (light gray) from short-range correlated phases. The dark gray shading illustrates the theoretically predicted critical point ($t_A^c$), according to the previously inferred two noise parameters, that spans a finite width because of the variation of noise probabilities. In the inset, the experimental (X marks) values agree well with the theoretically predicted values scaling as $\propto L_y ^ {1.8}$. The noiseless envelopes for all solid curves can be found in the Supplemental Materials.
+}
+\end{figure*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+{\bf GHZ fidelity in Clifford limit.\ }
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+For a baseline characterization of the measurement-based protocol, we estimated the fidelity of the prepared states
+in the Clifford limit ($t_A=\pi/4$) relative to the GHZ state. Because the final state in this limit is a stabilizer state,
+it was sufficient for a desired accuracy to consider only a constant number of randomly sampled measurements of the system qubits~\cite{Flammia11fidelity, Silva11fidelity}. For the specific case of the GHZ state, half the sampled stabilizers contain only Pauli Z operators, while the other half are combinations of Pauli-X and Pauli-Y operators~(See Methods for more details).
+To assess the relative performance of our protocol, we also implemented a standard unitary protocol for constructing GHZ states~\cite{mooney_generation_2021}.
+In Fig.~\ref{fig:fig2}, we see that the fidelities of the measurement-based protocol outperformed the unitary preparation. 
+This can be rationalized by the latter experiencing more errors due to the long idle times of deep circuit with size-dependent depth between $O(N)$ and $O(\log(N))$.
+
+For a system of 10 qubits, the measurement-based protocol resulted in a GHZ fidelity above 50\%, 
+but with increasing system size the fidelity was found to decrease exponentially (Fig.~\ref{fig:fig2}b). 
+We note, however, that this does \emph{not} imply the absence of long-range order or entanglement for these larger systems. 
+In fact, we expect exponentially decaying GHZ fidelities versus system sizes in the presence of noise 
+for virtually all states in the same phase of matter.
+We emphasize that no form of error mitigation, for measurement or unitary gates, was used to estimate these fidelities.
+To explain the experimentally measured fidelities, we compared our results against the predicted fidelities based on a noise model with $\approx 5\%$ incoherent auxiliary errors and $\approx 3\%$ data readout errors -- values inferred in the next section. 
+This places us in the long-range ordered phase in Fig.~\ref{fig:fig1}c (green star), which in the absence of any additional errors, has long-range GHZ-type entanglement, whilst its predicted GHZ fidelity shown in gray in Fig.~\ref{fig:fig2} decays exponentially with the number of system qubits. We see that the experimentally obtained values are slightly suppressed with respect to the gray curve, which is likely due to dephasing. This raises the question whether we retain robust long-range order in the presence of such dephasing.  \\
+
+{\bf Noise analysis.\ }
+To determine where in the phase diagram our experimental protocol accessed the GHZ state relative to the criticality threshold -- implicitly bounding the amount of other sources of errors that were present in our experiments -- we tuned one type of coherent error, via Eq.~\eqref{eqn:isinglre}, uniformly across the device; in this sweep, we monitored and fit the experimental observables~\cite{zhu_nishimoris_2022} associated with every bond to $\langle ZXZ \rangle = (1-2p_\sigma)^2(1-2p_s) \sin(2t_A)$, and experimental observable of every plaquette to $\langle W \rangle = (1-2p_s)^6 \sin(2t_A)^6$, as shown in Fig.~\ref{fig:fig3}a (Sec.~IC in Ref.~\onlinecite{supplement}). Here $p_\sigma$ accounts for the readout error of system qubits while $p_s$ captures both readout error on the auxiliary qubits and some of the noise during the entangling process.
+%
+For $t_A=\pi/4$, the bond and plaquette observables should ideally approach unity (dashed lines) because they capture, partially, the quality of the constituent cluster states~\cite{Raussendorf2001} -- a precursor state for the GHZ state -- with experimental data shown in Fig.~\ref{fig:fig3}b. 
+%
+% For $t_A$ below $\pi/4$, the implemented circuits become non-Clifford and thus cannot, in general, be efficiently characterized using classical resources~\cite{bravyi2019simulation}.
+For $t_A$ below $\pi/4$, the implemented circuits become non-Clifford and thus cannot, in general, be efficiently characterized.
+Nonetheless our modeling of coherent and incoherent noise sources turns out to be sufficiently comprehensive to quantitatively explain the observed experimental data, even for experiments involving up to 125 qubits. This allows us to infer the amount of noise afflicting the auxiliary ($p_s$) and system ($p_{\sigma}$) qubits when sweeping $t_A$. This led to an estimate for the amount of \textit{incoherent} errors present in the experiment to be in the range of $p_s \approx 4.2\%- 5.6\%$ and $p_\sigma \approx 1.2\%-2.3\%$ -- values consistent with our expectation based on standard calibration benchmarks of the device~\cite{supplement}. \\
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+{\bf Nishimori transition for tunable coherent errors.\ }
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Having established the incoherent noise level of our device, we can now proceed to validate the existence of a stable, long-range, Ising ordered phase when experimentally sweeping the level of coherent errors in our protocol. 
+To reveal the hidden order, we applied a decoder~\cite{Lee22, Preskill2002, PyMatching21} to process \textit{every} classical snapshot for the auxiliary qubits in the $X$ basis and the system qubits in the $Z$ basis. The basic idea is to perform a correction based solely on the auxiliary readout~\cite{zhu_nishimoris_2022}. This correction factor approximates the ground state configuration of the RBIM as a classical estimate~\cite{Garratt22}, $\{\sigma'\}$, of the bit-string from quantum device (Fig.~\ref{fig:fig1}b). 
+
+%
+The distribution of the decoded bitstrings in the computational basis is shown, for $t_A=\pi/4$, in Fig.~\ref{fig:fig4}a, where we sum over the {\it decoded} $Z$ expectation values of the individual qubit to obtain a total decoded `magnetization' $M = \sum_{j=1}^N \sigma_j' Z_j$. Any bias of this distribution (e.g. towards positive values) may be explained by an Ising asymmetric error originating from physical mechanisms such as amplitude damping or relaxation. Such errors would reduce the amount of classical correlations, and the small value $\langle M\rangle\approx0.02(2) N$ suggests that the global Ising symmetry is largely preserved. Moreover, the decoded, bi-modal experimental distribution (Fig.~\ref{fig:fig4}a) agrees well with the theoretical prediction (solid lines) lending confidence to the two-parameter noise model we used. 
+
+To more rigorously characterize the long-range order, we examined, for $t_A\leq \pi/4$, the decoded system qubit bitstrings and the average two-point, \textit{classical} correlations
+\begin{equation}
+f := \frac{1}{N}\left(\langle M^2\rangle -\langle M\rangle^2\right) \ ,
+\label{eq:QFI}
+\end{equation}
+which is a sum of the correlations $\langle \sigma_i \sigma_j Z_i Z_j\rangle $ for all the system qubits that compose the quantum state. 
+%
+\textbf{}The decoded experimental data is shown in Fig.~\ref{fig:fig4}b, where the solid line shows the theoretical benchmark with the noise parameters inferred from Fig.~\ref{fig:fig3}a. 
+%
+We observe a hallmark of the long-range ordered phase in the diverging $f$ for increasing system sizes; such divergent behavior for $f$ is expected throughout the ensemble of long-range ordered states, or phase, even away from $t_A=\pi/4$ up to a finite threshold, $t_A^c$. In fact, we have confirmed that in our two-parameter theory model, $f$ indeed grows unbounded above $t_A^c\approx 0.20\pi\sim0.21\pi$. In contrast, for small $t_A$ far below the threshold, $f$ is apparently bounded and does not grow with increasing size. 
+% 1D
+This divergent behavior for our 2D protocol should be contrasted to results in 1D geometries~\cite{supplement},  
+where we found $f$ to stop growing for larger system sizes in line with theoretical expectations
+that $f$ is bounded by a finite correlation length in the presence of infinitesimal weak errors. 
+
+To determine the threshold, or critical point, a practical way is to use of the normalized variance of $M^2/N$:
+ \begin{equation}
+ \begin{split}
+g&:= \frac{1}{N^3}\left(\langle M^4\rangle - \langle M^2\rangle^2\right) \,,
+ \end{split}
+ \end{equation}
+which quantifies the amount of fluctuations in the squared magnetization~\cite{supplement}. 
+In the presence of 5\% incoherent auxiliary errors, 
+the peak location is expected to converge to a critical value of $t_A^c \approx 0.205\pi$, by translating the Nishimori critical point $\tilde{p}_c\approx 6.75\%$~\cite{Queiroz2006exponents, zhu_nishimoris_2022} with Eq.~\eqref{eq:disorder_probability},
+which is in very close agreement with  the experimental data where the peak locations 
+approach this predicted critical point (Fig.~\ref{fig:fig4}c). 
+%
+Moreover, at this transition, we also observe that $f$ exhibits steep increases as one would expect for a critical system. 
+The three experimental values for $f$ for increasing system sizes agree well with noisy classic simulations exhibiting 
+a $\propto L_y^{1.9}$ scaling behavior of the peak height (Fig.~\ref{fig:fig4}b inset), where $L_y=2,3,4$ is the number of columns of qubits in a brickwall lattice; this experimentally observed scaling is in close agreement with the scaling exponent calculated value of $1.8(1)$ for the RBIM at the Nishimori point~\cite{Queiroz2006exponents}.
+%
+While the criticality is exposed in the decoded correlations only, the observable $\langle ZXZ\rangle$ of Fig.~\ref{fig:fig3}a 
+is another, direct probe of Nishimori physics -- it corresponds to the internal energy of the classical RBIM along the Nishimori
+line, which we experimentally confirm to be free of any singularity at the phase transition and in agreement with theoretical predictions.
+\\
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure}[t]
+\includegraphics[width=\columnwidth]{images_final_0925/Nishi_NatPhy_Figs_0925_Fig5.pdf}
+\caption{\label{fig:fig5}
+\textbf{Decoding transition out of the long-range ordered phase by increasing auxiliary errors before decoding. 
+%Experimental observation of Nishimori transition for increasing incoherent errors at ancillas.
+}
+\textbf{a.} For the largest system size ($N=54$), we experimentally mapped the 2D phase diagram for various coherent ($t_A$) and incoherent ($p_s$) errors where the color is proportional to the amount of variance in the magnetization squared, $g$. The analytically derived contour (dashed gray) shows close agreement for incoherent, auxiliary errors starting from approximately 0.05.
+\textbf{b.} For the lowest amount of injected coherent error ($t_A=\pi/4$), the experimentally estimated variance $g$ (circles) is maximized at the theoretically expected (solid lines) decoder transition of approximately $6.75\%$ (vertical dashed gray) for all three system sizes (10: black, 28: red, 54: blue).
+}
+\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+{\bf Decoding transition by tuning incoherent errors.\ }
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+As we have shown, the long-range ordered phase % from a constant-depth circuit 
+created by our 2D protocol is unveiled only after using a decoder, 
+whose performance critically depends on the quality of the auxiliary measurements. 
+%
+While the auxiliary error is lower-bounded by the quantum device, we can inject additional errors, in post-processing, before applying the decoder (see Fig.~\ref{fig:fig1}b) and thereby chart out a broader phase diagram including varying rates of incoherent errors.
+%
+By again monitoring the degree of fluctuations, $g$, now as a function of an increasing level of incoherent errors and system size (Fig.~\ref{fig:fig5}), we observe that the Nishimori critical point $t_A^c$ shifts towards $\pi/4$ and vanishes completely at $p_s\approx 6.75\%$~\cite{Queiroz2006exponents}, the decoding threshold~\cite{supplement}. 
+The origin of this limit can be readily understood as being equivalent to the decoding transition of a repetition code on a honeycomb lattice with bit-flip errors~\cite{Preskill2002}. 
+Our experiments thus not only demonstrate the stability of the long-range ordered phase separated from a trivial one via a Nishimori transition, but also quantify when it would fail for more noisy devices. It also significantly distinguishes a 2D from 1D protocol where the peak quickly converges to $t_A=\pi/4$ without a finite threshold~\footnote{See Extended Data Fig.~\ref{fig:1Dv2D}}. Thus we claim that our experimentally implemented 2D protocol exhibits long-range order with intrinsic robustness. 
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Discussion}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+The Nishimori multicritical point arises from a delicate balance between disorder and temperature -- a condition that is largely inaccessible in experiments on real, physical materials modeled by a RBIM~\cite{Binder86rmp}. This should be contrasted to our experiments using a shallow circuit protocol on a quantum system, where the Nishimori transition shows remarkable robustness even in a noisy device of significant size. 
+We argue that this can in fact be traced back to Born's rule, which {\it naturally enforces} the delicate balance of Nishimori physics: the auxiliary qubits play the role of quenched disorder by being measured, whose {\it probability} is exactly the wave function {\it squared amplitude} of the system qubits. 
+
+Our systematic study and generation of long-range ordered states using measurements shows that such protocols can be robust against certain errors, and even outperform unitary approaches on existing quantum hardware. Improvements in coherence and measurement fidelity should further improve the performance of our measurement-based protocol. Our work emphasizes the importance of spatial geometry in measurement-based protocols -- by \textit{tuning} errors across an error threshold we observed a stable phase that persists in 2D but is absent in 1D. While the experimentally accessible order parameters, $f$ and $g$, were observed to be below the theoretically predicted noiseless values due to the presence of noise, we expect to still be able to determine the universal critical exponents using equivalently noisy but larger devices, up to system sizes of 180, where finite-sized effects play less of a role.
+
+It would be interesting to similarly explore the (in)stability of measurement-induced long-range entanglement upon tuning coherent and incoherent errors for other proposals in the literature \cite{Raussendorf2001,Raussendorf2005,PhysRevLett.127.220503,Nat2021measure,Verresen2021cat,Bravyi2022,Lu22,zhu_nishimoris_2022,tantivasadakarn_hierarchy_2023,PhysRevLett.131.060405,Lee22,li2023symmetryenriched,buhrman2023state,Lee22,lu_mixed-state_2023}. This is especially timely since measurements have recently been used to deterministically create exotic long-range entanglement including topological order~\cite{iqbal2023topological,fossfeig2023experimental,iqbal2023creation} and related states with dynamic quantum circuits utilizing feed-forward operations~\cite{baumer2023efficient}. In such general contexts, stability might inquire additional ingredients, such as using the time-domain~\cite{Preskill2002,Hastings2021dynamically} or higher---or even fractional---dimensions, opening up a rich territory for exploration.
+%
+\begin{acknowledgements}
+We thank M. Ware, P. Jurcevic, Y. Kim, A. Eddins, H. Nayfeh, I. Lauer, G. Jones, and J. Summerour for assistance with performing experiments, and B. Mitchell, D. Zajac, J. Wootton, L. Govia, X. Wei, R. Gupta, T. Yoder, T. Soejima, K. Siva, M. Motta, Z. Minev, S. Pappalardi, S. Garratt, E. Altman, and Prof. Nishimori for thoughtful discussions. And we thank Prof. Nishimori for careful reading of the manuscript. 
+The Cologne group was partially funded by the Deutsche Forschungsgemeinschaft under Germany's Excellence Strategy -- Cluster of Excellence Matter and Light for Quantum Computing (ML4Q) EXC 2004/1 -- 390534769 and within the CRC network TR 183 (Project Grant No. 277101999) as part of projects A04 and B01. The classical simulations were performed on the JUWELS cluster at the Forschungszentrum Juelich.
+R.V. is supported by the Harvard Quantum Initiative Postdoctoral Fellowship in Science and Engineering. A.V. is supported by a Simons Investigator grant and  by NSF-DMR 2220703. A.V. and R.V. are supported by the Simons Collaboration on Ultra-Quantum Matter, which is a grant from the Simons Foundation (618615, A.V.).
+G.Z. is supported by the U.S. Department of Energy, Office of Science, National Quantum Information Science Research Centers, Co-design Center for Quantum Advantage (C2QA) under contract number DE-SC0012704.
+We acknowledge the use of IBM Quantum services for this work.
+
+\textbf{Author Contributions.} E.H.C. led the execution and analysis of the experimental data. G.Y.Z. and R.V. led the theoretical developments; G.Y.Z. developed all numerical simulations and additional experimental analysis code. A.S., E.B. and D.L. contributed technical insights and code related to characterizing the states. N.T., G.Z., A.V., and S.T. contributed theoretical insights related to the critical transition; S.T. provided additional insights related to entanglement generation and verification. S.S. and A.K. provided experimental support and access, and contributed to the design of the experiments. E.H.C., G.Y.Z., R.V. drafted the manuscript and supplemental material; all authors contributed to revising both.
+
+
+\textbf{Data availability.} The data supporting the findings of this study will be available before publication.
+
+\textbf{Code availability.} Simulation and data analysis code may be made available upon reasonable request.
+
+\textbf{Competing interests.} The authors declare no competing interests.
+\end{acknowledgements}
+
+\section*{Methods}
+\subsection*{127 superconducting qubit device}\label{method:device}
+We performed all experiments on \textit{ibm\_sherbrooke}, a 127-qubit Eagle r3 processor. 
+The entangling gate has a native $ZX$ interactions and is known as a Echoed Cross-Resonance (ECR) gate with a median error of $0.0077$, with a 50\% confidence interval of [0.006,~0.008]. The two-qubit gate times across the device were uniformly set to 533.3~nanoseconds,  similar to the method described in ~\cite{kim2023evidence}. 
+The median square root of Pauli-X error rate was $0.0002$ [0.0002,~0.0004]. The readout error was $0.010$ [0.007,~0.021] with typical measurement times of $\approx1244.4$~nanoseconds. The qubits under study had a median $T1\approx293~\mu s$ and $T2\approx173~\mu s$. 
+Circuits were executed on the device at a clock rate of 1kHz~\cite{sundaresan2020ecr}. For all data found in Figures 3-5, experimental error bars were calculated from the standard error on 20,000 shots at the 1kHz clock rate. 
+
+
+
+\begin{figure}[ht]
+\includegraphics[width=\columnwidth]{images_final_0925/Nishi_NatPhy_Figs_0925_Fig6.pdf}
+\caption{
+\textbf{
+Typical error rates,} in cumulative format, for Echoed Cross Resonance (ECR, blue), square-root of Pauli-X (SX, red), and measurement (Meas, black) gates. Dashed lines represent medians of distributions.
+}\label{fig:suppErrors}
+\end{figure}
+
+\subsection*{Decomposition of ZZ gates}\label{method:decomposition}
+For fidelity comparisons in Fig.~\ref{fig:fig2}, we compiled the $ZZ(t=\pi/4)$ gate into a single ECR gate, which is the native basis gate on the device, and single-qubit rotations. For Fig.~\ref{fig:fig1}, the $ZZ(t)$ gates were all decomposed into two ECR gates with a virtual-$R_z(t)$ gate in between - resulting in a depth-6 unitary circuit followed by a layer of measurements. We note that further improvements could be accessed by shortening the $ZZ(t)$ gate time with fractional $ZX$ rotations~\cite{earnest2021pulse, kim2023scalable} that are accessible on the device. Hadamard gates, decomposed into two square root of Pauli-X gates and virtual-$R_z(t)$ gates, were also used for the preparation and readout of qubits.
+
+\subsection*{Quantum Circuit transpilation}\label{method:transpilation}
+For both unitary and measurement-based experiments, dynamical-decoupling (DD) was used in the same fashion. All single- and two-qubit gates were scheduled as late as possible after initialization in the ground state, and all idle periods after the first operations were replaced with a $X_{+\pi}-X_{-\pi}$ sequence in which the total idling period was divided proportionally according to a $1:2:1$ ratio surrounding the $X$ gates. Consequently, the unitary-based protocols benefited more from applying DD than for measurement-based circuits.
+
+Furthermore, we identified at least 12 different ways to schedule entangling gates for the measurement-based, and found some schedules to significantly outperform others~\cite{supplement}. This is consistent with our expectation that certain gates, when executed in parallel, can induce frequency collisions on the device that reduce the fidelity of the entangling gates.
+
+\subsection*{Monte Carlo Sampling \\of GHZ Stabilizer Observables}\label{method:stabilizers}
+For size-$N$ GHZ states generated at the fixed point of the Nishimori line, we randomly measured up to $S$ different non-$Z$ stabilizers (e.g. weight-$N$ observables containing only $X$ and $Y$ Paulis). We also included measurements of the system qubits in the all-$Z$ basis, which allows us to reconstruct any of the $2^{N-1}$ possible $Z$-only stabilizers of the GHZ state. In practice, however, we perform a binomial re-sampling of $Z$-only and non-$Z$ stabilizers with equal probability to emulate the proposed Monte Carlo sampling method for fidelity state estimation~\cite{Flammia11fidelity,Silva11fidelity}. By sampling $2S'$ random instances from $2^N$
+\begin{equation}
+\begin{split}
+\mathcal{F}  &= \frac{1}{2S'} \sum_{i=1}^{2S'} {\langle \mathcal{O}_i \rangle} \,.
+\end{split}
+\end{equation}
+an average fidelity was estimated. The exact samples given $N$ sites, $S$ samples and $k$ resampling instances are, in $N$, $S$, $k$ notation: (10, 30, 500), (28, 75, 500), and (54, 100, 500). For each of the $k$ resampling instance, a total of $2S'$ observables were sampled but drawn randomly without replacement from the $S$ non-$Z$ stabilizers or from the 1000 $Z$-only stabilizers. Thus, $S'\approx 3S/4$ of the non-Z stabilizers were sampled without replacement from $S$, and another $S'\approx 3S/4$ $Z$-only stabilizers were sampled also without replacement from 1000 unique $Z$-only stabilizers. Both sets $S'$ combined to give $\approx 2S'$ observables as part of this binomial re-sampling procedure.
+
+In all expectation values above, we randomly applied $X$-gates before readout of the system qubits and, after applying the correcting spin flip to sites on which $Z$ and $Y$ Paulis were supported, calculated the expectation values of the random stabilizers. Although readout was ``twirled'', the model-free readout correction was not applied~\cite{van2022model,supplement}.
+
+\subsection*{Fits to noise model}
+
+Two most basic linear observables are analytically known in the noiseless limit: $\langle W\rangle = \sin(2t_A)^6$, $\langle ZXZ\rangle = \sin(2 t_A)$. Let us consider two phenomenological errors: readout errors on the the auxiliary qubit measured in $X$ basis, with probability $p_s$; and that on the system qubit measured in $Z$ basis, with probability $p_\sigma$. Note that they also include the consequence of some of the mid-circuit bit-flip or phase-flip errors that propagate to yield the same effect in the end, such as the bit-flip (phase-flip) for system (auxiliary) qubits at the moment after the $R_{zz}$ gates. These two error rates turn the expectation values of the above observables into 
+$\langle W\rangle = (1-2p_s)^6 \sin(2t_A)^6$, $\langle ZXZ\rangle =  (1-2p_s)(1-2p_\sigma)^2\sin(2 t_A)$. We can perform a linear fit to extract such phenomenological error rates per bond and plaquette, which are then averaged over the lattice for mean values and standard deviations. The averaged effective errors per qubit weakly grows with the total number of qubits in our three experimental implementations, as seen in Table.~\ref{table:pspsigma}. 
+
+
+\begin{table}[h]
+\begin{tabular}{cccc}
+\hline
+ \begin{tabular}[c]{@{}c@{}}	System\\size\\$(N)$		\end{tabular} 
+& \begin{tabular}[c]{@{}c@{}}	$L_y$				\end{tabular} 
+& \begin{tabular}[c]{@{}c@{}}	$p_s$\\ (auxiliary)		\end{tabular} 
+& \begin{tabular}[c]{@{}c@{}}	$p_{\sigma}$\\ (system)		\end{tabular} 
+\\ 
+\hline
+10 & 2         & 0.042                                                       & 0.012                                                      \\ 
+28 & 3         & 0.051                                                       & 0.018                                                      \\ 
+54 & 4         & 0.056                                                       & 0.023                                                      \\ \hline
+\end{tabular}
+\caption{{\bf Two-parameter noise model.} Fits to experimental data gives $p_s$ which captures errors at the auxiliary qubits, and $p_\sigma$ at the system qubits.}
+\label{table:pspsigma}
+\end{table}
+
+For the one-dimensional protocol where we do not have the Wilson loop $\langle W\rangle$, we can use two Wilson lines of different lengths, e.g. $\langle ZXZ\rangle $ and $\langle ZX\mathbb{I}XZ\rangle$ to extract the two parameters for auxiliary and system qubits, respectively. 
+
+
+\bibliography{measurements, 2022-nishi}
+\clearpage
+\newpage
+\section*{Extended data}
+
+As discussed in the main text, the 2D protocol exhibited robustness over the 1D protocol; the key signature being based on the scaling of the average of two-point correlations, $f$, as a function of system size (Fig.~\ref{fig:1Dv2D}). Whereas in 2D (Fig.~\ref{fig:fig3c2D}), we not only observed the expected $f\propto L_y^{1.9}$ behavior in the long-range ordered state, but also that the criticality occurs below the GHZ point ($t_A^c < \pi/4$). The 1D behavior (Fig.~\ref{fig:fig3c1D}), in contrast, exhibited no growth in $f$ with system size from 28 to 54, and had peak variances at the GHZ value of $t_A=\pi/4$. 
+%
+The binomial distributions (approaching Gaussian in asymptotic large system sizes) of magnetization in Fig.~\ref{fig:fig3c1D}bd and Fig.~\ref{fig:fig3c2D}bd arise because all the possible system bit-strings are equally probable in the pre-measurement system~\cite{zhu_nishimoris_2022}, which maintains the same in the trivial state at Fig.~\ref{fig:fig3c2D}e. 
+\\
+
+
+\onecolumngrid
+\vskip 1cm
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure*}[h!]
+\includegraphics[width=.9\columnwidth]{images_final_0925/Nishi_NatPhy_Figs_0818_Fig7.pdf}
+\caption{
+{\bf Absence of finite threshold in one-dimensional protocol}, for comparison with Fig.~\ref{fig:fig4}. 
+(a) $f$ grows with increasing system size but converges to finite value that depends on $t_A$. 
+(b) The peak of $g$ converges to $t_A=\pi/4$ indicative of absence of finite threshold for coherent error. 
+}
+\label{fig:1Dv2D}
+\end{figure*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\begin{figure*}[h!]
+\includegraphics[width=.95\columnwidth]{images_final_0925/Nishi_NatPhy_Figs_0901_Fig8.pdf}
+\caption{\label{fig:fig3c1D}
+\textbf{Magnetization of 1D experiments with and without decoding at different $t_A$ values} 
+(\textbf{a}) Two-point correlations in 1D experiments for sweeps of $t_A$. The histograms at values of $t_A$ where variances were maximized for undecoded (\textbf{b}) and decoded (\textbf{c}). Although the bimodal distribution persisted up to a system size of 28, at 54 the distribution became uniform. And as expected, both the undecoded (\textbf{d}) and decoded (\textbf{e}) exhibited a binomial distribution in the trivial state ($t_A=0$). 
+}
+\end{figure*}
+
+
+\begin{figure*}[h!]
+\includegraphics[width=.95\columnwidth]{images_final_0925/Nishi_NatPhy_Figs_0818_Fig9.pdf}
+\caption{\label{fig:fig3c2D}
+\textbf{Magnetization of 2D experiments with and without decoding at different $t_A$ values} 
+(\textbf{a}) Two-point correlations in 2D experiments for sweeps of $t_A$. The histograms at values of $t_A$ where variances were maximized for undecoded (\textbf{b}) and decoded (\textbf{c}). In contrast to the 1D cases (Fig.~\ref{fig:fig3c1D}), the bimodal distribution persisted up to a system size of 54. And similarly to the 1D case, both the undecoded (\textbf{d}) and decoded (\textbf{e}) exhibited a binomial distribution in the trivial state ($t_A=0$).
+}
+\end{figure*}
+
+\twocolumngrid
+
+\end{document}

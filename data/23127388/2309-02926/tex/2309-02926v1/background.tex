@@ -1,0 +1,71 @@
+\section{Background \& Problem Statement}
+\label{sec:bg}
+
+\subsection{LLM-Integrated Frameworks and Apps} 
+
+LLM-integrated frameworks or called LLM-integration middleware, like LangChain and LlamaIndex, bring lots of convenience to app developers. Their flexible abstractions and extensive toolkits enable developers to harness the power of LLMs. 
+These frameworks include specialized modules tailored to address specific problems, ranging from mathematical computations to CSV queries, data analysis and so on.
+These modules leverage powerful foundational LLMs, like GPT-3.5, to generate solution plans for problems, complemented by potential interactions with other programs to accomplish necessary subtasks.
+Here's an intuitive example of how these modules work:
+it may be difficult for LLMs to directly answer a mathematical problem.
+However, these frameworks can decouple this problem into several tasks like first generating the code to solve the problem, then executing the code and obtaining the results. 
+The framework here is responsible for chaining up these subtasks to satisfy users' requirements for math problems. 
+
+\begin{figure}
+	\centering
+  \vspace{-10pt}
+	%\setlength{\abovecaptionskip}{0pt}
+	\setlength{\belowcaptionskip}{0pt}
+	\includegraphics[width=1.0\columnwidth]{figures/langchain_overview.pdf}
+	\caption{Simple workflow of LLM-integrated web app involving code execution }
+	\label{fig:langchain_overview}
+	% \vspace{-3mm}
+    \vspace{-10pt}
+\end{figure}
+
+Figure~\ref{fig:langchain_overview} provides an illustrative example of an LLM-integrated app with code execution capability.
+Users interact with the app through natural language questions on a webpage. The app's frontend sends questions to the backend framework (\eg{} LangChain), which embeds the incoming questions into its built-in prompt templates (a.k.a. system prompts) designed for certain tasks. 
+These prompts are then sent to the LLM (\eg{} OpenAI GPT-3.5) to generate the code that can address the questions. 
+The generated code is returned to the framework, which executes the code and packages the results for the frontend to display to the users. 
+This entire process accomplishes a question-and-answer interaction. Notably, there is no direct interaction between users and the LLM. 
+Instead, the whole process relies entirely on the interaction between the backend framework and the LLM.
+
+
+
+\begin{figure*}%[t]
+	\centering
+     % \vspace{-10pt}
+	%\setlength{\abovecaptionskip}{0pt}
+	\setlength{\belowcaptionskip}{0pt}
+	% \includegraphics[width=1.0\linewidth]{figures/llmsmith-overview-new.pdf}
+    \includegraphics[width=1.0\linewidth]{figures/llmsmith-overview-new.pdf}
+	\caption{Overview of \tool{}} 
+	\label{fig:overview}
+	% \vspace{-3mm}
+\end{figure*}
+
+\subsection{LLM Security}
+
+The tremendous success of LLMs has attracted both attackers and security analysts. 
+There is an escalating interest in the security of LLMs and their derivatives~\cite{glukhov2023llm,kang2023exploiting,chen2021evaluating}. 
+Inherited from conventional neural networks, LLMs are also susceptible to adversarial examples~\cite{zou2023universal,tse2020dlsurvey}, backdoors~\cite{zhao2023prompt,usenix2023aliasbackdoor} and privacy leakage~\cite{carlini2021extracting,usenix2021drmi}.  
+There are also three new types of attacks against LLMs via prompt injection: \emph{goal hijacking}~\cite{perez2022ignore}, \emph{prompt leaking}~\cite{perez2022ignore}, and \emph{jailbreaking}~\cite{wei2023jailbroken}.
+
+\vspace {3pt} \noindent\textbf{Goal Hijacking.} 
+Goal hijacking refers to the attacks that misalign the goal of the system prompt to the goal of the attackers' prompts~\cite{perez2022ignore}, where system prompt represents a set of initial texts that are used to steer the behavior of LLMs..
+Goal hijacking could be achieved directly with prompt engineering. Many adversarial prompts follow specific templates, such as the well-known ``Ignore my previous requests, do [New Task].'' From the perspective of LLM, the concatenated prompt appears as ``[System Prompt]. Ignore my previous requests, do [New Task].'' Consequently, LLM would disregard the goal system prompt and execute the new task, thereby hijacking the output of LLM.
+
+\vspace {3pt} \noindent\textbf{Prompt Leaking.} 
+Different from hijacking the goal of system prompts, prompt leaking aims to extract system prompts. These system prompts may contain secret or proprietary information (\eg, safety instructions, intellectual property) that users should never access. For example, if the attacker gets the model's safety instructions, it may bypass them easily to carry out malicious activities. 
+
+\vspace {3pt} \noindent\textbf{Jailbreaking.}
+Jailbreaking refers to an attack that ``misleads'' the LLM to react to undesirable behaviors. Currently, to prevent LLMs from generating responses involving sensitive content, such as unethical or violent responses, LLM developers often impose certain constraints on their behavior which looks like putting LLMs in jail. However, attackers can cleverly manipulate LLMs to bypass these constraints by giving LLMs more well-designed prompts. For instance, the well-known DAN (Do Anything Now) attack has demonstrated its effectiveness in leading ChatGPT to output offensive responses~\cite{DAN}.
+
+\subsection{Problem Statement}
+
+\vspace {3pt} \noindent\textbf{Problem Overview.} Many LLM-integrated frameworks leverage the capabilities of LLMs to enable them to serve tasks beyond the LLM's own competencies. These frameworks embed user questions into specific prompt templates to let LLMs generate code that solves the user problems. By directly executing the LLM-generated code, the frameworks can return the execution results as final responses to answer user questions. However, the code generated by LLMs is untrusted. Some users can utilize prompt injection attacks to hijack the code generated by LLM. Thus executing such untrusted code directly in the frameworks may lead to RCE vulnerabilities. 
+Even worse, vulnerabilities in frameworks also jeopardize the security of apps built upon them. App developers may use vulnerable APIs from the frameworks as part of their backend. These apps often provide interfaces to receive user input (\eg prompt) and pass it as a parameter to the vulnerable API. Thus, the attacker can trigger RCE vulnerabilities by crafting malicious inputs (\eg prompt injection). 
+
+\vspace {3pt} \noindent\textbf{Threat Model.} For LLM-integrated apps built with the vulnerable API, an attacker can remotely induce the LLM to generate malicious code through prompt injection attacks. When this untrusted code is executed by the vulnerable API, the attacker can achieve RCE on the server of the app, executing arbitrary code, and even elevating the privileges of the server.
+
+It is worth noting that the generated code is derived from natural language descriptions, which possess considerable diversity. It is possible for distinct prompts to yield the same code, posing a significant challenge in providing comprehensive protection against attacks at the prompt level. Moreover, the conventional server-side sandboxing approach, which is commonly used in web applications~\cite{cheng2016radiatus, young2019true}, might no longer be practical for LLM-integrated frameworks. Traditional sandboxes tend to be large in size, which is not conducive to lightweight app deployment. Additionally, applying stringent restrictions within the sandbox could potentially impact the functional integrity of the framework. What makes this situation even more intriguing is that, unlike traditional app vulnerability exploitation, the payload for such attacks consists solely of natural language expressions. This means that even attackers without extensive knowledge of computer security can easily conduct Remote Code Execution (RCE) attacks on services, exploiting the power of language-based vulnerabilities.

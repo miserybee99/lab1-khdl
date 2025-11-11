@@ -1,0 +1,227 @@
+%!TEX root = ../main.tex
+
+\section{Program IDs}
+\label{apx-addresses}
+
+We provide the full program IDs for the programs from~\Cref{tbl:eval_bugs}.
+We analyzed the programs and \tool's reports in depth during our bug finding experiment. (\Cref{sec:eval_bugs})
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{@{}c|c@{}}
+    \toprule
+    Abbreviation & Full Program ID \\
+    \midrule
+    \texttt{3nJ2...5erP} & \texttt{3nJ2MWbnS3bW8rnWhejAgnLQTyiqoA5fMq5Z7jRv5erP} \\
+    \texttt{3od3...jnsW} & \texttt{3od3X7QN84FTonkyXbQiT1ydxcT9P1jBcA9mbgD3jnsW} \\
+    \texttt{3Vtj...4q8v} & \texttt{3VtjHnDuDD1QreJiYNziDsdkeALMT6b2F9j3AXdL4q8v} \\
+    \texttt{3w57...obPW} & \texttt{3w57iMhv5Zk5VDuTe5dspm2FzE9zQhscCb9CZpAKobPW} \\
+    \texttt{4hPk...JP5N} & \texttt{4hPkNV2WsgPW1wHHcQebvV7GLyLgdDDLEx3Pu6LzJP5N} \\
+    \texttt{4M2f...jStx} & \texttt{4M2fancicHbUtMLcMNmbi97YngFoqBcnFk5D31JjjStx} \\
+    \texttt{6Lan...szqi} & \texttt{6LanqAFCbucXWSG35ssij4kFDTWJ25BY7d6hbR2szqi} \\
+    \texttt{7FWE...9p7p} & \texttt{7FWEcVG1YRW7evGR3bXgu47ge8m6Je7BQuvTzMbn9p7p} \\
+    \texttt{9a5d...jZP9} & \texttt{9a5dihgNgBhWnjmRDJ8rUy4ihetvgMmjaPk7NGdsjZP9} \\
+    \texttt{9tSW...11yy} & \texttt{9tSWsKwtDL6YseLuh1haGFJk312uu9HGyrnVa5XH11yy} \\
+    \texttt{GQ6q...1u6K} & \texttt{GQ6qchUsofiK7rzeFg5jbvpHcJ7pNnfL4yfwaYrB1u6K} \\
+    \texttt{9WoL...849B} & \texttt{9WoLnfjLKk1EBtkABhe3vcA8CLogsbs3XBoddn8h849B} \\
+    \texttt{H5rp...nPSG} & \texttt{H5rpfCD6hLFCPCfxxqjGg94Gqoigqfk7afhqGLu1nPSG} \\
+    \bottomrule
+  \end{tabular}
+  \caption{Program IDs and abbreviations from~\Cref{tbl:eval_bugs}.}%
+  \label{tbl:full-addresses}
+\end{table}
+
+
+\section{Oracle algorithms}\label{apx-oracle-algorithms}
+
+In the following, we provide a detailed explanation of the \emph{missing owner check oracle}, \emph{arbitrary CPI oracle}, \emph{missing key check oracle} and \emph{integer bugs oracle}.
+
+\subsection{Missing Owner Check Oracle}
+\label{apx-moco}
+
+
+\Cref{algorithm:missing_owner_check} details the bug-detecting process of the \emph{missing owner check oracle}.
+The oracle operates as follows:
+Before the program starts, the oracle initializes \emph{i)} a set $M$ in which it stores potentially malicious accounts (see Line \ref{missing_owner_check_1}) and \emph{ii)} a set of accounts $V$ that an attacker could potentially exploit using a missing owner check vulnerability (see Line \ref{missing_owner_check_2}).
+
+At runtime of the program, the oracle checks if the program reads the data of an account $a$ which is not owned by the program, i.e., whose public key in the owner field is not equal to the program ID of the program (see Line \ref{missing_owner_check_3} and \ref{missing_owner_check_4}).
+If the program does not own account $a$, the oracle marks $a$ as potentially malicious by adding it to set $M$ (see Line \ref{missing_owner_check_5}).
+
+Moreover, the oracle checks at runtime whether the program compares account details of two account $a, b$ in registers (see Line \ref{missing_owner_check_6} to \ref{missing_owner_check_8}). 
+In this comparison, if data from an account $a$ is compared to the public key of an account $b$, and $a$ is included in the set $M$ (see Line \ref{missing_owner_check_9}), the oracle marks $b$ as potentially vulnerable by adding $b$ to the set $V$ (see Line \ref{missing_owner_check_10}).
+The same applies if the order of accounts in the register comparison is reversed, i.e., if the public key of account $a$ is compared with data of a account $b$ (see Line \ref{missing_owner_check_11} and \ref{missing_owner_check_12}). 
+Thus, the oracle memorizes that the program has compared the data of an account potentially controlled by the attacker with the public key of another account.
+
+The oracle signals the eBPF VM in case the program deducts lamports of an account which is contained in the set $V$, i.e., whose public key was previously compared with data of an account not owned by the program (see Line \ref{missing_owner_check_13} to \ref{missing_owner_check_17}).
+The same applies when the program writes to the data field of an account contained in the set $V$ (see Line \ref{missing_owner_check_18} and \ref{missing_owner_check_19}).
+This is because the oracle assumes that an owner check is missing because \emph{i)} the program compared the data of an account $a$ possibly controlled by the attacker with the public key of another account $b$ \emph{ii)} and then modified the lamports or data field of $b$.
+An owner check would have already crashed the program, because the owner of the account whose data the program compared with a public key is not the program.
+
+\begin{algorithm}
+\caption{Missing Owner Check Oracle}
+\label{algorithm:missing_owner_check}
+\begin{algorithmic}[1]
+%    \Function{MissingSignerCheckOracle}{}
+        \State $M \gets \emptyset$           \label{missing_owner_check_1}
+        \State $V \gets \emptyset$           \label{missing_owner_check_2}
+        
+        \While{program running}
+            
+            \If{program reads data of account $a$}                          \label{missing_owner_check_3}
+                \If{$a$.owner $\neq$ program\_id}                           \label{missing_owner_check_4}
+                    \State $M \gets M \cup \{a\}$                           \label{missing_owner_check_5}
+                \EndIf
+            \EndIf
+            
+            \If{program performs register comparison}                       \label{missing_owner_check_6}
+                \State $a \gets \text{account in } src \text{ register}$    \label{missing_owner_check_7}
+                \State $b \gets \text{account in } dst \text{ register}$    \label{missing_owner_check_8}
+
+                \If{$a$.data \textbf{is compared with} $b$.pubkey \textbf{and} $a \in M$}       \label{missing_owner_check_9}
+                    \State $V \gets V \cup \{b\}$                                               \label{missing_owner_check_10}
+                \Else{ $a$.pubkey \textbf{is compared with} $b$.data \textbf{and} $b \in M$}    \label{missing_owner_check_11}
+                    \State $V \gets V \cup \{a\}$                                               \label{missing_owner_check_12}
+                \EndIf
+            \EndIf
+            
+            \If{program writes to lamports field of account $a$}                \label{missing_owner_check_13}                   
+                \State $l_{prev} \gets$ lamports of $a$ before write            \label{missing_owner_check_14}
+                \State $l_{after} \gets$ lamports of $a$ after write            \label{missing_owner_check_15}
+                \If{$a \in V$ \textbf{and}  $l_{after}$ $<$ $l_{prev}$}         \label{missing_owner_check_16}
+                    \State signal VM                                            \label{missing_owner_check_17}
+                \EndIf
+            \EndIf
+            
+            \If{program writes to data of account $a$ \textbf{and} $a \in V$}   \label{missing_owner_check_18}                           
+                \State signal VM                                                \label{missing_owner_check_19}
+            \EndIf
+
+        \EndWhile
+%    \EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+
+
+
+
+
+
+\subsection{Arbitrary CPI Oracle}\label{apx-cpi}
+\Cref{algorithm:arbitrary_cpi} provides a detailed explanation of the \emph{arbitrary CPI oracle}.
+The oracle operates as follows:
+Before starting the program, we define a malicious public key, which represents a malicious program controlled by the attacker (see Line \ref{arbitrary_cpi_line_1}).
+At runtime of the program, the oracle then checks whether the program calls the functions \texttt{sol\_invoke\_signed\_rust()} or \texttt{sol\_invoke\_signed\_c()} (see Line \ref{arbitrary_cpi_line_2}). 
+If this is the case, the oracle determines the public key of the called program (see Line \ref{arbitrary_cpi_line_3}). 
+The oracle then checks if the public key of the program being invoked is equal to that of the previously defined malicious program (see Line \ref{arbitrary_cpi_line_4}).
+This implies that an attacker is able to invoke his malicious program. 
+If this is the case, the oracle signals the virtual machine (see Line \ref{arbitrary_cpi_line_5}).
+
+\begin{algorithm}
+\caption{Arbitrary CPI Oracle}
+\label{algorithm:arbitrary_cpi}
+\begin{algorithmic}[1]
+%\Function{ArbitraryCPIOracle}{}
+\State $m_{pk} \gets \text{predefined malicious public key}$                                \label{arbitrary_cpi_line_1}
+\While{program is running}
+    \If{program calls \texttt{sol}\_\texttt{invoke}\_\texttt{signed}\_\texttt{rust()} \textbf{or} \texttt{sol}\_\texttt{invoke}\_\texttt{signed}\_\texttt{c()}}     \label{arbitrary_cpi_line_2}
+        \State $i_{pk} \gets $ public key of invoked program                             \label{arbitrary_cpi_line_3}
+        \If{$i_{pk} = m_{pk}$}                                                              \label{arbitrary_cpi_line_4}
+                \State signal VM                                                            \label{arbitrary_cpi_line_5}
+        \EndIf
+    \EndIf
+\EndWhile
+%\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Missing Key Check Oracle}\label{apx-key}
+\Cref{algorithm:missing_key_check} details the bug-detecting process of the \emph{missing key check oracle}.
+Before the program starts, we pass two parameters to the oracle: 
+First, the address of a function $f$ for which a key check is expected (see Line \ref{missing_key_check_line_1}).
+Second, the public key $a_{pk}$ of an account, where the program is expected to compare the public key of an account it passes to function $f$ with the public key $a_{pk}$ before calling function $f$ (see Line \ref{missing_key_check_line_2}).
+In the case of Wormhole, $f$ would represent the function \emph{load\_instruction\_at} and $a_{pk}$ would represent the public key of the \emph{KeccakSecp256k sysvar} account.
+Moreover, the oracle defines an empty list $A$, which it uses at program runtime to store accounts which public key was compared to $a_{pk}$ (see Line \ref{missing_key_check_line_3}). 
+
+At program runtime, the oracle checks whether the program performs a register comparison operation or a function call operation.
+In the case of the register comparison operation, the oracle uses the taint tracking engine to check whether the source and/or destination registers contain account details (see Line \ref{missing_key_check_line_5} and \ref{missing_key_check_line_6}). 
+If at least one of the registers contains account details, the oracle checks whether the account details are the public key of an account and whether it is compared with $a_{pk}$ (see Line \ref{missing_key_check_line_7} and \ref{missing_key_check_line_9}). 
+If this is the case, the oracle adds the account of the account details to the set $A$ to memorize that the account was compared with $a_{pk}$ before calling the function $f$ (see Line \ref{missing_key_check_line_8} and \ref{missing_key_check_line_10}).
+
+In case the program calls the function $f$ using an eBPF \texttt{CALL} instruction (see Line \ref{missing_key_check_line_11}), the oracle extracts the account $p$ passed to the function (see Line \ref{missing_key_check_line_12}). 
+Then the oracle checks if the account $p$ is not included in the set $A$ and thus was not compared with the public key $a_{pk}$ before calling the function $f$ (see Line \ref{missing_key_check_line_13}). 
+If this is the case, the oracle signals the VM (see Line \ref{missing_key_check_line_14}).
+
+\begin{algorithm}
+\caption{Missing Key Check Oracle}
+\label{algorithm:missing_key_check}
+\begin{algorithmic}[1]
+%\Function{MissingKeyCheckOracle}{}
+\State $f \gets \text{function address for which a key check is expected}$                                \label{missing_key_check_line_1}
+\State $a_{pk} \gets \text{expected public key to be checked}$                     \label{missing_key_check_line_2}
+\State $A \gets \emptyset$                                              \label{missing_key_check_line_3}
+
+\While{program is running}
+
+    \If{program performs register comparison}                           \label{missing_key_check_line_4}
+        \State $a \gets \text{account in } src \text{ register}$   \label{missing_key_check_line_5}
+        \State $b \gets \text{ account in } dst \text{ register}$   \label{missing_key_check_line_6}
+        \If{$a_{pk}$ \textbf{is compared with} $b$.pubkey}        \label{missing_key_check_line_7}
+            \State $A \gets A \cup \{b\}$                         \label{missing_key_check_line_8}
+        \Else{ $a$.pubkey \textbf{is compared with} $a_{pk}$}     \label{missing_key_check_line_9}
+            \State $A \gets A \cup \{a\}$                         \label{missing_key_check_line_10}
+        \EndIf
+    \EndIf
+
+    \If{program calls function $f$}                                     \label{missing_key_check_line_11}
+        \State $p \gets \text{passed account to function } f$                   \label{missing_key_check_line_12}
+        \If{$p \notin A$}                                               \label{missing_key_check_line_13}
+            \State signal VM                                            \label{missing_key_check_line_14}
+        \EndIf
+    \EndIf
+
+\EndWhile
+%\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Integer Bugs Oracle}\label{apx-int}
+\Cref{algorithm:integer_bugs} provides a detailed explanation of the \emph{integer bug oracle}.
+The oracle operates as follows:
+Before the program runs, the oracle initializes an empty list $T$ in which the oracle stores the registers that contain bugged values, i.e., overflowing or underflowing values (see Line \ref{integer_bugs_line_1}). 
+
+At program runtime, the oracle then checks whether an eBPF \texttt{STORE} instruction has caused the program to write a value to a register (see Line \ref{integer_bugs_line_2}). 
+If this case occurs, the oracle checks whether the value which the program writes into the register is bugged, i.e. has overflowed or underflowed (see Line \ref{integer_bugs_line_3}).
+If a bugged value is written to the register, the oracle remembers the register by adding the register to the list $T$ (see Line \ref{integer_bugs_line_3} and \ref{integer_bugs_line_4}).
+In case the program does not write a bugged value to the register, the oracle removes the register from the list $T$ (see Line \ref{integer_bugs_line_5}).
+
+Moreover, the oracle checks if the program writes a value into the lamports field of an account at runtime (see Line \ref{integer_bugs_line_6}).
+Then the oracle checks whether the set $T$ contains the register whose value the program writes to the lamports field of an account (see Line \ref{integer_bugs_line_7} and \ref{integer_bugs_line_8}).
+This indicates that the program has written a bugged value to the lamports field of the account.
+If the program writes a bugged value into the field, the oracle signals the VM (see Line \ref{integer_bugs_line_9}).
+
+\begin{algorithm}
+\caption{Integer Bugs Oracle}
+\label{algorithm:integer_bugs}
+\begin{algorithmic}[1]
+%\Function{IntegerBugsOracle}{}
+\State $T \gets \emptyset$                                  \label{integer_bugs_line_1}
+\While{program is running}
+    \If{program writes $value$ to $src$ register}           \label{integer_bugs_line_2}
+        \If{$value$ is bugged}                              \label{integer_bugs_line_3}
+            \State $T \gets T \cup \{src\}$                 \label{integer_bugs_line_4}
+        \Else
+            \State $T \gets T \backslash \{src\}$           \label{integer_bugs_line_5}
+        \EndIf    
+    \EndIf
+    
+    \If{program writes $value$ to lamports field}           \label{integer_bugs_line_6}
+        \State $src \gets \text{register holding } value$   \label{integer_bugs_line_7}
+        \If{$src \in T$}                                    \label{integer_bugs_line_8}
+            \State signal VM                              \label{integer_bugs_line_9}
+        \EndIf
+    \EndIf
+\EndWhile
+%\EndFunction
+\end{algorithmic}
+\end{algorithm}

@@ -1,0 +1,256 @@
+\section{Experiments for Productivity}\label{sec:p_experiments}
+
+In this section, we conduct experiments with non-weird activation functions on larger data sets to examine the effectiveness our modifications and verify the theoretical guidance behind them.
+Aside from modified models, vanilla ViTs are used as baselines. Since it is hard to define (or to achieve) sparsity on $\gelu$ activations \citep{observation}, even in ``vanilla'' ViTs, $\relu$ are used throughout this section.
+
+\subsection{Training from Scratch}\label{sec:from_scratch}
+
+Although distinguished in \cref{sec:v_experiments}, gradient and activation sparsity should better coincide to allow aggressive dynamic neuron pruning during both training and inference. 
+To show their effectiveness in such practical scenarios, we test our modifications of $\dbmlp$ and non-weird $\jrelu$ by training from scratch ViT-Base/16 \citep{vit} on ImageNet-1K \citep{imagenet1k} and T5 on C4 \citep{t5}, representing computer vision and natural language processing tasks as recommended by \citet{sparsity_handbook}. 
+
+We generally follow PyTorch's recipe\citep{pytorch_recipe} for ViT-Base/16, except that we turn off model EMA to avoid \texttt{deepcopy} that bothers experiment tracking and parameter clamping. For major hyperparameters, we use learning rate $0.03$, weight decay $0.3$, batch size $2048$, cosine annealing scheduler and a variety of random data augmentation during the 300-epoch training.
+To train T5, we follow major hyperparameters released by \citet{observation} such as learning rate of $0.01$, batch size of $256$ and inverse square root scheduling with linear warmup of 10,000 steps, while filling not mentioned ones from \citet{t5_recipe}. The training of T5 lasts for only 100,000 steps as well \citep{observation}, since it involves too much computation.
+To make both models sparser, we modify them by plugging zero-initialized zeroth biases before MLP blocks and replacing all $\relu$ with $\jrelu$. We run \cref{algo:refined} after each step with $c=0.1$, i.e., $\sqrt{d} - c \ge 0.9 \sqrt{d}$.
+Since a lot of statistics are computed which slows the training, for ViT the logging (including training losses, sparsity, etc.) happens after per-epoch evaluation or every 100 steps in training. The encoder-decoder architecture and larger token number of T5 cost more memory use, so half of a batch is used to compute the statistics. As compensation logging happens every 25 steps for T5.
+T5 and ViT are both trained for only one trial due to our limited computation budget. More details of the experiments can be found in \cref{appendix:experimental_details}.
+The training and testing sparsity of ViT-Base/16 and T5-Base are illustrated in \cref{figure:productive_vit} and \cref{figure:productive_t5}, and are summarized in \cref{table:productive_vit} and \cref{table:productive_t5}.
+\begin{figure}
+    \centering
+    \resetHeight{}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/imagenet1k/from_scratch/sparsified/training.jpg}
+        \caption{\tiny Training sparsity of modified ViT.}\label{figure:productive_vit_sparsified_training}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/imagenet1k/from_scratch/vanilla/training.jpg}
+        \caption{\tiny Training sparsity of vanilla ViT.}\label{figure:productive_vit_vanilla_training}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/imagenet1k/from_scratch/comparison/training.jpg}
+        \caption{\tiny Comparison of layer-averaged training sparsity between vanilla and modified ViT.}\label{figure:productive_vit_average_training}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/imagenet1k/from_scratch/comparison/training_end.jpg}
+        \caption{\tiny Comparison of layerwise training sparsity between vanilla and modified ViT during the last 100 steps.} \label{figure:productive_vit_end_training}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/imagenet1k/from_scratch/sparsified/testing.jpg}
+        \caption{\tiny Testing sparsity of modified ViT.}\label{figure:productive_vit_sparsified_testing}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/imagenet1k/from_scratch/vanilla/testing.jpg}
+        \caption{\tiny Testing sparsity of vanilla ViT.}\label{figure:productive_vit_vanilla_testing}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/imagenet1k/from_scratch/comparison/testing.jpg}
+        \caption{\tiny Comparison of layer-averaged testing sparsity between vanilla and modified ViT.}\label{figure:productive_vit_average_testing}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/imagenet1k/from_scratch/comparison/testing_end.jpg}
+        \caption{\tiny Comparison of layerwise testing sparsity between vanilla and modified ViT at the last testing.} \label{figure:productive_vit_end_testing}
+    \end{subfigure}
+    \caption{Training and testing sparsity during training of ViT-Base/16 on ImageNet-1K. Red and yellow are used for modified ViT while blue and green indicate vanilla ViT. 
+        \cref{figure:productive_vit_sparsified_training}-\cref{figure:productive_vit_end_training} show \emph{training} sparsity while \cref{figure:productive_vit_sparsified_testing}-\cref{figure:productive_vit_end_testing} show \emph{testing} sparsity. 
+        \cref{figure:productive_vit_sparsified_training}, \cref{figure:productive_vit_vanilla_training}, \cref{figure:productive_vit_sparsified_testing} and \cref{figure:productive_vit_vanilla_testing} show sparsity in a layerwise manner, while \cref{figure:productive_vit_average_training} and \cref{figure:productive_vit_average_testing} illustrate after averaging across layers in order to demonstrate the overall improvement.
+        \cref{figure:productive_vit_end_training} and \cref{figure:productive_vit_end_testing} display the layerwise sparsity at the end of training to show improvements' tendency along the depth.
+    }\label{figure:productive_vit}
+\end{figure}
+\begin{table}
+    \centering
+    \begin{tabular}{lrrrrrrrr}
+        \toprule
+                                & \multicolumn{2}{c}{Training Sparsity}                             &   \multicolumn{2}{c}{Testing Sparsity}                &   \multicolumn{1}{c}{Acc@1}   &   \multicolumn{1}{c}{Acc@5}\\
+        \midrule    
+        Vanilla                 &   $0.104$             &                                           &   $0.087$                 &                           &   $\mathbf{77.35\%}$          &   $\mathbf{93.50\%}$\\
+        Modified                &   $\mathbf{0.046}$    &   $\downarrow 55.92\%$                    &   $\mathbf{0.055}$        &   $\downarrow 36.03\%$    &   $76.77\%$                   &   $93.30\%$\\
+        \bottomrule
+    \end{tabular}
+    \caption{Summary of training ViT-Base from scratch on ImageNet-1K\citep{imagenet1k}. Training sparsity is computed by integrating \cref{figure:productive_vit_average_training}.}\label{table:productive_vit}
+\end{table}
+
+\begin{figure}
+    \centering
+    \resetHeight{}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/T5/from_scratch/sparsified/training_encoder.jpg}
+        \caption{\tiny Training sparsity in the encoder of modified T5.}\label{figure:productive_t5_sparsified_training_encoder}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/T5/from_scratch/vanilla/training_encoder.jpg}
+        \caption{\tiny Training sparsity in the encoder of vanilla T5.}\label{figure:productive_t5_vanilla_training_encoder}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/T5/from_scratch/sparsified/training_decoder.jpg}
+        \caption{\tiny Training sparsity in the decoder of modified T5.}\label{figure:productive_t5_sparsified_training_decoder}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/T5/from_scratch/vanilla/training_decoder.jpg}
+        \caption{\tiny Training sparsity in the decoder of vanilla T5.}\label{figure:productive_t5_vanilla_training_decoder}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/T5/from_scratch/comparison/training.jpg}
+        \caption{\tiny Comparison of layer-averaged training sparsity between vanilla and modified T5.}\label{figure:productive_t5_average_training}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/T5/from_scratch/comparison/training_end.jpg}
+        \caption{\tiny Comparison of layerwise training sparsity between vanilla and modified T5 during the last 100 steps.} \label{figure:productive_t5_end_training}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/T5/from_scratch/sparsified/testing_encoder.jpg}
+        \caption{\tiny Testing sparsity in the encoder of modified T5.}\label{figure:productive_t5_sparsified_testing_encoder}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/T5/from_scratch/vanilla/testing_encoder.jpg}
+        \caption{\tiny Testing sparsity in the encoder of vanilla T5.}\label{figure:productive_t5_vanilla_testing_encoder}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/T5/from_scratch/sparsified/testing_decoder.jpg}
+        \caption{\tiny Testing sparsity in the decoder of modified T5.}\label{figure:productive_t5_sparsified_testing_decoder}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/T5/from_scratch/vanilla/testing_decoder.jpg}
+        \caption{\tiny Testing sparsity in the decoder of vanilla T5.}\label{figure:productive_t5_vanilla_testing_decoder}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/T5/from_scratch/comparison/testing.jpg}
+        \caption{\tiny Comparison of layer-averaged testing sparsity between vanilla and modified T5.}\label{figure:productive_t5_average_testing}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/T5/from_scratch/comparison/testing_end.jpg}
+        \caption{\tiny Comparison of layerwise testing sparsity between vanilla and modified T5.} \label{figure:productive_t5_end_testing}
+    \end{subfigure}
+    \caption{Training and testing sparsity during training of T5-Base on C4. Red and yellow are used for modified models while blue and green indicate vanilla ones. 
+        \cref{figure:productive_t5_sparsified_training_encoder}-\cref{figure:productive_t5_end_training} show \emph{training} sparsity while \cref{figure:productive_t5_sparsified_testing_encoder}-\cref{figure:productive_t5_end_testing} show \emph{testing} sparsity. 
+        \cref{figure:productive_t5_sparsified_training_encoder}-\cref{figure:productive_t5_vanilla_training_decoder} and \cref{figure:productive_t5_sparsified_testing_encoder}-\cref{figure:productive_t5_vanilla_testing_decoder} show sparsity in a layerwise manner with encoder layers numbered by $1$-$12$ and decoder layers numbered by $13$-$24$, while \cref{figure:productive_t5_average_training} and \cref{figure:productive_t5_average_testing} illustrate after averaging across layers in order to demonstrate the overall improvement.
+        \cref{figure:productive_t5_end_training} and \cref{figure:productive_t5_end_testing} display the layerwise sparsity at the end of training to show improvements' tendency along the depth.
+    }\label{figure:productive_t5}
+\end{figure}
+\begin{table}
+    \centering
+    \begin{tabular}{lrrrrrrrr}
+        \toprule
+                                & \multicolumn{2}{c}{Training Sparsity}                             &   \multicolumn{2}{c}{Testing Sparsity}                &   \multicolumn{1}{c}{Testing Loss}\\
+        \midrule    
+        Vanilla                 &   $0.302$             &                                           &   $0.299$                 &                           &   $4.88$\\
+        Modified                &   $\mathbf{0.153}$    &   $\downarrow 49.25\%$                    &   $\mathbf{0.180}$        &   $\downarrow 39.64\%$    &   $\mathbf{4.78}$\\
+        \bottomrule
+    \end{tabular}
+    \caption{Summary of training T5-Base from scratch on C4. Training sparsity is computed by integrating \cref{figure:productive_t5_average_training}.}\label{table:productive_t5}
+\end{table}
+
+\begin{figure}
+    \centering
+    \resetHeight{}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/imagenet1k/from_scratch/comparison/training_acc.jpg}
+        \caption{\tiny Training accuracy of ViT-Base/16 on ImageNet-1K.}\label{figure:productive_vit_acc_training}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/imagenet1k/from_scratch/comparison/testing_acc.jpg}
+        \caption{\tiny Testing accuracy of ViT-Base/16 on ImageNet-1K.}\label{figure:productive_vit_acc_testing}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \includegraphics[width=\textwidth]{pic/results/dumps/T5/from_scratch/comparison/training_acc.jpg}
+        \caption{\tiny Training loss of T5-Base on C4.}\label{figure:productive_t5_acc_training}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \includegraphics[width=\textwidth]{pic/results/dumps/T5/from_scratch/comparison/testing_acc.jpg}
+        \caption{\tiny Testing loss of T5-Base on C4.}\label{figure:productive_t5_acc_testing}
+    \end{subfigure}
+    \caption{Accuracies or losses during training from scratch.}
+\end{figure}
+
+Visually obvious significant improvements in activation/gradient sparsity can be found in the experiment results. 
+By integrating the training sparsity along steps, a training sparsity improvement of approximately 50\% is achieved in both CV and NLP tasks. 
+By observing the testing sparsity of the last checkpoint, there is a testing improvement of relatively at least 36\%.
+\cref{figure:productive_vit_end_training}, \cref{figure:productive_vit_end_testing}, \cref{figure:productive_t5_end_training} and \cref{figure:productive_t5_end_testing} suggest that sparsity improvements happen in shallow and middle layers of both encoder and decoder. We conjecture that it is because our improvement focuses on stimulating gradient sparsity, which is poorly trained since fewer parameters lie before shallow layers and implicit adversarial samples are insufficient. Zeroth biases can fix this insufficiency. In contrast, deep layers have sufficient implicit adversarial samples but the motivation directly toward activation sparsity is limited, which our modification hardly helps.
+In \cref{table:productive_vit} and \cref{table:productive_t5}, in contrast to sparsity generalization brought by vanilla training one can observe sparsity overfitting after modification in both CV and NLP tasks. Fortunately, it is slight compared to the improvement.
+
+The improvement in sparsity does not harm performance or generalization. 
+According to \cref{table:productive_vit}, \cref{table:productive_t5}, \cref{figure:productive_vit_acc_testing} and \cref{figure:productive_t5_acc_testing}, testing accuracy of ViT only suffers an acceptable accuracy degeneration while the testing loss of T5 surprisingly improves after modification. 
+Nevertheless, the training of the modified ViT indeed slows during the middle stage in \cref{figure:productive_vit_acc_training} and \cref{figure:productive_vit_acc_testing}, but the lagging diminishes at the end of training. The reason for this catching up remains mysterious and we conjecture it has something to do with the decayed learning rate. For T5 the modified version always have better training and testing losses. Notably, the modified T5 seems to have better generalization because in \cref{figure:productive_t5_acc_testing} modified T5 has significantly lower testing losses despite similar training losses with the vanilla one according to \cref{figure:productive_t5_acc_training}.
+
+\subsection{Finetuning for Sparsity}\label{sec:f_experiments}
+
+Apart from training from scratch, we finetune existing weights for sparsity to show a cheaper way to make them sparser, given that our modification is nearly plug-and-play as analyzed in \cref{sec:illustration}. 
+We use the vanilla weights from \cref{sec:p_experiments} and finetune it for another 15 epochs or 10,000 steps after applying the modification. 
+Since finetuning is relatively short and mainly serves inference, we only measure testing sparsity rather than training sparsity in this subsection. 
+
+LoRA is used for finetuning to modify weight matrices while keeping learned knowledge, because we observe difficulties in recovering performance with full-parameter finetuning in tentative experiments. In both tasks, we use a relatively large $r=192$ for LoRA because we expect better sparsity requires massively rearranging the matrices. LoRA is applied at all matrices in MLP blocks as well as in self-attention blocks. 
+For ViT we directly plug zero-initialized zeroth biases before MLP blocks and replace $\jrelu$ for $\relu$, which does not harm testing accuracy thanks to the derivative calibration of $\jrelu$ to imitate $\relu$. However we find T5 hard to directly adapt to $\jrelu$, so we mix two activation functions linearly and increase the portion of $\jrelu$ linearly after each step, starting from $0$ to $1$ during the first 3,000 steps.
+In tentative experiments we find clamped scaling factors in LayerNorm layers critical to better sparsity, so we apply \cref{algo:refined_finetuning} after every step with $T_{\text{uplifting}}=3,000$ in both CV and NLP tasks. The finetuning lasts for 15 epochs for the CV task while 10,000 steps for the NLP task. All other hyperparameters are inherited from \cref{sec:from_scratch}.
+The testing sparsity of modified models is compared in \cref{figure:finetuning_vit}, \cref{figure:finetuning_t5} and \cref{table:finetuning} with those before finetuning and those after vanilla finetuning. 
+\begin{figure}
+    \centering
+    \resetHeight{}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/imagenet1k/finetuning/sparsified/testing.jpg}
+        \caption{\tiny Modified ViT-Base.}\label{figure:finetuning_vit_sparsified}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/imagenet1k/finetuning/vanilla/testing.jpg}
+        \caption{\tiny Vanilla ViT-Base.}\label{figure:finetuning_vit_vanilla}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/imagenet1k/finetuning/comparison/testing.jpg}
+        \caption{\tiny Testing sparsity averaged across layers during finetuning.}\label{figure:finetuning_vit_average}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/imagenet1k/finetuning/comparison/testing_end.jpg}
+        \caption{\tiny Layerwise testing sparsity during the last 100 steps.}\label{figure:finetuning_vit_end}
+    \end{subfigure}
+    \caption{Testing sparsity during finetuning ViT-Base/16 for sparsity on ImageNet-1K. Red and yellow are used for the modified model while blue and green indicate the vanilla one. }\label{figure:finetuning_vit}
+\end{figure}
+\begin{figure}
+    \centering
+    \resetHeight{}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/T5/finetuning/sparsified/testing_encoder.jpg}
+        \caption{\tiny Encoder of modified T5.}\label{figure:finetuning_t5_sparsified_encoder}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/T5/finetuning/vanilla/testing_encoder.jpg}
+        \caption{\tiny Encoder of Vanilla T5.}\label{figure:finetuning_vit_vanilla_encoder}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/T5/finetuning/sparsified/testing_decoder.jpg}
+        \caption{\tiny Decoder of modified T5.}\label{figure:finetuning_t5_sparsified_decoder}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/T5/finetuning/vanilla/testing_decoder.jpg}
+        \caption{\tiny Decoder of Vanilla ViT-Base.}\label{figure:finetuning_t5_vanilla_decoder}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/T5/finetuning/comparison/testing.jpg}
+        \caption{\tiny Testing sparsity averaged across layers during finetuning.}\label{figure:finetuning_t5_average}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.24\textwidth}
+        \myincludegraphics[width=\textwidth]{pic/results/dumps/T5/finetuning/comparison/testing_end.jpg}
+        \caption{\tiny Layerwise testing sparsity at the end of finetuning.}\label{figure:finetuning_t5_end}
+    \end{subfigure}
+    \caption{Testing sparsity during finetuning T5-Base for sparsity on C4. Red and yellow are used for the modified model while blue and green indicate the vanilla one. }\label{figure:finetuning_t5}
+\end{figure}
+\begin{table}
+    \centering
+    \begin{tabular}{lrrrrrrrrrrr}
+        \toprule
+                        &   \multicolumn{3}{c}{ViT-Base/16 on ImageNet-1K}                                                                          &   \multicolumn{3}{c}{T5-Base on C4}\\
+                        &   \multicolumn{1}{c}{Testing Sparsity}                &   \multicolumn{1}{c}{Acc@1}   &   \multicolumn{1}{c}{Acc@5}       &   \multicolumn{2}{c}{Testing Sparsity}                &   \multicolumn{1}{c}{Testing Loss}\\ 
+        \midrule    
+        Before Finetuning   &   $\mathbf{0.087}$                                    &   $\mathbf{77.35\%}$          &   $\mathbf{93.50\%}$          &   $0.299$                 &                           &   $4.88$\\
+        Vanilla         &   $0.122$                                             &   $77.17\%$                   &   $93.44\%$                       &   $0.304$                 &                           &   $\mathbf{4.59}$\\
+        Modified        &   $0.102$                                             &   $74.46\%$                   &   $92.10\%$                       &   $\mathbf{0.199}$        &   $\downarrow 33.42\%$    &   $4.61$\\
+        \bottomrule
+    \end{tabular}
+    \caption{Summary of finetuning for sparsity.}\label{table:finetuning}
+\end{table}
+
+For ViT, the finetuning damages both testing sparsity and accuracy. However, modified finetuning still has advantages over vanilla LoRA finetuning in sparsity so it seems the drop is mainly due to finetuning. For T5 the improvement is significant. After finetuning for sparsity, T5 obtains similar testing sparsity compared to training for sparsity from scratch, indicating that existing language models can become sparser at a relatively low finetuning cost. This sparsity improvement only brings 0.02 degradation in testing loss. Despite the success of finetuning for sparsity in the NLP tasks, training for sparsity from scratch is still recommended for new models because it brings better testing sparsity as well as potential significant reduction in training costs from better training sparsity.
+In ViT, sparsity improvement mainly happens in shallow and middle layers as illustrated in \cref{figure:finetuning_vit_end}, which can be explained in a similar way as \cref{sec:from_scratch}. For T5 the result is more interesting. According to \cref{figure:finetuning_t5_end} the sparsity improvement mainly happens in decoder layers. This may be related to architectural differences between encoders and decoders, which is of interest to investigate in future works.
+
+\subsection{Role of LayerNorm Layers}
+
+Although the experiments reported above are conducted with restricted or uplifted LayerNorm layers, we also conducted tentative experiments before these refinements. The results are not displayed in this manuscript due to length limit\jmlronly{ but they are available on our Huggingface repository\footnote{\logrepo{}}}. Without restricted LayerNorm, ViT has only about relatively 20\% sparsity improvements when trained from scratch, and with frozen not-uplifted LayerNorm, sparsity rarely changes during finetuning ViT from vanilla checkpoint whose scaling factors are observed very small. 
+Both theory and experiments indicate the critical role of LayerNorm layers when it comes to sparsity.
+Last but not least, \citet{observation} observe that there is \emph{no} activation sparsity in token mixing layers in MLP-Mixer. They attribute it to the small token-stacking dimension. Here based on the theoretical and empirical findings, we provide another conjecture that it is because MLP-Mixer does not have immediate LayerNorm layers before token-mixing MLP blocks \citep{mixer}, but with transposition lying in between.
+

@@ -1,0 +1,212 @@
+\section{Experiments} \label{sec:exp}
+\begin{figure*}[h!]
+	%	\centering
+	\begin{minipage}{0.47\textwidth}
+		\centering
+		\includegraphics[width= \textwidth]{Plots/exp_1_hybrid_KKL.pdf}
+	\end{minipage}	
+	\hfill
+	\begin{minipage}{0.47\textwidth}
+		\centering
+		\includegraphics[width= \textwidth]{Plots/exp1_hybrid_GRU.pdf}
+	\end{minipage}	
+	\caption{Rollouts over time for system i) with our hybrid KKL-RNN (left) and with the hybrid GRU (right). The training horizon is marked with dotted lines. The results demonstrate that our method reproduces all components correctly and learns  a plausible split in OVS and non-OVS. The hybrid GRU shows deteriorated and unphysical long-term behavior.}
+	\label{fig:hybrid}
+\end{figure*}
+
+
+
+In this section, we show that: (i) Our KKL-RNN achieves equal or higher accuracy than baselines, especially in the partially OVS case; (ii) We learn a plausible split in OVS and non-OVS components with our method; (iii) Our method can buffer missing simulator inputs; (iv) We can easily incorporate properties as a decaying non-OVS part; (v) The concept can also be leveraged in the pure learning-based scenario.  
+
+\paragraph{Baselines: } 
+We model the non-OVS residuum in our KKL-RNN with GRU-based architectures.
+Thus, our model can also be interpreted as a hybrid extension of a GRU.
+In order to obtain baselines with comparable structure, we consider learning-based and hybrid baselines with a GRU backbone. 
+We compare to the following baselines (for architecture details see Appendix Sec. 3.2).
+\textbf{GRU: } State-of-the-art recurrent architecture for time-series and dynamics learning;  
+\textbf{Hybrid GRU: } GRU with simulator trajectory as control input similar to \citep{10.1145/3447814};
+\textbf{Residual model: } trains GRU predictions $r$ on the residual between data and simulator by minimizing $\Vert \hat y-(\hat s+r) \Vert_2$ similar to \citet{Forssell97combiningsemi-physical};
+\textbf{Filter: } Fuses long-term information from the simulator with short-term information from a GRU by low-pass filtering the simulator and high-pass filtering the GRU \citep{ensinger2023combining}.
+\textbf{Sim: } Physics-based simulator. 
+For the pure learning-based task, we replace the simulator with a learning-based substitute.
+\textbf{Ablation study: } In Appendix Sec. 2.2, we investigate how different aspects of the architecture affect the results. Thus, we consider several strategies to model the partially OVS system \eqref{eq:partially_obs} with GRUs. 
+
+\paragraph{Learning task:}
+For each experiment, we observe a single trajectory.
+Rollouts are performed on a short part of the trajectory, while predictions are performed on the full trajectory. 
+Either, we have access to real measurements or we consider simulated data corrupted with noise.
+For the real-world data, we measure the root-mean-squared error (RMSE) between predictions $y$ and observations $\hat y$. For the simulated systems, we compare to the noise-free observations. 
+All models are trained on batches of subtrajectories.
+Here, we learn $T^{\star}_{\theta}$ with an MLP since direct access to $f_u$ is not required (cf. Sec. \ref{sec:method}).
+See Appendix Sec. 3.2 for training details and Sec. 2.3 for invertible NN results.
+ 
+\subsection{Systems}
+For each of the four systems, we focus on different aspects of our method demonstrating that it can easily deal with different non-OVS residua (GRU, exponentially damped GRU) and missing simulator data. 
+For equations of the simulated systems see Appendix Sec. 3.1.
+
+\begin{figure*}[h!]
+	%	\centering
+	\begin{minipage}{0.33\textwidth}
+		\centering
+		\includegraphics[width= \textwidth]{Plots/exp4_KKL_RNN.pdf}
+	\end{minipage}	
+	\hfill
+	\begin{minipage}{0.33\textwidth}
+		\centering
+		\includegraphics[width= \textwidth]{Plots/exp3_baselines.pdf}
+	\end{minipage}	
+    	\begin{minipage}{0.33\textwidth}
+    	\centering
+    	\includegraphics[width= \textwidth]{Plots/exp3_error.pdf}
+    \end{minipage}	
+	\caption{The rollouts with our KKL-RNN for System iii) (left) show that our method learns a plausible split into OVS and non-OVS and is able to buffer missing simulator inputs. The rollouts for System ii) (middle) demonstrate that our KKL-RNN produces more accurate results than the other HM approaches. The residual model even shows unphysical behavior.
+	Accumulating errors in the baseline are further visible in the RMSE over time for System (ii) (right).}
+	\label{fig:rest}
+\end{figure*}	
+\paragraph{i) Damped oscillations: }
+Two superposed sine oscillations, where the second oscillation is damped and vanishes over time.
+The simulator is represented by a sine wave with the correct main frequency but a modeling mismatch in the amplitude  (see Fig. \ref{fig:hybrid}). 
+We enforce a vanishing residuum by exponentially damping the GRU observations $r_{\theta}$. 
+Thus, after some time, the predictions are solely determined by the observer. 
+The system is trained on a 600-steps interval, predictions are performed with 1500 steps. 
+
+\paragraph{ii) Double-torsion pendulum: }
+We consider the measurements and the corresponding numerical simulation from \citet{lisowski} and use the first 150 steps for training.
+To add a transient component, we artificially add decaying sinusoidal oscillations to the data
+(see. Fig. \ref{fig:rest} (right)).
+We model the non-OVS residuum $r$ with a standard GRU.
+
+\paragraph{iii) Drill-string system: }
+We train on measurements provided in \citet{torsion} Fig. 14 and the corresponding simulator.
+2000 time steps are used for training and 2000 additional time steps for predictions. 
+To demonstrate the robustness of the method, we randomly remove 500 steps from the simulator during the prediction phase.  
+
+\paragraph{iv) Van-der-Pol oscillator (pure learning-based): }
+We extend our ideas and results to the pure learning-based scenario. 
+In particular, the observer architecture is leveraged to fuse models with contrastive strengths.
+Thus, we learn a simplified but robust model as a simulator substitute for the KKL-RNN.
+As before, we model the non-OVS residua of our KKL-RNN with GRUs.
+Here, we simulate a Van-der-Pol oscillator with external sine excitation.
+As a simulator substitute, we consider a simple sine wave with parameters that are trained jointly with the models. 
+Here, the Sim baseline is obtained by fitting the sine wave to the data. 
+
+In Appendix Sec. 2.1, we consider a second example, that extends experiment ii) in \citet{ensinger2023combining} .
+As in their setting, a GRU trained on a low-pass filtered signal serves as a simulator substitute.
+In contrast to them we inform the high-pass components via the low-pass signal.
+
+	%\centering
+
+\paragraph{Results: }
+\begin{table*}[!htpb]
+	\centering 
+	\begin{tabular}{rcccccc}
+		\noalign{\smallskip}  \hline \noalign{\smallskip}
+		task & GRU & Residual Model  & Hybrid GRU & Filter &  KKL-RNN (ours) & Sim \\ 
+		\hline
+		i) & 1.02 (0.03) & 0.31 (0.04) &  0.27 (0.08) &  0.64 (0.21) & \textbf{0.16} (0.03) & 0.36 \\
+		ii)& 1.39 (0.03) & 1.41 (0.15) & 0.51 (0.04) &  0.61 (0.09)& \textbf{0.24} (0.02) & 1.09 \\
+		iii) & 0.40 (0.19) & 0.63 (0.10) & \textbf{0.26} (0.01) & 0.60 (0.01) & \textbf{0.23} (0.01) & 0.66 \\
+		iv) &  0.43 (0.19) & 0.51 (0.15) & 0.09 (0.065)&  - & \textbf{0.02} (0.001) & 0.537 \\
+		\noalign{\smallskip} \hline \noalign{\smallskip}
+	\end{tabular}\quad
+	\caption{RMSEs for Systems i)-iii) (mean (std)) over 5 independent runs.}
+	\label{t:hybrid}
+\end{table*}
+
+The results demonstrate that our method produces accurate long and short-term predictions.
+Also, the simulator is reconstructed accurately (cf. Fig. \ref{fig:hybrid} and \ref{fig:rest} (left)).
+This allows to buffer missing simulator information via the learned simulator signal as demonstrated for System iii). Further, the learned non-OVS residua $r$ indeed correspond to the non-OVS parts of the system, represented e.g. by transient behavior (cf. Fig. \ref{fig:hybrid} and \ref{fig:rest} (left)).
+This property is leveraged for System i), where the hybrid GRU produces deteriorated and unphysical long-term behavior. 
+Such behavior can not occur for the OVS components of our KKL-RNN since it violates backward-distinguishability. 
+The non-OVS transient oscillations are further damped over time by design.
+Table \ref{t:hybrid} shows that we achieve higher accuracy than the standard GRU, which suffers from deteriorated long-term behavior on all systems. 
+Further, our method is also superior to the Residual model and Filter (cf. Fig. \ref{fig:rest} (middle)) since, in contrast to these approaches, the simulator informs the latent states of the learning-based component. 
+This prevents unphysical behavior as it occurs in the Residual model (cf. Fig. \ref{fig:rest} (middle)) and allows to leverage less informative simulators.
+As explained, informing the latent states further prevents error accumulation. 
+The Filter also prevents error accumulation to some extent by adopting the long-term behavior of the simulator.
+However, it relies on the assumption that the simulator provides the correct low-frequency information, which is not the case for the systems here (e.g. the simulator has the wrong amplitude in System (i)).
+The accumulating errors in the baselines are further clearly visible in the accumulating RMSE over time (cf. Fig. \ref{fig:rest} (right)).
+Often, the accuracy of our method is similar to the hybrid GRU (cf. System iii). 
+It can be interpreted that in these cases, the GRU acts as an observer as explained in Sec. \ref{sec:method}.
+However, for Systems i), ii) and iv), our method provides higher accuracy than the hybrid GRU.
+A likely explanation is that, in contrast to our method, the hybrid GRU does not learn an optimal split into OVS and non-OVS components especially if the system is not fully OVS. 
+This coincides with the findings that the GRU could ignore or underestimate the simulator input (cf. Sec. \ref{sec:method}).
+
+
+
+System iv) shows that the findings extend to the pure learning-based scenario. 
+Hybrid GRU and KKL-RNN outperform the other methods. 
+Intuitively, both learn a sine wave with matching frequency. 
+Further, they learn to infer the Van-der-Pol oscillator via it.
+However, the KKL-RNN still outperforms the hybrid GRU that is not able to perfectly reproduce the oscillations. This indicates again that the hybrid GRU does not learn a fully-OVS system.
+However, the results for the hybrid GRU can be leveraged.
+They demonstrate that a standard GRU can be prevented from deteriorating long-term predictions by supporting it with a simple trainable signal.
+Similar findings for another pure learning-based experiment are provided in Appendix Sec. 2.1. 
+
+The ablation study in Appendix Sec. 2.2 demonstrates that the GRU architectures trained on Eq.~\eqref{eq:partially_obs} do not learn an optimal split into OVS and non-OVS and lack high accuracy.
+In particular, the non-OVS residuum takes over parts that are actually OVS.
+Since they are also trained on the partially OVS system \eqref{eq:partially_obs}, this suggests that the KKL observer is an essential component of our architecture. 
+in Appendix Sec. 2.4, we provide additional plots, runtimes and plot the RMSE over time, indicating again accumulating errors in the baselines. 
+%System v) demonstrates how the concept in \citet{ensinger2023combining} can be improved.
+%While the GRU shows accumulating errors, we further improve the results in
+%the Residual model and Filter that both benefit from the stable long-term behavior of the low-pass component.
+%However, since low-pass and high-pass component are not linked for those models, the high-pass component still suffers from accumulating errors and deteriorated behavior, which is prevented by KKL-RNN and Obs-GRU.
+%This finding is more clearly visible in the rollout plots than in the RMSE. 
+%In summary, the key insight for both systems is that the complex signals are OVS via the simplified signal that serves as a simulator substitute. 
+%This property is also beneficial for the Obs-GRU that, as described before, behaves similarly to an observer in some cases. 
+
+
+
+
+
+
+%	\begin{subfigure}{0.32\textwidth}
+%		\centering
+%		\includegraphics[width= \textwidth]{Plots/exp6_KKLRNN.pdf}
+%		\caption{System iv) KKL-RNN} \label{subfig:exp6}
+%	\end{subfigure}	
+%	\begin{subfigure}{0.32\textwidth}
+%		\centering
+%		\includegraphics[width= \textwidth]{Plots/exp5_baselines.pdf}
+%		\caption{System v)} \label{subfig:exp5}
+%	\end{subfigure}
+
+ 
+
+
+ 
+%\paragraph{v) Double-torsion system: }
+%We extend the experiment in \citep{ensinger2023combining} Exp. ii) and use identical data from the double-torsion pendulum \citep{lisowski} with a varied control input.
+%We refer to their method as Filter.
+%As in their setting, we learn a simplified model by training a GRU on the low-pass filtered and downsampled signal. 
+%However, in contrast we don't learn the high-pass component separately, but provide the predictions of this GRU as an input to our models, trained on the original data. 
+%\paragraph{Results: }
+%The results in Table \ref{t:lb} indicate that our concepts can also be leveraged in the pure learning-based scenario.
+%As before, KKL-RNN and Obs-GRU outperform the baselines.
+%Intuitively, both learn a sine wave with matching frequency. 
+%At the same time, they learn to infer the Van-der-Pol oscillator via it.
+%However, the KKL-RNN still outperforms the Obs-GRU that is not able to perfectly reproduce the oscillations. 
+%This indicates that the Obs-GRU does not correctly learn a fully OVS system. 
+%Further, the results in the appendix show that the GRU architectures trained on Eq.~\eqref{eq:partially_obs} learn an incorrect split in OVS and non-OVS suggesting again that our proposed architecture represents this split most reliably.
+%System v) demonstrates how the concept in \citet{ensinger2023combining} can be improved.
+%While the GRU shows accumulating errors, we further improve the results in
+%the Residual model and Filter that both benefit from the stable long-term behavior of the low-pass component.
+%However, since low-pass and high-pass component are not linked for those models, the high-pass component still suffers from accumulating errors and deteriorated behavior, which is prevented by KKL-RNN and Obs-GRU.
+%This finding is more clearly visible in the rollout plots than in the RMSE. 
+%In summary, the key insight for both systems is that the complex signals are OVS via the simplified signal that serves as a simulator substitute. 
+%This property is also beneficial for the Obs-GRU that, as described before, behaves similarly to an observer in some cases. 
+%In the appendix, we provide plots and runtimes.  
+%
+%\begin{table*}[h!]
+%	\centering 	
+%	\caption{Total RMSEs for systems iv)-v) (mean (std)) over 5 independent runs.}
+%	\label{t:lb}
+%	\begin{tabular}{rccccc}
+%		\noalign{\smallskip} \hline    \noalign{\smallskip}
+%		task & GRU & Residual Model & Filter &Obs-GRU (ours) & KKL-RNN (ours)  \\
+%		\hline
+%		iv)  & 0.43 (0.19) & 0.51 (0.15) &- (-)&  0.09 (0.065) & \textbf{0.02} (0.001) \\
+%		v) & 1.18 (0.29) & 0.64 (0.07) & 0.33 (0.06) & \textbf{0.29} (0.07) & \textbf{0.29} (0.09)  \\
+%		\noalign{\smallskip} \hline \noalign{\smallskip}
+%	\end{tabular}\quad
+%\end{table*} 

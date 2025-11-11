@@ -1,0 +1,310 @@
+We show in this appendix how to derive all estimable forms of the GEMINI.
+
+\subsection{\texorpdfstring{$f$}{f}-divergence GEMINI}
+
+We detail here the derivation for 3 $f$-divergences that we previously chose: the KL divergence, the TV distance and the squared Hellinger distance, as well as the generic scenario for any function $f$.
+
+\subsubsection{Generic scenario}
+
+First, we recall that the definition of an $f$-divergence involves a convex function:
+
+\begin{align*}
+    f:\mathbb{R}^+ &\rightarrow \mathbb{R}\\
+    x&\rightarrow f(x)\\
+    \text{s.t.}\quad f(1)&=0,
+\end{align*}
+
+between two distributions $p$ and $q$ as described:
+
+\begin{equation*}%\label{eq:app_fdiv}
+    D_\text{f-div}(p,q) = \E_{\vec{x} \sim q} \left[ f\left(\frac{p(\vec{x})}{q(\vec{x})}\right)\right].
+\end{equation*}
+
+We simply inject this definition in the OvA GEMINI and directly obtain both an expectation on the cluster assignment $y$ and on the data variable $\vec{x}$. We then merge the writing of the two expectations for the sake of clarity.
+
+\begin{align*}
+    \mathcal{I}^\text{ova}_\text{f-div}(x;y) &= \E_{\py} \left[ D_\text{f-div}(\pxy || \pdata)\right],\\
+    &= \E_{\py} \left[ \E_{\pdata}\left[ f\left(\frac{\pxy}{\pdata}\right)\right]\right],\\
+    &= \E_{\py,\pdata} \left[ f\left(\frac{\pyx}{\py}\right)\right].\\
+\end{align*}
+
+Injecting the $f$-divergence in the OvO GEMINI first yields:
+
+\begin{align*}
+    \mathcal{I}^\text{ovo}_\text{f-div}(x;y) &= \E_{\pya,\pyb} \left[ D_\text{f-div}(\pxya || \pxyb)\right],\\
+    &= \E_{\pya,\pyb} \left[ \E_{\pxyb}\left[ f\left(\frac{\pxya}{\pxyb}\right)\right]\right].\\
+\end{align*}
+
+Now, by using Bayes theorem, we can perform the inner expectation over the data distribution. We then merge the expectations for the sake of clarity.
+
+\begin{align*}
+    \mathcal{I}^\text{ovo}_\text{f-div}(x;y) &= \E_{\pya,\pyb} \left[ \E_{\pdata} \left[ \frac{\pyxb}{\pyb}f\left(\frac{\pxya}{\pxyb}\right)\right]\right],\\
+    &= \E_{\pya,\pyb,\pdata} \left[ \frac{\pyxb}{\pyb}f\left(\frac{\pyxa\pyb}{\pyxb\pya}\right)\right].\\
+\end{align*}
+
+Notice that we also changed the ratio of conditional distributions inside the function by a ratio of posteriors through Bayes' theorem, weighted by the relative cluster proportions.
+
+Now, we can derive into details these equations for the 3 $f$-divergences we focused on: the KL divergence, the TV distance and the squared Hellinger distance.
+
+\subsubsection{Kullback-Leibler divergence}
+
+The function for Kullback-Leibler is $f(t) = t\log t$. We do not need to write the OvA equation: it is straightforwardly the usual MI. For the OvO, we inject the function definition by replacing:
+
+\begin{equation*}
+    t=\frac{\pyxa\pyb}{\pyxb\pya},
+\end{equation*}
+
+in order to get:
+
+\begin{align*}
+    \mathcal{I}^\text{ovo}_\text{KL}(x;y) &=  \E_{\pya,\pyb,\pdata} \left[ \frac{\pyxb}{\pyb}\times\frac{\pyxa\pyb}{\pyxb\pya}\log{\frac{\pyxa\pyb}{\pyxb\pya}}\right].
+\end{align*}
+
+We can first simplify the factors outside of the logs:
+
+\begin{align*}
+    \mathcal{I}^\text{ovo}_\text{KL}(x;y)&=\E_{\pya,\pyb,\pdata} \left[ \frac{\pyxa}{\pya}\log{\frac{\pyxa\pyb}{\pyxb\pya}}\right].
+\end{align*}
+
+If we use the properties of the log, we can separate the inner term in two sub-expressions:
+
+\begin{align*}
+    \mathcal{I}^\text{ovo}_\text{KL}(x;y) = \E_{\pya,\pyb,\pdata} \left[ \frac{\pyxa}{\pya}\log{\frac{\pyxa}{\pya}} + \frac{\pyxa}{\pya}\log{\frac{\pyb}{\pyxb}}\right].
+\end{align*}
+
+Hence, we can use the linearity of the expectation to separate the two terms above. The first term is constant w.r.t. $\yb$, so we can remove this variable from the expectation among the subscripts:
+
+\begin{equation*}
+    \mathcal{I}^\text{ovo}_\text{KL}(\vec{x},y) = \E_{\pya,\pdata} \left[ \frac{\pyxa}{\pya}\log{\frac{\pyxa}{\pya}} \right] + \E_{\pya,\pyb,\pdata} \left[ \frac{\pyxa}{\pya}\log{\frac{\pyb}{\pyxb}} \right].
+\end{equation*}
+
+Since the variables $\ya$ and $\yb$ are independent, we can use the fact that:
+
+\begin{equation*}
+    \E_{\pya}\left[\frac{\pyxa}{\pya}\right] = \int \pya \frac{\pyxa}{\pya} d\ya = 1,
+\end{equation*}
+
+inside the second term to reveal the final form of the equation:
+
+\begin{align*}
+    \mathcal{I}^\text{ovo}_\text{KL}(x;y) = \E_{\pdata,\py} \left[ \frac{\pyx}{\py}\log{\frac{\pyx}{\py}} \right] + \E_{\pdata,\py} \left[ \log{\frac{\py}{\pyx}}\right].
+\end{align*}
+
+Notice that since both terms did not compare one cluster assignment $\ya$ against another $\yb$, we can switch to the same common variable $y$. Both terms are in fact KL divergences depending on the cluster assignment $y$. The first is the reverse of the second. This sum of KL divergences is sometimes called the \emph{symmetric} KL, and so can we write in two ways the OvO KL-GEMINI:
+
+\begin{align*}
+    \mathcal{I}^\text{ovo}_\text{KL}(x;y) &= \E_{\pdata} \left[ D_\text{KL} (\pyx || \py)\right] + \E_{\pdata} \left[ D_\text{KL} (\py || \pyx)\right],\\
+    &= \E_{\pdata} \left[ D_\text{KL-sym}(\pyx || \py)\right].\\
+\end{align*}
+
+We can also think of this equation as the usual MI with an additional term based on the reversed KL divergence.
+
+\subsubsection{Total Variation distance}
+
+For the total variation, the function is $f(t)=\frac{1}{2} |t-1|$. Thus, the OvA GEMINI is:
+
+\begin{equation*}
+    \mathcal{I}^\text{ova}_\text{TV}(x;y) = \frac{1}{2}\E_{\py,\pdata} \left[ |\frac{\pyx}{\py}-1|\right].
+\end{equation*}
+
+And the OvO is:
+
+\begin{align*}
+    \mathcal{I}^\text{ovo}_\text{TV}(x;y) &=\frac{1}{2}\E_{\pya,\pyb,\pdata} \left[ \frac{\pyxb}{\pyb}|\frac{\pyxa\pyb}{\pyxb\pya}-1|\right],\\
+    &=\frac{1}{2}\E_{\pya,\pyb,\pdata} \left[ |\frac{\pyxa}{\pya} - \frac{\pyxb}{\pyb} | \right].
+\end{align*}
+
+We did not find any further simplification of these equations.
+
+\subsubsection{Squared Hellinger distance}
+
+Finally, the squared Hellinger distance is based on $f(t)=2(1-\sqrt{t})$. Hence the OvA unfolds as:
+
+\begin{align*}
+    \mathcal{I}^\text{ova}_{\text{H}^2}(x;y)&= \E_{\py,\pdata} \left[ 2\left(1-\sqrt{\frac{\pyx}{\py}}\right)\right],\\
+    &= 2-2\E_{\pdata,\py} \left[\sqrt{\frac{\pyx}{\py}}\right].
+\end{align*}
+
+The idea of the squared OvA Hellinger-GEMINI is therefore to minimise the expected square root of the relative certainty between the posterior and cluster proportion.
+
+For the OvO setting, the definition yields:
+
+\begin{equation*}
+    \mathcal{I}^\text{ovo}_{\text{H}^2}(x;y)=\E_{\pya,\pyb,\pdata} \left[ \frac{\pyxb}{\pyb}\times 2 \times\left(1-\sqrt{\frac{\pyxa\pyb}{\pyxb\pya}}\right)\right],
+\end{equation*}
+
+which we can already simplify by putting the constant 2 outside of the expectation, and by inserting all factors inside the square root before simplifying and separating the expectation:
+
+\begin{align*}
+    \mathcal{I}^\text{ovo}_{\text{H}^2}(x;y) &= 2\E_{\pya,\pyb,\pdata} \left[ \frac{\pyxb}{\pyb} - \frac{\pyxb}{\pyb}\sqrt{\frac{\pyxa\pyb}{\pya\pyxb}}\right],\\
+    &= 2\E_{\pya,\pyb,\pdata} \left[ \frac{\pyxb}{\pyb} \right] - 2\E_{\pya,\pyb,\pdata} \left[ \sqrt{\frac{\pyxa \pyxb}{\pya \pyb}}\right].
+\end{align*}
+
+We can replace the first term by the constant 1, as shown for the OvO KL derivation. Since we can split the square root into the product of two square roots, we can apply twice the expectation over $\ya$ and $\yb$ because these variables are independent:
+
+\begin{equation*}
+    \mathcal{I}^\text{ovo}_{\text{H}^2}(x;y) = 2-2\E_{\pdata} \left[ \E_{\py} \left[\sqrt{\frac{\pyx}{\py}}\right]^2\right].
+\end{equation*}
+
+To avoid computing this squared expectation, we use the equation of the variance $\mathbb{V}$ to replace it. Thus:
+
+\begin{align*}
+    \mathcal{I}^\text{ovo}_{\text{H}^2}(x;y) &= 2-2\E_{\pdata} \left[ \E_{\py}\left[\frac{\pyx}{\py}\right] - \mathbb{V}_{\py}\left[\sqrt{\frac{\pyx}{\py}}\right]\right],\\
+    &= 2 - 2\E_{\pdata}\left[ \E_{\py} \left[ \frac{\pyx}{\py}\right]\right] + 2 \E_{\pdata} \left[ \mathbb{V}_{\py} \left[ \sqrt{\frac{\pyx}{\py}}\right]\right].
+\end{align*}
+
+Then, for the same reason as before, the second term is worth 1, which cancels the first constant. We therefore end up with:
+
+\begin{equation*}
+    \mathcal{I}^\text{ovo}_{\text{H}^2}(x;y)= 2\E_{\pdata} \left[ \mathbb{V}_{\py}\left[\sqrt{\frac{\pyx}{\py}}\right]\right].
+\end{equation*}
+
+Similar to the OvO KL case, the OvO squared Hellinger converges to an OvA setting, i.e. we only need information about the cluster distribution itself without comparing it to another. Furthermore, the idea of maximising the variance of the cluster assignments is straightforward for clustering.
+
+\subsection{Maximum Mean Discrepancy}
+
+When using an IPM with a family of functions that project an input of $\mathcal{X}$ to the unit ball of an RKHS $\mathcal{H}$, the IPM becomes the MMD distance.
+
+\begin{align*}
+\text{MMD}(p,q) &= \sup_{f: ||f||_\mathcal{H}\leq 1} \E_{\xa\sim p}[f(\xa)] - \E_{\xb \sim q} [f(\xb)],\\
+&= \| \E_{\xa\sim p} [\varphi(\xa)] - \E_{\xb \sim q}[\varphi(\xb)]\|_{\mathcal{H}},\\
+\end{align*}
+
+where $\varphi$ is a embedding function of the RKHS.
+
+By using a kernel function $\kappa(\xa,\xb) = <\varphi(\xa), \varphi(\xb)>$, we can express the square of this distance thanks to inner product space properties~\cite{gretton_kernel_2012}:
+
+\begin{align*}
+\text{MMD}^2 (p,q) &= \E_{\xa, \xa^\prime \sim p}[\kappa(\xa, \xa^\prime)] + \E_{\xb,\xb^\prime \sim q}[\kappa(\xb, \xb^\prime)] - 2 \E_{\xa\sim p, \xb\sim q}[\kappa(\xa, \xb)].
+\end{align*}
+
+%For the sake of clarity in the above equation, we keep the notation $\xa$ for data samples originating from the left-hand-side distribution of the MMD: $p$. Respectively, $\xb$ is the random variable from the right-hand-side distribution of the MMD $q$. We note with $\xa^\prime$ and $\xb^\prime$ similar variables independently drawn from the same respective distributions.
+
+Now, we can derive each term of this equation using our distributions $p\equiv\pxy$ and $q\equiv \pdata$ for the OvA case, and $p\equiv\pxya, q\equiv\pxyb$ for the OvO case. In both scenarios, we aim at finding an expectation over the data variable $x$ using only the respectively known and estimable terms $\pyx$ and $\py$.
+
+\paragraph{OvA scenario}
+
+For the first term, we use Bayes' theorem twice to get an expectation over two variables $\xa$ and $\xb$ drawn from the data distribution.
+
+\begin{equation*}
+    \begin{split}
+        \E_{\xa, \xa^\prime \sim p}&= \E_{\xa, \xa^\prime \sim \pxy} \left[ \kappa(\xa,\xa^\prime)\right],\\
+        &= \E_{\xa,\xa^\prime \sim \pdata} \left[ \frac{\p(y|\xa)\p(y|\xa^\prime)}{\py^2} \kappa(\xa,\xa^\prime)\right].
+    \end{split}
+\end{equation*}
+
+For the second term, we do not need to perform anything particular as we directy get an expectation over the data variabes $\xa$ and $\xb$.
+
+\begin{equation*}
+    \E_{\xb, \xb^\prime \sim q}= \E_{\xb, \xb^\prime \sim \pdata} \left[ \kappa(\xb,\xb^\prime)\right].
+\end{equation*}
+
+The last term only needs Bayes theorem once, for the distribution $q$ is directly replaced by the data distribution $\pdata$:
+
+\begin{align*}
+    \E_{\xa\sim p, \xb \sim q}&=\E_{\xa \sim \pxy, \xb \sim \pdata}\left[ \kappa(\xa,\xb)\right],\\
+    &= \E_{\xa, \xb \sim px} \left[ \frac{\p(y|\xa)}{\py} \kappa(\xa,\xb)\right].
+\end{align*}
+
+Note that for the last term, we could replace $\p(y|\xa)$ by $\p(y|\xb)$; that would not affect the result since $\xa$ and $\xb$ are independently drawn from $\pdata$. We thus replace all terms, and do not forget to put a square root on the entire sum since we have computed so far the squared MMD:
+
+\begin{align*}
+        \mathcal{I}_\text{MMD}^\text{ova}(x;y) &= \E_{\py} \left[ \text{MMD}(\pxy,\pdata)\right],\\
+        &=\E_{\py} \left[ \left(\E_{\xa,\xa^\prime \sim \pdata} \left[ \frac{\p(y|\xa)\p(y|\xa^\prime)}{\py^2} \kappa(\xa,\xa^\prime)\right] \right.\right.\\
+        &\left.\left.\qquad+ \E_{\xb, \xb^\prime \sim \pdata} \left[ \kappa(\xb,\xb^\prime)\right] -2 \E_{\xa, \xb \sim \pdata} \left[ \frac{\p(y|\xa)}{\py} \kappa(\xa,\xb)\right] \right)^{\frac{1}{2}}  \right].\\
+\end{align*}
+
+Since all variables $\xa$, $\xa^\prime$, $\xb$ and $\xb^\prime$ are independently drawn from the same distribution $\pdata$, we can replace all of them by the variables $\vec{x}$ and $\vec{x}^\prime$. We then use the linearity of the expectation and factorise by the kernel $\kappa(\vec{x},\vec{x}^\prime)$:
+
+\begin{equation*}
+        \mathcal{I}_\text{MMD}^\text{ova}(x;y) = \E_{\py} \left[ \E_{\vec{x},\vec{x}^\prime \sim \pdata}\left[ \kappa(\vec{x},\vec{x}^\prime) \left( \frac{\p(y|\vec{x})\p(y|\vec{x}^\prime)}{\py^2} + 1 - 2\frac{\p(y|\vec{x})}{\py}\right) \right]^{\frac{1}{2}}\right].
+\end{equation*}
+
+\paragraph{OvO scenario}
+
+The two first terms of the OvO MMD are the same as the first term of the OvA setting, with a simple subscript $a$ or $b$ at the appropriate place. Only the negative term changes. We once again use Bayes' theorem twice:
+
+\begin{align*}
+        \E_{\xa \sim p, \xb \sim q} [\kappa(\xa, \xb)]&= \E_{\xa \sim \pxya, \xb \pxyb} \left[ \kappa(\xa,\xb) \right],\\
+        &= \E_{\xa, \xb \sim \pdata} \left[\frac{\p(\ya|\xa)}{\pya}\frac{\p(\yb|\xb)}{\pyb} \kappa(\xa,\xb) \right].
+\end{align*}
+
+The final sum is hence similar to the OvA:
+
+\begin{align*}
+        \mathcal{I}_\text{MMD}^\text{ovo}(x;y) &= \E_{\pya, \pyb} \left[ \text{MMD} (\pxya, \pxyb)\right],\\
+        &= \E_{\pya, \pyb} \left[ \E_{\vec{x},\vec{x}^\prime \sim \pdata} \left[ \kappa(\vec{x},\vec{x}^\prime) \left( \frac{\pyxa \p(\ya|\vec{x}^\prime)}{\pya^2} + \frac{\pyxb \p(\yb|\vec{x}^\prime)}{\pyb^2}\right.\right.\right.\\&\quad\left.\left.\left.-2 \frac{\pyxa \p(\yb|\vec{x}^\prime) }{\pya \pyb} \right) \right]^{\frac{1}{2}}\right].
+\end{align*}
+
+\subsection{Wasserstein distance (Proof of Prop.~\ref{prop:wasserstein_convergence})}
+\label{app:wasserstein_convergence}
+
+To compute the Wasserstein distance between the distributions $\p(\vec{x}|y=k)$, we estimate it using approximate distributions. We replace $\p(\vec{x}|y=k)$ by a weighted sum of Dirac measures on specific samples $\vec{x}_i$: $p_N^k$:
+
+\begin{equation*}
+    \p(\vec{x}|y=k) \approx \sum_{i=1}^N m_i^k\delta_{\vec{x}_i} = p_N^k,
+\end{equation*}
+where $\{m_i^k\}_{i=1}^N$ is the set of weights. We now show that computing the Wasserstein distance between these approximates converges to the correct distance. We first need to show that $p_N^k$ weakly converges to $p$. To that end, we will use the Portmanteau theorem~\cite{billingsley_convergence_2013}. Let $f$ be any bounded and continuous function. Computing the expectation of such through $\p$ is:
+
+\begin{equation*}
+\E_{\vec{x}\sim \p(\vec{x}|y=k)}[f(\vec{x})] = \int_{\mathcal{X}}f(\vec{x})\p(\vec{x}|y=k)d\vec{x},
+\end{equation*}
+which can be estimated using self-normalised importance sampling~\cite[Chapter 9]{owen_monte_2009}. The proposal distribution we take for sampling is $\pdata$. Although we cannot evaluate both $\pxy$ and $\pdata$ up to a constant, we can evaluate their ratio up to a constant which is sufficient:
+
+\begin{align*}
+\E_{\vec{x}\sim \p(\vec{x}|y=k)}[f(\vec{x})]&= \int_{\mathcal{X}}f(\vec{x})\frac{\p(\vec{x}|y=k)}{\pdata}\pdata d\vec{x},\\
+&= \int_{\mathcal{X}}f(\vec{x})\frac{\p(y=k|\vec{x})}{\p(y=k)}\pdata d\vec{x},\\
+&\approx \sum_{i=1}^N f(\vec{x}_i) \frac{\p(y=k|\vec{x}=\vec{x}_i)}{\sum_{j=1}^N \p(y=k|\vec{x}=\vec{x}_j)}.
+\end{align*}
+
+Now, by noticing in the last line that the importance weights are self normalised and add up to 1, we can identify them as the point masses of our previous Dirac approximations:
+
+\begin{equation*}
+m_i^k = \frac{\p(y=k|\vec{x}=\vec{x}_i)}{\sum_{j=1}^N \p(y=k|\vec{x}=\vec{x}_j)}.
+\end{equation*}
+
+This allows to write that the Monte Carlo estimation through importance sampling of the expectation w.r.t $\p(\vec{x}|y=k)$ is directly the expectation taken on the discrete approximation $p_N^k$. We can conclude that their is a convergence between the two expectations owing to the law of large numbers:
+
+\begin{equation*}
+\lim_{N\rightarrow +\infty}\E_{\vec{x}\sim p_N^k}[f(\vec{x})]  = \E_{\vec{x}\sim \p(\vec{x}|y=k)}[f(\vec{x})].
+\end{equation*}
+
+Since $f$ is bounded and continuous, the portmanteau theorem~\cite{billingsley_convergence_2013} states that $p_N^k$ weakly converges to $\p(\vec{x}|y=k)$ when defining the importance weights as the normalised predictions cluster-wise.
+
+To conclude, when two series of measures $p_N$ and $q_N$ weakly converge respectively to $p$ and $q$, so does their Wasserstein distance ~\cite[Corollary 6.9]{villani_optimal_2009}, hence:
+
+\begin{equation}
+    \lim_{N\rightarrow+\infty}\mathcal{W}_c(p_N^{k_1},p_N^{k_2})= \mathcal{W}_c\left(\p(\vec{x}|y=k_1)\|\p(\vec{x}|y=k_2)\right).
+\end{equation}
+
+For the one-vs-all Wasserstein GEMINI, we simply need to set the second distribution to the empirical data distribution: $m_i=1/N$.
+
+%The Wasserstein is a subcase of the IPM when the family function $\mathcal{F}$ consists in a set of 1-Lipschitz functions: it is the dual representation. We focus on this specific distance in the OvO setting. First of all, we remind that the equations for IPMs in GEMINIs are:
+
+%\begin{equation*}
+%    \mathcal{I}^\text{ova}_\text{IPM} = \mathbb{E}_{y \sim p_\theta(y)} \left[ \sup_{f\in\mathcal{F}} \mathbb{E}_{\pmb{x}\sim p_\text{data}(\pmb{x})}[f(\pmb{x})] - \mathbb{E}_{\pmb{x} \sim p_\theta(\pmb{x}|y)} [f(\pmb{x})]\right],
+%\end{equation*}
+
+%and
+
+%\begin{equation*}\mathcal{I}^\text{ovo}_\text{IPM} = \mathbb{E}_{y_1,y_2 \sim p_\theta(y)} \left[ \sup_{f\in\mathcal{F}} \mathbb{E}_{\pmb{x}\sim p_\theta(\pmb{x}|y_1)}[f(\pmb{x})] - \mathbb{E}_{\pmb{x} \sim p_\theta(\pmb{x}|y_2)} [f(\pmb{x})]\right].\end{equation*}
+
+%Since we made no assumption on the data distribution, we are unable to sample data points according to the conditional distributions $\pxy$. However, we can perform \emph{importance sampling}:
+
+%\begin{equation*}\mathbb{E}_{\vec{x}\sim \pxy}[f(\vec{x})] \approx \frac{1}{N} \sum_{i=1}^N \tilde{\pi}_i f(\pmb{x}_i).\end{equation*}
+
+%We then need a proposal distribution $q$ from which we can easily sample in order to estimate $\pxy$. We simply use Bayes' theorem:
+
+%\begin{equation*}
+%\int p_\theta(\pmb{x}|y) f(\pmb{x}) d\pmb{x} = \int \frac{p_\theta (y|\pmb{x})}{p_\theta(y)}p_\text{data}(\pmb{x})d\pmb{x}.    
+%\end{equation*}
+
+%Hence, the proposal distribution is simply the data distribution $\pdata$. Even though we are in fact not able to sample from it, we have at our hand a dataset which makes the above integral estimable through Monte Carlo. Notice that contrary to the conditions of importance sampling, we are not able to evaluate $\pdata$. Still, this allows to us compute properly self-normalised weights $\tilde{\pi}_i^k$ for each sample $\vec{x}_i$ out of $N$ in the cluster $k$:
+
+%\begin{align*}
+%\tilde{\pi}_i^k &= \frac{p_\theta(\vec{x}_i|y=k)/p_\text{data}(\vec{x}_i)}{\sum_{j=1}^N p_\theta(\vec{x}_j|y=k)/p_\text{data}(\vec{x}_j)}\\
+%&= \frac{p_\theta(y=k|\vec{x}_i)/p_\theta(y=k)}{\sum_{j=1}^N p_\theta(y=k|\vec{x}_j)/p_\theta(y=k)}\\
+%&= \frac{p_\theta(y=k|\vec{x}_i)}{\sum_{j=1}^N p_\theta(y=k|\vec{x}_j)}.
+%\end{align*}
+
+%We use these self-normalised weights to subsequently compute the Wasserstein distance between a cluster distribution $\p(\vec{x}|y=k)$ and another $\p(\vec{x}|y=k^\prime)$ in the OvO setting. For the OvA setting and the data distribution $\pdata$, we simply consider all self-normalised weights to be equal to $\frac{1}{N}$.

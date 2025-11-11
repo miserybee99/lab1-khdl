@@ -1,0 +1,34 @@
+\IEEEPARstart{C}{lustering} is a fundamental learning task which consists in separating data samples into several categories, each named cluster. This task hinges on two main questions concerning the assessment of correct clustering and the actual number of clusters that may be contained within the data distribution. However, this problem is ill-posed since a cluster lacks formal definitions which makes it a hard problem~\cite{kleinberg_impossibility_2003}.
+
+Model-based algorithms make assumptions about the true distribution of the data as a result of some latent distribution of clusters~\cite{bouveyron_model_2019}. These techniques are able to find the most likely cluster assignment to data points. These models are usually generative, exhibiting an explicit assumption of the prior knowledge on the data.
+
+
+Early deep models to perform clustering first relied on autoencoders, based on the belief that an encoding space holds satisfactory properties~\cite{xie_unsupervised_2016,ghasedi_dizaji_deep_2017,ji_invariant_2019}. However, the drawback of these architectures is that they do not guarantee that data samples which should meaningfully be far apart remain so in the feature space. Early models that dropped decoders notably used the Mutual Information (MI)~\cite{krause_discriminative_2010,hu_learning_2017} as an objective to maximise. The MI can be written in two ways, either as measure of dependency between two variables $\vec{x}$ and $y$, e.g. data distribution $\PX$ and cluster assignment $\PY$:
+\begin{equation}
+\label{eq:mutual_information_1}
+\I(\vec{x};y) = D_\text{KL} (\Pjoint || \PX\PY),
+\end{equation}
+or as an expected distance between implied distributions and the overall data:
+\begin{equation}
+\label{eq:mutual_information_2}
+\I(\vec{x};y)= \mathbb{E}_{\PY} [ D_\text{KL} (\PXY||\PX)],
+\end{equation}
+with $D_\text{KL}$ being the Kullback-Leibler (KL) divergence. Related works often relied on the notion of MI as a measure of coherence between cluster assignments and data distribution~\cite{hjelm_learning_2019}. Regularisation techniques were employed to leverage the potential of MI, mostly by specifying model invariances, for example with data augmentation~\cite{ji_invariant_2019}.
+
+The maximisation of MI thus gave way to contrastive learning objectives which aim at learning stable representations of data through such invariance specifications~\cite{chen_simple_2020,caron_unsupervised_2020}. The contrastive loss maximises the similarity between the features of a sample and its augmentation, while decreasing the similarity with any other sample. Clustering methods also benefited from recent successful deep architectures~\cite{li_contrastive_2021,tao_clustering-friendly_2021,huang_deep_2020} by encompassing regularisations in the architecture. These methods correspond to discriminative clustering where we seek to directly infer cluster given the data distribution.
+%Initial methods also focused on alternate schemes, for example with curriculum learning~\cite{chang_deep_2017} to iteratively select relevant data samples for training, or by alternating K-means cluster assignment with supervised learning using the inferred labels~\cite{caron_deep_2018}. In this fashion, SCAN~\cite{van_gansbeke_scan_2020} is  a threefold method involving first representation learning followed then by another model trying to maximise the similarity between samples which representations are considered to be closest neighbors, to finish with a label refining step. The method has then been improved either by altering the mining of nearest neighbors~\cite{dang_nearest_2021}, or through robust learning to further improve the quality of parameters~\cite{park_improving_2021}.
+Initial methods also focused on alternate schemes, for example with curriculum learning~\cite{chang_deep_2017} to iteratively select relevant data samples for training, by alternating K-means cluster assignment with supervised learning using the inferred labels~\cite{caron_deep_2018}, or by proceeding to multiple distinct training steps~\cite{van_gansbeke_scan_2020,dang_nearest_2021,park_improving_2021}.
+
+%Avant: rarely focus on data other than images and as well as as including 
+%However, most of the methods above rarely focus on any kind of data as well as discussing robustness 
+However, most of the methods above rarely discuss their robustness when the number of clusters to find is different from the amount of preexisting known classes. While previous work was essentially motivated by considering MI as a dependence measure, we explore in this paper the alternative definition of the MI as the expected distance between data distribution implied by the clusters and the entire data. We extend it to incorporate cluster-wise comparisons of implied distributions, and question the choice of the KL divergence with other possible statistical distances.
+
+Throughout the introduction of the Generalised Mutual Information (GEMINI), the contributions of this paper are:
+
+%FIXME: update if necessary
+\begin{itemize}
+\item A demonstration of how the maxima of MI are not sufficient criteria for clustering. This extends the contribution of~\cite{tschannen_mutual_2019} to the discrete case.
+\item The introduction of a set of metrics called GEMINIs involving different distances between distributions which can incorporate prior knowledge on the geometry of the data. Some of these metrics do not require regularisations.
+\item A highlight of the implicit selection of clusters from GEMINIs which allows to select a relevant number of cluster during training.
+\item A Python package using only for clustering with GEMINI: \emph{gemclus}
+\end{itemize}

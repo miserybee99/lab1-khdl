@@ -1,0 +1,109 @@
+%{\color{red} I was wondering whether it could be useful to adding a plot showing how, for a single realization, increasing the number of sub-bands helps recovering the actual SED for d6? E.g., you could show how the power spectra of the residuals gets smaller, or how the reconstructed SED gets closer to input one as you increase $n_{sub}$. I don't think this is necessary, but it seems like a nice thing to show.}
+
+\subsubsection{Reconstruction of the tensor-to-scalar ratio, $r$}
+\label{sec:reconstruction_r_fgbuster}
+    Here we discuss the results of our FGBuster simulations in terms of the reconstruction of the tensor-to-scalar ratio, $r$. The performance in terms of foreground reconstruction is discussed in Appendix~\ref{app:reconstruction_foregrouds} (FGBuster simulations), whereas the Commander simulations are presented in Appendix~\ref{app:commander_results}.
+    \\
+    \\
+    %{\color{red} I feel something like "the histograms of the maximum likelihood estimates" would be clearer.}
+    The four panels in Fig.~{\ref{fig:results_d0s0_r}} show the histograms of the maximum likelihood values of $r$ computed from Eq.~(\ref{chi2}) for each iteration of the Monte-Carlo chain. Each panel shows the result for one of the simulated sky models as a function of $n_\mathrm{sub}$. The \textit{top-left panel} shows the CMB with $r_\mathrm{input}=0$ and \textbf{d0s0} foregrounds.  The \textit{top-right panel} shows the CMB with $r_\mathrm{input}=0$ and \textbf{d1s1} foregrounds. The \textit{bottom-left panel} shows the CMB with $r_\mathrm{input}=0.006$ and \textbf{d1s1} foregrounds. The \textit{bottom-right panel} shows the CMB with $r_\mathrm{input}=0$ and \textbf{d6s1} foregrounds with $\ell_\mathrm{corr}=10$.
+
+    The histograms are normalized to the maximum count value and smoothed with a kernel density estimator (KDE) of width equal to one-fourth of the standard deviation of the histogram. The histograms extend to negative $r$ because we compute the posterior likelihood over a range of $r$ that includes negative values in order to avoid a sharp truncation of the likelihood at $r=0$.
+    
+    A more detailed discussion of each of the four cases follows below.
+    
+%     We present here the Fig.~{\ref{fig:results_d0s0_r}} which shows the maximum likelihood histograms for the reconstruction of r in different cases. We reconstruct for different values of subbands a set of realizations considering a certain foreground model, and more specifically thermal dust. We show here that the reconstructions of r actually depend on the model considered, especially when there is frequency decorrelation with $\ell_\mathrm{corr}=10$. We note that the histograms have been smoothed out using a Kernel Density Estimation (KDE).
+
+%     The first three cases are simple dust models which are respectively with a constant index on the sky without B-modes, a variation of its indices always without B-modes and an addition of primordial fluctuation corresponding to $r = 0.006$. These simulations are mainly used as a control to show that the biases are small in these specific cases. The reconstruction of the tensor-to-scalar ratio is compatible with the value of between a 2$\sigma(r)$.
+    %{\color{red} From the plots it seems that for the d0s1 and d1s1 cases the bias is more than ~1 $\sigma$, which I think most people would not consider small. Also, why is this  leakage not captured in the empirical covariance?}
+
+    
+    \paragraph{Top-left panel.} Here we have the CMB with $r_\mathrm{input}=0$ and \textbf{d0s0} foregrounds. In this case, the reconstructed $r$ does not depend on $n_\mathrm{sub}$ and there is a small bias due to an $E\rightarrow B$ modes leakage caused by the power spectra computation on a sky patch, where the spherical harmonics are no longer orthogonal. This bias could be mitigated by increasing the apodization radius of the mask at the expense of a smaller effective sky fraction ($<3\%$). This optimization, however, is outside the scope of the paper.
+
+    
+    \paragraph{Top-right panel.} Here we have the CMB with $r_\mathrm{input}=0$ and \textbf{d1s1} foregrounds. Also in this case we see that the reconstructed $r$ does not depend on $n_\mathrm{sub}$, even if the complexity of the dust emission is higher (the dust spectral index varies in the sky). However, here we observe a slightly larger bias in $r$ with respect to the \textbf{d0s0} case, caused by the aforementioned leakage and also by the difference in pixel size of the reconstructed spectral indices maps ($N_\mathrm{side}=8$) compared to the input sky ($N_\mathrm{side}=256$). %{\color{red} Could this issue also affect the d0s1 results? Even if the input spectral properties are uniform over the sky, by fitting it on Ns=8 pixels you introduce patches in which the assumed, e.g., dust spectral index is coherently above or below the actual value, leading to residuals with a characteristic scale corresponding to the Ns=8 pixel size.}
+
+    %\MATHIAS{Having d0s0 data fitted with d1s1 model (varying spectral indexes) will not include bias on r, we will just fit many time the same values, a sentence to say that ?}
+
+    %\JCH{No, I don't think it is necessary}
+
+    %\ELENIA{In the d0s0 case don't we fit for scalar parameters (sort of nside=0) and not for nside=8? At least this is what I'm doing, which means that we are fitting for the exact same model. If this is the case, it should be worth specifying it in the text to avoid confusion.}
+
+    \paragraph{Bottom-left panel.} Here we have the CMB with $r_\mathrm{input}=0.006$ and \textbf{d1s1} foregrounds. This case is similar to the previous one, the only difference being the value of $r_\mathrm{input}$.
+    
+    \paragraph{Bottom-right panel.} Here we have the CMB with $r_\mathrm{input}=0$ and \textbf{d6s1} foregrounds fitted with the \textbf{d1s1} model. The histograms show that fitting with a model that does not account for frequency decorrelation produces distributions that are larger for smaller values of $n_\mathrm{sub}$. Also, the mean value of the reconstructed $r$ obtained from such distributions varies and becomes smaller as $n_\mathrm{sub}$ increases.
+    \\
+
+%     In the \textbf{d1s1} case, the spectral indices of the astrophysical foregrounds are supposed to vary in the sky. The model includes some pixelization with Nside = 8 which is lower than our maps. This difference is understandable for computational reasons but also to reproduce the real case where the pixelization of the indices is infinite unlike the frequency maps. \hl{highlight the bias in the reconstruction of r and explain that it is due to the reconstruction of foregrounds with Nside = 8}
+
+%     The presence of dust frequency decorrelation has a strong effect on the reconstruction of the tensor-scalar relationship with the \textbf{d6s1} case. The distribution becomes much larger in the case of the classical imager. By considering a bolometric interferometer, it is now possible to repeat this analysis by varying the number of sub-bands to study the variation of the bias. The increase in the number of frequency maps allows a stronger constraint on the spectral indices, and thus a bias that is reduced by increasing the number of sub-bands. This technique shows that the first value of $r$ is an artifact due to the presence of residual dust.
+
+
+    \begin{figure*}[h!]
+%         {\includegraphics[width=0.495\columnwidth]{figure/fig_d0_0.000.pdf}} 
+%         {\includegraphics[width=0.495\columnwidth]{figure/fig_d1_0.000.pdf}}\\
+%         {\includegraphics[width=0.495\columnwidth]{figure/fig_d1_0.006.pdf}} 
+%         {\includegraphics[width=0.495\columnwidth]{figure/fig_d6_0.000.pdf}}
+        \centering  
+        \includegraphics[width=11cm]{figure/histograms_top.pdf} \\
+        \includegraphics[width=11cm]{figure/histograms_bot.pdf}
+        \caption{\label{fig:results_d0s0_r}Normalized histograms of the maximum likelihood values of $r$ as a function of the number of sub-bands. \textit{Top-left}: model \textbf{d0s0} with $r_\mathrm{input}=0$. \textit{Top-right}: model \textbf{d1s1} with $r_\mathrm{input}=0$. \textit{Bottom-left}: model \textbf{d1s1} with $r_\mathrm{input}=0.006$. \textit{Bottom-right}: model \textbf{d6s1} with $\ell_\mathrm{corr}=10$ and $r_\mathrm{input}=0$.}
+    \end{figure*}
+    
+
+    Fig.~\ref{fig:r_vs_nsub} shows the average $r$ and standard deviation computed from the histograms of Fig.~\ref{fig:results_d0s0_r} as a function of $n_\mathrm{sub}$. This result represents the range of $r$ from which we expect to sample our measurement when performing CMB observations.
+
+    Note that since the error bar is the standard deviation, we assume it to be symmetrical. Moreover, in the \textbf{d6s1} case the histogram is unsymmetrical, and therefore the average $r$ is not centered with the distribution.
+    
+    The blue, orange, and green curves refer to the case in which we fit the same dust model used to simulate the input sky. In these three cases, the recovered $r$ does not depend on $n_\mathrm{sub}$, as one would expect for a detection not contaminated by foregrounds. The difference between the recovered $r$ with respect to $r_\mathrm{input}$ that we see in all three cases is caused by the $E\rightarrow B$ leakage and pixel size effects discussed above.
+
+    The red curve refers to the case in which the input sky contains dust emission with frequency decorrelation while component separation was performed ignoring this feature, assuming the {\bf d1s1} model. In this case, the increase in the number of frequency maps provided by BI allows us to better constrain the spectral indices, thus reducing the bias as the number of sub-bands increases. On average, a classical imager (represented by $n_\mathrm{sub}=1$) would measure $r\sim 0.008$ while a bolometric interferometer would see this estimate reducing by increasing $n_\mathrm{sub}$. This indicates that the first value of $r$ is an artifact due to the presence of residual dust emission.
+    
+    \begin{figure}[h!]
+        \includegraphics[width=\columnwidth]{figure/new_r_vs_nsub.pdf} \\
+        \caption{\label{fig:r_vs_nsub} Average maximum likelihood value of $r$ and standard deviation as a function of the number of sub-bands in the case of unaccounted dust frequency decorrelation (model \textbf{d6s1} with  $\ell_\mathrm{corr}=10$  and $r=0$) compared to two cases of no decorrelation (model \textbf{d1s1}): $r=0$ and $r=0.006$. On top of the average $r$ values and their standard deviation, we have overplotted the shape of the distribution as a ``violin plot''. Note that for the \textbf{d6} case the distribution is asymmetric for small $n_\mathrm{sub}$, so that the average is not centered on the distribution.}
+    \end{figure}
+
+    %{\color{red} What is the typical uncertainty on r for a single simulation? I would naively expect it to be of the same order of the width of the distribution of the maximum likelihood values, if r was truly Gaussian distributed. If the above is correct, it seems to me that, even for $r = 0.006$ you'd expect a 1-2 sigma measurements of r, while Abazajian et al. claim S4 should achieve a 5sigma detection of $r > 0.003$. Do you have any idea of the origin of this discrepancy?Am I missing something here?}
+
+    %\MATHIAS{This discrepancy could comes from the different method used in the pipeline, also the lack of information we have on the simulation pipleine they used. To be mentionned here ?}
+
+    %\JCH{I personally do not get the point from Loris}
+    
+    
+%     We show an overview of the capabilities of bolometric interferometry in several cases of astrophysical foregrounds is shown in Fig.~{\ref{fig:results_d6s1_r}}. The reconstructed mean value of r and the corresponding standard deviation as a function of the number of subbands are shown in the upper panel of Fig.~{\ref{fig:results_d6s1_r}} for the case of decorrelation not taking into account the dust frequency (model \textbf{d6s1}, $\ell_\mathrm{corr}=10$) compared to the case of correct foreground modeling (model \textbf{d1s1}) with $r=0$ and $r=0.006$.
+
+    %The bottom panel shows a summary for different correlation length values that parameterize the frequency decorrelation. The longer the correlation length, the more we find a simple model such as \textbf{d1s1} and as expected we recovered the simple foregrounds case. The simulations have been done with $\ell_{\mathrm{corr.}}=10,13,16,19,100$. 
+    
+    Finally, Fig.~{\ref{fig:results_d6s1_r}} shows a summary of the average $r$ and standard deviation for all the simulated dust models with $r_\mathrm{input}=0$, including various correlation lengths for the \textbf{d6s1} case: $\ell_{\mathrm{corr.}}=10,13,16,19,100$. For the sake of simplicity, we only show four instrument configurations: CMB-S4 and CMB-S4/BI with 3, 5, and 7 sub-bands. As one can see, the advantage of BI in diagnosing foreground residuals, and therefore decreasing the bias on $r$, is maintained even in the case of smaller levels of dust frequency decorrelation. As expected, in the limit of $\ell_{\mathrm{corr.}}=100$ the result is compatible with the case of a single modified black-body (model \textbf{d1s1}).
+
+    \begin{figure}[h!]
+    \begin{center}
+        \includegraphics[width=0.9\columnwidth]{figure/Results_on_r_vs_dust_model_mod_2.pdf} 
+        \caption{\label{fig:results_d6s1_r}Summary of the average maximum likelihood value of $r$ and standard deviation for an input $r=0$ and all the simulated foreground models (\textbf{d0s0}, \textbf{d1s1} and several $\ell_\mathrm{corr}$ cases of \textbf{d6s1}). Note that we assume symmetric error bars.}
+    \end{center}
+    \end{figure}
+
+%     As one can see in the top panel of Fig.~{\ref{fig:results_d6s1_r}}, unaccounted dust frequency decorrelation would lead to a bias of the order of $r=0.006$ in the classical imager configuration. This is the only result that a classical imager would be able to recover. However, the addition of bolometric interferometry allows us to strongly reduce the bias when increasing the spectral resolution. Moreover, its possibility of reanalizing the data with different spectral resolution allow us to diagnose the presence of foreground residuals: indeed, in the case of true primordial \textit{B}-modes we would recover a slightly increasing value of r as a function of the number of sub-bands due to the increase in the instrumental noise; the fact that the result on r decreases as a function of the number of sub-bands is thus a strong hint of the presence of foreground residuals in the recovered CMB signal.
+
+    %\begin{figure}[h!]
+    %    \begin{tabular}{c | c}
+    %        \multicolumn{1}{c}{\textbf{d6s1}, $r=0$} & \multicolumn{1}{c}{\textbf{Comparison}}\\
+    %        \makecell[c]{\includegraphics[width=4.1cm]{example-image-a}} &
+    %        \makecell[c]{\includegraphics[width=4.1cm]{example-image-b}}
+    %    \end{tabular}
+    %    \centering
+    %    \begin{tabular}{c}
+    %        \multicolumn{1}{c}{\textbf{Summary}} \\
+    %        \makecell[c]{\includegraphics[width=4.1cm]{figure/Results_on_r_vs_dust_model_def.pdf}}
+    %    \end{tabular}
+
+    %    \caption{\label{fig:results_d6s1_r}\hl{ \textit{Top-left panel}: Histogram of reconstructed $r$ for the model \textbf{d6s1} with $\ell_\mathrm{corr}=10$ and $r_\mathrm{input}=0$ as a function of the number of sub-bands. \textit{Top-right panel}: Comparison of the result on r from the \textbf{d6} case with $r=0$ and the \textbf{d1} case with $r=0.01$. \textit{Bottom panel}: Summary of the result on r for all the simulated dust models (\textbf{d0s0}, \textbf{d1s1} and several $\ell_\mathrm{corr}$ cases of \textbf{d6s1}).}}
+        %\caption{\label{fig:results_d6s1_r}\hl{Model \textbf{d6s1}: histograms of reconstructed $r$ as a function of the number of sub-bands. \textit{Left}: $r_\mathrm{input}=0$ . \textit{Right}: $r_\mathrm{input}=0.01$.}}
+    %\end{figure}
+  
+%     \red{Semplificare la sezione, rimuovere i sottocasi, mettere una prima riga con istogrammi con d0s0 e d1s1 (si fitta con il modello giusto) e una seconda riga con il d6s1 contenente anche il caso con r diverso da zero}
+    
+\subsubsection{Identifying foreground residuals on a single realization}
+\label{classifier}
+    \input{III/III-2/III-2-4/classifier}   

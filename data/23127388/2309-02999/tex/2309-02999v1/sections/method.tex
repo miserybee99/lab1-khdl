@@ -1,0 +1,540 @@
+\section{Method}
+\label{sec:method}
+
+\begin{figure*}[htbp]
+	\centering
+	\includegraphics[width=\linewidth]{fig/full-pipeline.pdf}
+    \vspace{-5mm}
+	\caption{
+        \textbf{An overview of our proposed Vote2Cap (upper) and Vote2Cap-DETR++ (bottom) framework.}
+        % 
+        The two proposed frameworks take a 3D point cloud as their input, and generate a set of box-sentence pairs to localize and describe each object in the point cloud.
+        % 
+        The preliminary one (upper) first extracts features of the input 3D scene with a scene encoder.
+        % 
+        Then we generate vote queries $\left(p_{vq}, f_{vq}\right)$ from the encoded scene tokens, and decode the queries into captions and box estimations with two task-specific heads in parallel.
+        % 
+        \whatsnew{
+            The advanced model (bottom) differs from the preliminary one mainly in that we decouple the caption queries from the localization queries to capture task-specific features.
+            % 
+            Additionally, we make certain modifications as described in section \ref{subsec:vote2cap-detr++} to the transformer decoder and caption head for tighter box estimations and more informative descriptions.
+        }
+	}
+	\label{fig:pipeline}
+\end{figure*}
+
+
+% 
+The \textbf{input} of 3D dense captioning is a 3D scene represented by a set of $N$ points $PC=\left[p_{in}; f_{in}\right]\in \mathbb{R}^{N\times 3+F}$, where $p_{in}\in \mathbb{R}^{N\times 3}$ represents the absolute location, \textit{i.e.} the geometric feature for each point, and $f_{in}\in \mathbb{R}^{N\times F}$ is the additional information for each point, including \textit{color}, \textit{normal}, \textit{height}, and \textit{multiview feature} introduced in \cite{chen2021scan2cap, paszke2016enet}.
+% 
+The expected \textbf{output} is composed of a set of $K$ box-caption paired estimations $(\hat{B}, \hat{C}) = \{(\hat{b}_i, \hat{c}_i)\vert i=1,\cdots,K\}$, representing the location and descriptions of a total of $K$ distinctive objects in the input 3D scene.
+
+
+
+In this section, we first give a brief background introduction of the transformer architecture\cite{vaswani2017attention} in section \ref{subsec:transformer}.
+% 
+Then, we introduce our preliminary model, Vote2Cap-DETR, in section \ref{subsec:vote2cap-detr}.
+% 
+After that, we bring out the advanced version, \textit{i.e.}, Vote2Cap-DETR++ in section \ref{subsec:vote2cap-detr++}, which digs deeper into the vote query design and introduces the instruction tuning strategy.
+% 
+We also introduce the training objectives for both models in section \ref{subsec:supervision-vote2cap-detr} and section \ref{subsec:supervision-vote2cap-detr++}
+
+
+
+
+
+
+\subsection{Background: Transformers}
+\label{subsec:transformer}
+Since its first appearance\cite{vaswani2017attention}, the transformer architecture has been widely adapted to various applications\cite{brown2020gpt3,devlin2018bert,dosovitskiy2020image,li2023blip}.
+% 
+A transformer consists of stacked encoder/decoder layers, where each encoder/decoder layer is composed of attention layers, a \textbf{F}eed-\textbf{F}orward \textbf{N}etwork (FFN), and residual connections\cite{he2016resnet,ba2016layernorm}.
+
+
+
+\myparagraph{Attention Layer.}
+% 
+The attention operation requires the input of query $x_{q}\in \mathbb{R}^{n \times d}$, key $x_{k}\in \mathbb{R}^{m \times d}$, and value $x_{v}\in \mathbb{R}^{m \times d}$, where $n$, $m$ represent the number of tokens, and $d$ indicates the feature dimension.
+% 
+The inputs are first projected with separate and learnable \textbf{F}ully \textbf{C}onnected (FC) layers:
+% 
+\begin{equation}
+    x_q = FC\left(x_q\right), \quad 
+    x_k = FC\left(x_k\right), \quad 
+    x_v = FC\left(x_v\right).
+    \label{eq:feature projection}
+\end{equation}
+% 
+Then, the model calculates the weighting matrix:
+% 
+\begin{equation}
+    \alpha = Softmax\left(\frac{x_{q} \cdot x_{k}^{T}}{\sqrt{d}}\right) \in \mathbb{R}^{n\times m}.
+\end{equation}
+% 
+The updated query feature $x_{q}^{\prime} \in \mathbb{R}^{n \times d}$ is obtained by aggregating feature from $x_{v}$ with a weighted sum:
+% 
+\begin{equation}
+    x_{q}^{\prime} = Attn\left(x_{q}, x_{k}, x_{v}\right) = \alpha \cdot x_{v} \in \mathbb{R}^{n \times d}.
+\end{equation}
+% 
+In practice, researchers adopt the multi-head attention\cite{vaswani2017attention}, where they separate the projected input feature in Equation \ref{eq:feature projection}, into several slices before the attention operation, and concatenate the updated query feature after.
+
+
+
+\myparagraph{Transformer Encoder Layer.}
+% 
+A standard transformer encoder layer consists of an attention layer as well as a \textbf{F}eed \textbf{F}oward \textbf{N}etwork (FFN).
+% 
+Given the $i$-th encoder layer, the query feature $x_{i}$ is updated through:
+% 
+\begin{equation}
+    \begin{aligned}
+        x_{i}^{\prime} &= LN\left(x_{i}\right); \\
+        x_{i}^{\prime\prime} &= x_{i} + Attn\left(x_{i}^{\prime}, x_{i}^{\prime}, x_{i}^{\prime}\right); \\
+        x_{i+1} &= x_{i} + FFN\left(LN\left(x_{i}^{\prime\prime}\right)\right).
+    \end{aligned}
+\end{equation}
+
+
+\myparagraph{Transformer Decoder Layer.}
+% 
+The transformer decoder layer differs from the encoder layer in that, it requires an additional attention layer to aggregate features from another source of information (denoted as $y$):
+% 
+\begin{equation}
+    \begin{aligned}
+        x_{i}^{\prime} &= LN\left(x_{i}\right); \\
+        x_{i}^{\prime\prime} &= x_{i} + Attn\left(x_{i}^{\prime}, x_{i}^{\prime}, x_{i}^{\prime}\right); \\
+        x_{i}^{\prime\prime\prime} &= x_{i} + Attn\left(LN\left(x_{i}^{\prime\prime}\right), y, y\right); \\
+        x_{i+1} &= x_{i} + FFN\left(LN\left(x_{i}^{\prime\prime\prime}\right)\right).
+    \end{aligned}
+\end{equation}
+% 
+Here, $y$ is usually shared along all decoder layers.
+
+
+
+
+
+
+
+\subsection{Preliminary Version: Vote2Cap-DETR}
+\label{subsec:vote2cap-detr}
+
+In this section, we present the pipeline of Vote2Cap-DETR\cite{chen2023vote2cap} as shown in Figure \ref{fig:pipeline}.
+% 
+The input $PC$ is first tokenized to $2,048$ point tokens with a set-abstraction layer\cite{qi2017pointnet++} following \cite{misra2021-3detr}.
+% 
+Then, we feed the point tokens to a scene encoder\cite{misra2021-3detr} to extract scene feature $\left[p_{enc}, f_{enc}\right] \in \mathbb{R}^{1,024\times \left(3 + 256\right)}$.
+% 
+After that, we generate vote queries $\left[p_{vq}, f_{vq}\right]$ from $\left[p_{enc}, f_{enc}\right]$ as initial object queries for the decoder.
+% 
+Finally, we adopt a transformer decoder\cite{vaswani2017attention} to capture both query-query and query-scene interactions through self-attention and cross-attention, and decode the query feature to box predictions and descriptions in parallel.
+
+\myparagraph{Scene Encoder.} We adopt the same scene encoder as 3DETR\cite{misra2021-3detr} does, which consists of three identical transformer encoder layers with different masking radius of $\left[0.16, 0.64, 1.44\right]$, and a set-abstraction layer\cite{qi2017pointnet++} to downsample the point tokens between the first two encoder layers.
+% 
+The output of the scene encoder is 1,024 point tokens $\left[p_{enc}, f_{enc}\right] \in \mathbb{R}^{1,024\times \left(3 + 256\right)}$ uniformly distributed in the input 3D scene.
+
+
+\myparagraph{Vote Query.} For clarification, we formulate the object queries into a form of $\left(p_{query}, f^{0}_{query}\right)$ to represent the spatial position and the initial feature of object queries.
+% 
+Thus, the object queries in 3DETR\cite{misra2021-3detr} can be represented as $\left(p_{seed}, \mathbf{0}\right)$, where $p_{seed}$ are seed points sampled uniformly from a 3D scene with \textbf{F}arthest \textbf{P}oint \textbf{S}ampling (FPS), and the initial query feature are zero vectors.
+% 
+However, because of the cluttered 3D scene and sparse object surfaces, $p_{seed}$ could be far away from the scene objects, resulting in slow convergence to capture discriminative object features with further miss detection.
+% 
+Prior works show that introducing structure bias to initial object queries, such as anchor points\cite{wang2022anchor} and content token selection\cite{zhang2022dino}, is essential for DETRs.
+% 
+Thus, we propose the vote queries $\left(p_{vq}, f_{vq}\right)$, which introduce both 3D spatial bias and local content aggregation for faster convergence and better performance.
+
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=\linewidth]{fig/subparts_vote_query.pdf}
+    \vspace{-5mm}
+	\caption{
+        \textbf{The detailed generation procedure for vote queries.}
+        % 
+        We first downsample $p_{enc}$ for $p_{seed}$, then we predict the 3D spatial offset $\Delta p_{vote}$ that aims to shift $p_{seed}$ to object centers.
+        % 
+        We achieve $p_{vq} = p_{seed} + \Delta p_{vote}$ and then aggregate local contents for vote query feature $f_{vq}$.
+        % 
+        The vote queries are writtern as $(p_{vq}, f_{vq})$.
+	}
+	\label{fig:vote query}
+\end{figure}
+
+To be specific, the spatial location and initial features of vote queries $p_{vq}, f_{vq}$ are expected to be close to object centers with discriminative representations.
+% 
+This builds the connection between the object queries and the vote set prediction widely studied in \cite{qi2019votenet}.
+% 
+The detailed structure can be found in Figure \ref{fig:vote query}.
+% 
+In practice, we first uniformly sample 256 points from $p_{enc}$ with FPS for seed points $p_{seed}$ as done in 3DETR\cite{misra2021-3detr}.
+% 
+Then, we predict a 3D spatial offset $\Delta p_{vote}$ from $p_{seed}$'s respective feature $f_{seed}$ with a \textbf{F}eed \textbf{F}orward \textbf{N}etwork (FFN) $FFN_{vote}$ for $p_{vq}$ as shown in Equation \ref{eq:vote_xyz}.
+%  
+Here, $\Delta p_{vote}$ is trained to estimate the center of nearby objects.
+% 
+\begin{equation}
+    p_{vq} = p_{seed} + \Delta p_{vote} = p_{seed} + FFN_{vote}\left(f_{seed}\right).
+    \label{eq:vote_xyz}
+\end{equation}
+% 
+After that, we aggregate the content feature from the scene feature $\left(p_{enc}, f_{enc}\right)$ for $f_{vq}\in \mathbb{R}^{256\times 256}$, with a set abstraction layer\cite{qi2017pointnet++} as done in \cite{qi2019votenet}.
+% 
+It is also worth mentioning that the seed queries in 3DETR are also a special case in vote queries, where $\Delta p_{vote}=\mathbf{0}$ and $f_{vq}=\mathbf{0}$.
+
+% 
+Following 3DETR\cite{misra2021-3detr}, we adopt an eight-layer vanilla transformer decoder and update the $i$-th layer's query feature $f^i_{query}$ through following:
+% 
+\begin{equation}
+    f^i_{query} = Layer_{i-1} \left(f^{i-1}_{query} + PE\left(p_{vq}\right)\right),
+    \label{eq:query update}
+\end{equation}
+% 
+where $Layer_{i-1}$ is the $i$-th decoder layer, $PE(\cdot)$ is the 3D Fourier positional encoding function\cite{tancik2020fourier}, and $f^0_{query}=f_{vq}$ as stated above.
+
+
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=\linewidth]{fig/subparts_caption_head.pdf}
+    \vspace{-1cm}
+	\caption{
+        \textbf{The details of the Dual Clued Captioner (DCC).}
+        % 
+        To generate informative and object-centric descriptions without visiting the output of the box estimation branch, we utilize two streams of visual clues, \textit{i.e.} the query feature $\mathcal{V}^q$ representing the object to be described, and the query's nearest local contextual tokens $\mathcal{V}^s$.
+	}
+	\label{fig:captioner}
+\end{figure}
+
+\myparagraph{Decoupled and Parallel Decoding.}
+% 
+We decode object queries concurrently to box estimations and captions with two parallel task-specific heads, the detection head and the caption head. 
+% 
+It is worth mentioning that these two heads are agnostic to each other's output.
+% 
+\textbf{\textit{Detection Head}.}
+% 
+We adopt shared FFNs along all the decoder layers for box corner estimations $\hat{B}$ and semantic category prediction $\hat{S}$ (containing ``no object'' class) following \cite{carion2020detr,misra2021-3detr}.
+% 
+\textbf{\textit{Caption Head}.}
+%
+To generate object-centric and informative descriptions without visiting the box estimations, we propose the \textbf{D}ual-\textbf{C}lued \textbf{C}aptioner (DCC), which is a two-layer transformer decoder\cite{vaswani2017attention} with sinusoid position embedding.
+%
+To be specific, DCC receives two streams of visual clue $\mathcal{V} = \left(\mathcal{V}^{q}, \mathcal{V}^{s}\right)$, where $\mathcal{V}^{q}$ represents the query feature of the last decoder layer and $\mathcal{V}^{s}$ is the nearest local context token features surrounding the spatial location of $\mathcal{V}^{q}$.
+% 
+The caption generation process could be treated as maximizing a conditional probability:
+\begin{equation}
+    c^{*} = \mathop{\arg\max}_{c} P\left(c \vert \mathcal{V}^{s}; \mathcal{V}^{q}\right),
+    \label{eq:caption generation}
+\end{equation}
+% 
+where $c^{*}$ is the caption with the highest conditional probability to be generated.
+
+
+
+
+
+
+
+
+\subsection{Advanced Version: Vote2Cap-DETR++}
+\label{subsec:vote2cap-detr++}
+
+% 
+\whatsnew{
+% 
+To further drive the evolution of ``non-detect-then-describe'' methods for 3D dense captioning, we introduce Vote2Cap-DETR++ (Figure \ref{fig:pipeline}, bottom).
+% 
+The main difference between the two versions is that we decouple the queries in Vote2Cap-DETR++ to capture task-specific features for the localization head and caption head.
+% 
+Besides, we apply an iterative spatial refinement strategy on vote queries for better localizing objects in 3D space, and inject additional 3D spatial information for more accurate captions.
+}
+
+
+
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=\linewidth]{fig/loc-and-cap-query.pdf}
+    \vspace{-5mm}
+	\caption{
+        \textbf{Decouple-and-Correspond design for task-specific queries.}
+        % 
+        We decouple the queries for object localization (``[LOC]'') and caption generation (``[CAP]'') to capture task-specific features, and link the queries from the same spatial position via token-wise projection.
+	}
+	\label{fig:query-design}
+\end{figure}
+
+
+\myparagraph{Decoupling Task-Specific Queries.} 
+% 
+\whatsnew{
+Previous ``detect-then-describe'' methods\cite{chen2021scan2cap,wang2022spacap3d} adopt it as a \textit{de-facto} standard to generate captions with object proposal features.
+% 
+The above-introduced Vote2Cap-DETR also shares the same set of vote queries for simultaneous object localization and caption generation for scene objects.
+% 
+However, these two sub-tasks necessitate different levels of understanding of the 3D environment. 
+% 
+The former requires a model to perceive 3D structures for tight box estimations, whereas the latter calls for sufficient attribute information along with spatial relations to the surroundings.
+}
+
+
+\whatsnew{
+Thus, we propose the decoupled-and-correspond queries to capture task-specific features via the transformer decoder as is shown in Figure \ref{fig:pipeline} (bottom).
+% 
+For clarification, we name the first set of queries as ``[LOC]'' queries for object localization and the second set as ``[CAP]'' queries to capture features for caption generation. 
+% 
+\textbf{Decoupling.} The ``[LOC]'' queries are indeed the vote queries propose in section \ref{subsec:vote2cap-detr}. 
+% 
+To distinguish the two queries, we project the feature of a ``[LOC]'' query for the corresponding ``[CAP]'' query while their spatial location is shared.
+% 
+\textbf{Correspondence.} Though the two sets of task-specific queries are designed to have a different understanding of a 3D scene, each paired queries share the same spatial location and are tied to the same box-caption proposal.
+% 
+Therefore, we link the tokens in [LOC] query and [CAP] query in each decoder layer via token-wise projection as is shown Figure \ref{fig:query-design}.
+}
+
+
+
+
+\begin{figure}[htbp]
+    \centering
+    % 
+    \begin{minipage}[t]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{fig/query_distance.pdf}
+    \end{minipage}
+    % 
+    \hfill
+    % 
+    \begin{minipage}[t]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{fig/seed-vote-plot.pdf}
+    \end{minipage}
+    % 
+    \caption{
+        \textbf{The importance of vote queries' spatial location.}
+        % 
+        The scatter plot represents the joint distribution of the two variables, while the histograms represent the distribution of each variable.
+        % 
+        The closer a query is to an object, the higher probability it can be decoded to a tight bounding box (left).
+        % 
+        It is hard to shift a seed point to object centers especially when it is far from the objects (right).
+	}
+    \label{fig:query quality}
+\end{figure}
+
+
+
+
+% 
+\myparagraph{Iterative Spatial Refinement on Vote Query.}
+% 
+\whatsnew{
+To further unleash the power of vote queries, we visualize the relationship between a query's spatial location and the quality of its box estimation in Figure \ref{fig:query quality} (left).
+% 
+One can see that the closer a query is to an object, the higher quality a box estimation has.
+% 
+However, learning to shift seed points to object centers might be challenging, especially for the queries that are initially far from the objects (Figure \ref{fig:query quality}, right).
+}
+
+
+\whatsnew{
+% 
+To alleviate this issue, we propose to update the spatial location of the vote queries along with the feature updating in Equation \ref{eq:query update}.
+% 
+Specifically, for the $i$-th decoder layer, we predict a spatial refinement offset $\Delta p_{vote}^{i}$ via an additional FFN.
+% 
+The query feature updating step in the $i$-th layer could be written as:
+\begin{equation}
+    \begin{aligned}
+        f^i_{query} &= Layer_{i-1} \left(f^{i-1}_{query} + PE\left(p^i_{vq}\right)\right);\\
+        p^i_{vq} =& p^{i-1}_{vq} + \Delta p_{vote}^{i - 1} = p^{i-1}_{vq} + FFN\left(f^i_{query}\right)
+    \end{aligned}
+\end{equation}
+% 
+It is worth mentioning that we still adopt the decoupled decoding structure to bypass the cumulative error brought up by the ``detect-then-describe'' pipeline, which differs from the iterative box refinement strategy proposed in \cite{zhang2022dino,zhu2020deformabledetr}.
+}
+% 
+\suspicious{
+Our method also differs from \cite{zhao2021transformer3d} in that we mainly focus on the improvement of object queries in the DETR-like architecture, while \cite{zhao2021transformer3d} builds the vote refinement on VoteNet\cite{qi2019votenet} for better proposals.
+}
+
+
+
+
+
+\myparagraph{Injecting Spatial Information to the Caption Head.}
+\whatsnew{
+An informative scene object description may contain terms like ``corner of the room'', ``middle of the room'', etc.
+% 
+However, the original DCC in Figure \ref{fig:captioner} is not capable of capturing sufficient absolute spatial information.
+% 
+Thus, we insert an additional 3D absolute position token $\mathcal{V}^{q}_{pos}$ to the caption prefix to identify a query's spatial location.
+% 
+The caption prefix could be written as $\left[\mathcal{V}^{q}; \mathcal{V}^{q}_{pos}\right]$.
+% 
+It is worth mentioning that in Vote2Cap-DETR++, $\mathcal{V}^{q}$ comes from the ``[CAP]'' queries rather than the ``[LOC]'' queries in the preliminary model.
+% 
+To further inform the caption head of the relation between a local context token and a caption query, we adopt a ranking-based position embedding for the context tokens with respect to their spatial distance to the query.
+% 
+We encode the context tokens' spatial position as $\mathcal{V}^{s}_{pos}$ with the same sinusoid position embedding added to the word embedding for caption generation.
+% 
+Therefore, the conditional description generation process in Equation \ref{eq:caption generation} can be reformulated as:
+% 
+\begin{equation}
+    c^{*} = \mathop{\arg\max}_{c} P\left(c \vert \mathcal{V}^{s}; \mathcal{V}^{s}_{pos}; \mathcal{V}^{q}; \mathcal{V}^{q}_{pos}\right).
+    \label{eq:caption generation++}
+\end{equation}
+}
+
+
+
+
+\subsection{Training Objective for Vote2Cap-DETR}
+\label{subsec:supervision-vote2cap-detr}
+The loss function of Vote2Cap-DETR is a weighted sum of a total of three losses: the vote query loss $\mathcal{L}_{vq}$, the detection loss $\mathcal{L}_{det}$, and the caption loss $\mathcal{L}_{cap}$.
+
+
+\myparagraph{Vote Query Loss.}
+% 
+In practice, we supervise vote shifting procedure with all 1,024 points in $p_{enc}$ for $p_{vote}$ with the same procedure in Equation \ref{eq:vote_xyz}, where $p_{seed}$ is 256 points sampled from $p_{enc}$.
+%
+We adopt the vote loss proposed in VoteNet\cite{qi2019votenet} as $\mathcal{L}_{vq}$ to facilitate the learning of shifting points towards object centers: 
+% 
+\begin{equation}
+    \mathcal{L}_{vq} = \frac{1}{M}
+        \sum_{i = 1}^{M} \sum_{j = 1}^{N_{gt}}
+            \left\|p_{vote}^{i} - cnt_{j}\right\|_{1}
+                \cdot 
+                \mathbb{I}\left\{p_{enc}^{i} \in I_j\right\}.
+    \label{eq:loss vote query}
+\end{equation}
+%
+Herein, $\mathbb{I}(\cdot)$ is an indicator function that takes the value of $1$ when the condition meets and $0$ otherwise. 
+% 
+The variable $N_{gt}$ represents the number of instances present in a 3D scene, $M$ calculates the number of points in $p_{vote}$, which is equal to 1,024 in our setting.
+% 
+Finally, $cnt_{j}$ denotes the center of the $j$th instance, denoted as $I_j$.
+
+
+
+\myparagraph{Detection Loss.}
+%
+We adopt the same Hungarian algorithm as 3DETR\cite{misra2021-3detr} to assign each proposal with a ground truth label. 
+% 
+We involve a larger weight on the 3D gIoU loss\cite{misra2021-3detr} to enhance the model's object localization capability:
+% in localizing objects from a messy scene:
+
+\begin{equation}
+    \mathcal{L}_{set} = 
+        \alpha_1 \mathcal{L}_{giou}
+        + \alpha_2 \mathcal{L}_{cls}
+        + \alpha_3 \mathcal{L}_{center-reg} 
+        + \alpha_4 \mathcal{L}_{size-reg},
+\end{equation}
+%
+where $\alpha_1=10$, $\alpha_2=1$, $\alpha_3=5$, $\alpha_4=1$ are set heuristically.
+%
+Moreover, the set loss $\mathcal{L}_{set}$ is along all $n_{dec-layer}$ decoder layers\cite{misra2021-3detr}.
+
+
+\myparagraph{Caption Loss.}
+% 
+Following the standard practice of image captioning, we first train our caption head with the standard cross-entropy loss (MLE training) and then fine-tune it with \textbf{S}elf-\textbf{C}ritical \textbf{S}equence \textbf{T}raining (SCST)\cite{rennie2017scst}.
+%
+During MLE training, the model is trained to predict the $\left(t+1\right)$-th word $c_i^{t+1}$, given the first $t$ words $c_i^{[1:t]}$ and the visual condition $\mathcal{V}$.
+% 
+The loss function for a $T$-length sentence can be defined as:
+% 
+\begin{equation}
+    \mathcal{L}_{c_i} = \sum_{i=1}^{T} \mathcal{L}_{c_i}(t) = -\sum_{i=1}^{T} \log \hat{P}\left(c_i^{t+1} \vert \mathcal{V}; c_i^{[1:t]}\right).
+    \label{eq:cap-mle}
+\end{equation}
+%
+After training the caption head under word-level supervision, we fine-tune it with SCST. 
+% 
+During SCST, the model generates multiple captions $\hat{c}_{1, \cdots,k}$ using beam search with a beam size of $k$, and also generates a baseline caption $\hat{g}$ using greedy search. 
+% 
+The loss function for SCST is defined as follows:
+% 
+\begin{equation}
+    \mathcal{L}_{c_i} = 
+    - \sum_{i=1}^{k}
+        \left(R\left(\hat{c}_{i}\right) - R\left(\hat{g}\right)\right) 
+        \cdot
+        \frac{1}{\left|\hat{c}_i\right|}\log \hat{P}\left(\hat{c}_i\vert \mathcal{V}\right)
+        .
+    \label{eq:cap-scst}
+\end{equation}
+% 
+Here, the reward function $R\left(\cdot\right)$ in our case is CIDEr\cite{vedantam2015cider}, which is commonly used to evaluate the text generation models.
+% 
+To encourage equal importance among captions of different lengths, we normalize the log probability of caption $\hat{c}_i$ by its length, which is denoted as $\left|\hat{c}_i\right|$.
+
+
+
+
+\myparagraph{Set to Set Training for 3D Dense Captioning.}
+%
+We introduce an easy-to-implement set-to-set training strategy for 3D dense captioning.
+%
+Specifically, given a 3D scene, we randomly sample one sentence from the corpus per annotated instance.
+%
+Following that, we assign each instance's language annotation to one distinctive proposal in the corresponding scene with the same Hungarian algorithm.
+%
+During training, we average the losses for captions $\mathcal{L}_{c_i}$ on all annotated instances within a batch to compute the caption loss $\mathcal{L}_{cap}$.
+%
+To balance losses for different tasks, we adopt a weighted sum along all loss functions during training:
+% 
+\begin{equation}
+    \mathcal{L}_\text{\scriptsize{Vote2Cap-DETR}} = \beta_1\mathcal{L}_{vq} + \beta_2 \sum_{i=1}^{n_{dec-layer}}\mathcal{L}_{set} + \beta_3 \mathcal{L}_{cap},
+    \label{eq:loss_vote2cap_DETR}
+\end{equation}
+% 
+where $\beta_1 = 10$, $\beta_2 = 1$, $\beta_3 = 5$ are set heuristically.
+
+
+
+
+\subsection{Training Objective in Vote2Cap-DETR++}
+\label{subsec:supervision-vote2cap-detr++}
+
+
+\myparagraph{Spatial Refinement Loss for Queries.}
+\whatsnew{
+% 
+In Vote2Cap-DETR++, we further adopt a refinement loss $\mathcal{L}_{qr}$ for queries in different decoder layers.
+% 
+$\mathcal{L}_{qr}$ has a similar form with $\mathcal{L}_{vq}$ defined in Equation \ref{eq:loss vote query}, but is only adopted to the vote queries:
+% 
+\begin{equation}
+    \mathcal{L}_{qr} = \frac{1}{M}
+    \sum_{i = 1}^{M} \sum_{j = 1}^{N_{gt}}
+        \left\|p_{vq}^{i} - cnt_{j}\right\|_{1}
+            \cdot 
+            \mathbb{I}\left\{p_{vq}^{i} \in I_j\right\}.
+\end{equation}
+% 
+Here, $p_{vq}^{i}$ is the spatial location of queries in the $i$-th decoder layer, while other notations are defined in Equation \ref{eq:loss vote query} accordingly.
+% 
+We adopt $\mathcal{L}_{qr}$ for each decoder layer that refines the spatial location of vote queries.
+}
+
+
+
+
+
+
+\myparagraph{Loss Function for Vote2Cap-DETR++.}
+\whatsnew{
+% 
+The final loss function for Vote2Cap-DETR++ builds upon $\mathcal{L}_\text{\scriptsize{Vote2Cap-DETR}}$ introduced in Equation \ref{eq:loss_vote2cap_DETR}, but further takes account into the above mentioned refinement loss $\mathcal{L}_{qr}$:
+\begin{equation}
+    \mathcal{L}_\text{\scriptsize{Vote2Cap-DETR++}} = \mathcal{L}_\text{\scriptsize{Vote2Cap-DETR}} + \beta_4 \sum_{i \in \delta}\mathcal{L}_{qr},
+\end{equation}
+% 
+where $\delta$ stands for all the decoder layers that perform spatial refinement for queries.
+% 
+We empirically set $\beta_4=\beta_1 = 10$.
+}

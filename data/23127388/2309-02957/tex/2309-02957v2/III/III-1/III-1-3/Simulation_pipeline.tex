@@ -1,0 +1,173 @@
+We describe here the simulation pipeline for the Monte-Carlo analysis that we performed using the FGBuster parametric component separation code. In Appendix~\ref{app:commander_pipeline} we report the same information regarding the simulations performed with Commander.
+
+In the FGBuster analysis, we simulated the anticipated CMB-S4 patch, which is a 3$\%$, circular sky patch centered in RA, DEC = $(0^{\circ},-45^{\circ})$.
+
+% We performed a Monte-Carlo analysis using two parametric component separation codes: FGBuster \citep{Stompor} and Commander 2 \citep{eriksen_2006,eriksen_2008}. We exploited the two codes using different sets of parameters and simulating two distinct sky patches, one corresponding to the sky patch observed by QUBIC (dark region in Fig.~\ref{fig:sky_patches}) and the other corresponding to a region closer to the Galactic plane and, therefore, potentially more contaminated by foregrounds (light region in Fig.~\ref{fig:sky_patches}). This allowed us to verify that the same conclusions could be obtained using different tools and conditions. Table~\ref{tab:fgbuster_vs_commander} lists the parameters used in the two simulations.
+
+%\begin{figure}[h!]
+    %\begin{center}
+        %\includegraphics[width=9cm]{figure/s4_patch.pdf}
+        %\caption{\label{fig:sky_patches}The sky patch observed by CMB-S4, also used in our simulations. The patch (highlighted in white) is centered in a relatively clean sky area, as one can see from the dust map at 150 GHz plotted underneath.}
+    %\end{center}
+
+%\end{figure}
+
+\begin{table}[h!]
+    \caption{\label{tab:fgbuster_vs_commander} Parameters used for analyzing simulations with FGBuster for all dust models}
+    \renewcommand{\arraystretch}{2}
+    \begin{center}
+        \begin{tabular}{p{5cm} m{3cm}}
+%             \hline
+%             & \makecell[c]{FGBuster} & \makecell[c]{Commander} \\ 
+            \rule{0.47\textwidth}{0.02cm}\\
+%             \makecell[l]{N. realizations\\ \mbox{}[CMB and noise]\dotfill}	& \makecell[c]{500} \\
+            Map $N_\mathrm{side}$\dotfill	& \makecell[c]{256} \\
+            Multipole range\dotfill	&\makecell[c]{21--335} \\
+            $\Delta\ell$\dotfill &\makecell[c]{\phantom{0}{35}} \\
+            Input $r$\dotfill & \makecell[c]{0, 0.006} \\
+            Residual lensing fraction\tablefootmark{a}\dotfill & \makecell[c]{\phantom{000}10\%} \\
+            Sky fraction [\%]\dotfill & \makecell[c]{\phantom{0000}3\%} \\
+            \makecell[l]{Sky patch center\tablefootmark{b}\\ \mbox{}[Equatorial coord.]\dotfill}\dotfill & 
+                \makecell[c]{$\text{RA}=0^\circ$\\\phantom{1}$\text{DEC}=-45^\circ$\rule[-2.2ex]{0pt}{0pt}}\\
+            \rule{0.47\textwidth}{0.01cm}\\
+            \multicolumn{2}{l}{\makecell[l]}{    
+              %\footnotesize{$^1$Limited by computational time.}\\
+              %\footnotesize{$^2$Limited by $N_\mathrm{side}=64$} \\
+              
+%               \footnotesize{\phantom{$^3$}The value of 100\% means that all the lensing signal was left }\\
+%             \footnotesize{\phantom{$^3$}in the map, in the other case only the 10\% of the lensing remains.}\\
+              
+              \tablefoot{\\
+                \tablefoottext{a}{This is the fraction of the lensing signal left in the CMB map.}\\
+                \tablefoottext{b}{Center of the CMB-S4 sky patch.} }
+            }
+%             \footnotesize{$^5$Center of sky patch observed by QUBIC (dark region in Fig.~\ref{fig:sky_patches}).} 
+%              }
+        \end{tabular}
+    \end{center}
+\end{table}
+
+% \hl{We generated 500 CMB and instrumental noise realizations and simulated the observation of a circular $3\%$ sky patch centered at high latitudes, corresponding to the anticipated CMB-S4 sky patch, using the CMB-S4 configuration and three BI versions, obtained by dividing each frequency band in 3, 5 or 7 sub-bands. After component separation, we performed our cross-spectra analysis using a uniform binning, spanning a multipole range $21 \leq \ell \leq 335$ separated by $\Delta \ell = 35$, as assumed in the CMB-S4 forecast paper} \cite{Abazajian_2022}.
+
+% \textbf{Component Separation.} In the whole paper, we consider that the components of our signal, namely the foregrounds, can be modeled by a parametric model. The cosmological signal is defined by a set of parameters that are fixed here to the value of the Planck results. The only parameter which will be aimed is the tensor-to-scalar ratio $r$ which will be estimated at the end of the process. Here, we consider that our data can be modeled as follows :
+
+% \hl{We first generated 500 CMB and instrumental noise realizations and then simulated the observation of a circular $3\%$ sky patch centered at $\alpha=-30^\circ,\,\beta=-30^\circ$\footnote{Equatorial coordinates} (corresponding to the patch observed by CMB-S4) in the simulations performed with FGBuster and $\alpha=0^\circ,\,\beta=-57^\circ$ (corresponding to the patch observed by QUBIC) in the simulations performed with Commander. }
+
+We considered eight instrument configurations (see also Fig.~\ref{fig:Polarization_depth}): The CMB-S4 configuration (parametrized following~\citet{Abazajian_2022}) and seven versions of CMB-S4/BI, obtained by subdividing each frequency band. We then applied component separation and analyzed the cross-spectra of the resulting maps using a uniform binning (see Table~\ref{tab:fgbuster_vs_commander} for a summary of the simulation set-up).
+
+For each instrument configuration, the overall analysis chain followed these steps:
+\begin{enumerate}
+ \item Generate a CMB realization as described at the beginning of Sect.~\ref{sec_simulated_sky_model};
+ \item Generate a noise realization for each frequency channel in the considered instrument configuration; 
+%  \item smooth the maps with a Gaussian beam of 1$^\circ$ FWHM (only in the Commander simulations); \red{mettere in appendice Commander}
+ 
+ \item Add the CMB and the noise to the foreground maps generated as described in Sect.~\ref{sec_simulated_sky_model};
+\item Apply component separation to the input maps. In some cases we assumed the same model used to generate the input case.  In others, we assumed a different model in order to mimic a realistic situation in which the actual foregrounds are not 100\% known and one might assume a model that does not completely describe reality;
+%{\color{red} Cross spectra between what maps? I feel the description of your procedure is not clear enough to allow a reader to independently reproduce it, even though the general idea of what you did gets through.}
+ \item Perform a cross-spectra analysis between two noise realizations (each with half the exposure time) to recover the tensor-to-scalar ratio, $r$. We calculated angular power spectra using the NaMaster\footnote{\protect\url{https://namaster.readthedocs.io/en/latest/}} code \citep{Alonso_2019} with an apodization radius of 4$^\circ$.
+\end{enumerate}
+
+In Table~\ref{tab:performed_simulations} we list the various cases studied in this work. Each case was simulated with all the instrument configurations described in Sect.~\ref{sec_instrument_models} and Fig.~\ref{fig:Polarization_depth}. 
+
+\begin{table}[h!]
+    \begin{center}
+        \renewcommand{\arraystretch}{1.3}
+        \caption{\label{tab:performed_simulations}Cases analyzed in this work.}
+        \begin{tabular}{c c}
+            \hline
+            {Input foreground model} & \makecell[c]{{Model assumed in} \\ {component separation}}\\
+            \hline
+            \hline
+            \textbf{d0s0}\phantom{ ($\ell_\mathrm{corr} = \phantom{1}10$)} &\textbf{d0s0}\\
+            \hline
+            \textbf{d1s1}\phantom{ ($\ell_\mathrm{corr} = \phantom{1}10$)} &\textbf{d1s1}\\
+%             \hline
+%             \makecell[c]{\textbf{d6s1} ($\ell_\mathrm{corr} = \phantom{1}10$)} &\textbf{d1s1}\\
+            \hline
+              \begin{tabular}{c r}
+                 \multirow{5}{*}{\textbf{d6s1}} &\hfill $\ell_\mathrm{corr} = \phantom{1}10$ \\
+                                                &\hfill $\ell_\mathrm{corr} = \phantom{1}13$ \\
+                                                &\hfill $\ell_\mathrm{corr} = \phantom{1}16$ \\
+                                                &\hfill $\ell_\mathrm{corr} = \phantom{1}19$ \\
+                                                &\hfill $\ell_\mathrm{corr} = 100$ \\
+             \end{tabular} & \textbf{d1s1}\\
+            
+%             \textbf{d1s1} &\\
+%             \textbf{d6s1}         &\\
+%             \hfill $\ell_\mathrm{corr} = 10$ &\\
+%             \hfill $\ell_\mathrm{corr} = 13$ &\\
+%             \hfill $\ell_\mathrm{corr} = 16$ &\\
+%             \hfill $\ell_\mathrm{corr} = 18$ &\\
+%             \hfill $\ell_\mathrm{corr} = 100$ &\\
+            \hline
+        \end{tabular}
+
+    \end{center}    
+\end{table}
+
+\paragraph{Component Separation.} We performed parametric component separation modelling on our data as follows:
+% consider that the components of our signal, namely the foregrounds, can be modeled by a parametric model. The cosmological signal is defined by a set of parameters that are fixed here to the value of the Planck results~\citep{planck-paprameters}. The only parameter which will be studied is the tensor-to-scalar ratio $r$ which will be estimated at the end of the process. Here, we consider 
+
+\begin{equation}
+    \vec{d}_p = \textbf{A}\cdot \vec{s}_p + \vec{n}_p,
+    \label{eq:data_model}
+\end{equation}
+
+where $p$ is the pixel index, $\vec d_p$ and $\vec{n}_p$ are vectors representing the data and noise measured by the instrument frequency channels, $\vec{s}_p$ is a vector containing the ``true'' sky values at the same frequencies, and $\textbf{A}$ is a mixing matrix that contains information about the sky components (CMB, synchrotron and interstellar dust). In our simulations, we considered the dust temperature as a known parameter, $T_\mathrm{d}=20$\,K. Thus, the only unknown parameters for synchrotron and dust emissions were their spectral indices, $\beta_\mathrm{s}$ and $\beta_\mathrm{d}$.
+
+%{\color{red} I'm assuming here you are describing how FGbuster works? In that case it may be clearer to rephrase it like "FGBuster solves for the best spectral indexes [...]" }
+
+FGBuster solves for the best spectral indices, $\beta_\mathrm{s}$ and $\beta_\mathrm{d}$, given the data, $\vec d_p$, and the noise covariance matrix, $\textbf{N}$, following the spectral likelihood approach of \citet{Stompor}. In order to cope with computational constraints (processing time and computer memory) and keep the same parameters as in~\citet{Abazajian_2022}, we used a double pixelization scheme in our component separation: A fine resolution of $N_\mathrm{side}=256$ for the pixels of the reconstructed maps, and a coarse resolution of $N_\mathrm{side}=8$ (corresponding to a super-pixel resolution of about 7$^\circ$) for the spectral indices. In other words, the spectral indices are kept constant on larger pixels compared to those of the reconstructed maps. This approach introduces a slight bias on $r$, as demonstrated and addressed in Sect.~\ref{sec:reconstruction_r_fgbuster}. However, this bias does not alter the general validity of our results.
+
+% It is worth mentioning that to cope with computational constraints (processing time and computer memory) and keep the same parameters as in~\citet{Abazajian_2022}, in the case of {\bf d1s1} and {\bf d6s1} we reconstructed the spectral indices on maps with $N_\mathrm{side}=8$, corresponding to a pixel resolution of about 7$^\circ$. \textbf{Note that the map pixelization of the reconstructed spectral indices do not affect the pixelization of CMB after component separation.}
+
+%{\color{red} Is it possible to somehow assess the impact of this choice? E.g., if it is feasible to run just 1 simulation at Nside=256,  you could compare the FG residual power spectra for that case with what you get with your standard setup.}
+
+%\MATHIAS{We decided Nside = 8 for fitting according to Josquin says to me (as far I remember), not so useful to do that because increasing the Nside will decrease the signal-to-noise ratio and bring other effects}
+
+%\ELENIA{Here might be worth specifying that the nside=8 is in the d1s1 and d6s1 case, not in the d0s0 case where instead the parameters are just scalar values.}
+
+% \begin{equation}
+%     -2 \ln \mathcal{L}\left(\beta\right) = - \sum_p \left( \textbf{A} \textbf{N}^{-1} \vec d_p \right)^T 
+%     \left( \textbf{A}^T \textbf{N}^{-1} \textbf{A} \right)^{-1} \left( \textbf{A} \textbf{N}^{-1} \vec d_p \right).
+%     \label{spectral_likelihood}
+% \end{equation}
+% 
+% The best-fit sky component maps, $\hat{\vec s}$, are then obtained from:
+% \begin{equation}
+%     \hat{\vec s} = \left( \textbf{A}^T \textbf{N}^{-1} \textbf{A} \right)^{-1} \textbf{A}^T \textbf{N}^{-1} \vec d,
+%     \label{components}
+% \end{equation}
+% where the CMB component is our best estimate of the ``clean'' CMB maps and will be used to compute the primordial $BB$ spectrum. 
+% Because the whole analysis depends on parameters characterizing the foregrounds, biased estimates of those will induce foreground residuals in the clean CMB maps and will lead to a bias on the cosmological parameters. 
+
+\paragraph{Tensor-to-scalar ratio estimation.} The main goal of our study is to assess how residuals caused by biased estimates of foreground parameters impact the reconstruction of the tensor-to-scalar ratio, $r$, which is the main parameter characterizing the primordial CMB $B$-modes. %\textbf{Along this study, we let vary the tensor-to-scalar ratio $r$ with flat prior in the range [-1, 1]. We decide to leave the $A_{\text{lens}}$ parameter fixed to 0.1}. \ELENIA{Improve the English (grammar, verb tense) of the previous sentence.}
+
+We write the likelihood on $r$ using a Gaussian approximation~\citep{Hamimeche_2008}:
+
+%{\color{red} I'm confused by this likelihood. Shouldn't you include also the CMB contribution to the covariance? Even if you fiducial model has r = 0, shouldn't you include the contributions of your assumed lensing residuals? Also, you are using the same symbol for the noise covariance used in FGBuster compsep, and the noise covariance used in the likelihood, which is confusing. }
+
+%\MATHIAS{We already included the CMB contribution because we used different seed for each iteration. Do we have to include also lensing residuals ?}
+
+%\JCH{I think this is a good remark here: we need to be sure we did the things correctly => discuss it together in a meeting: does $N_{\ell \ell}$ include both noise and sample variance ? If so we need to say it, otherwise Loris is right, this is confusing (well incorrect in fact).}
+
+%\ELENIA{We do include the lensing residual in our model ${D}^{BB}_{\ell, \text{model}}$. Regarding the sample variance, my understanding is that if we change the CMB seed at each iteration that's already included in the noise cov matrix. Am I wrong?}
+
+
+\begin{equation}
+    -2 \ln \mathcal{L}(r) = \left( \textbf{D}^{BB}_{\ell, \text{exp}} - \textbf{D}^{BB}_{\ell, \text{model}} \right)^T \textbf{N}_{\ell, \ell}^{-1} \left( \textbf{D}^{BB}_{\ell, \text{exp}} - \textbf{D}^{BB}_{\ell, \text{model}} \right),
+    \label{chi2}
+\end{equation}
+
+where $\textbf{D}^{BB}_{\ell, \text{exp}}$ and $\textbf{D}^{BB}_{\ell, \text{model}}$ are the measured and theoretical angular power spectra, $\textbf{N}_{\ell, \ell}^{-1}$ is the inverse of the sum of the noise and sample variance-covariance matrices, and $\mathcal{L}(r)$ is the likelihood on $r$. The theoretical angular power spectrum, $\textbf{D}^{BB}_{\ell, \text{model}}$, includes the contribution of the $10\%$ lensing residual that we assumed throughout the study. Therefore, the only free parameter is the tensor-to-scalar ratio, $r$, which we vary with a flat prior in the range [-1, 1]. Although allowing for negative values of $r$ is unphysical, we opt for this more general approach because it has the benefit of highlighting potential biases due only to differing observational methodologies.
+
+This work explores what happens when dust is more complex than anticipated. In order to do so, we perform component separation assuming a simple model for dust, namely \textbf{d1s1}, but applied on data simulated with the \textbf{d6s1} model. In such cases, incorrect dust modeling leads to residuals in the clean CMB maps. 
+
+We then construct the log-likelihood for $r$ assuming dust to be well modeled by \textbf{d1s1} using the noise covariance matrix in Eq.~(\ref{chi2}), $\textbf{N}_{\ell, \ell}$, obtained from simulations without frequency decorrelation in the dust emission. Such a covariance matrix does not incorporate the variance arising from the dust SED decorrelation so that the bias on $r$ appears with a high significance, which is precisely the effect we want to study. 
+
+After a large number of realizations of \textbf{d6s1}, we see a distribution that shows the large spread in the possible values of $r$ which would be incorrectly considered a measure of high significance because we assumed a simple model for dust. We use the same scheme for all of our instrument configurations (from a classical imager to a bolometric interferometer with a number of sub-bands) so that we can explore if the extra spectral information provided by BI allows us to identify if the ``clean'' CMB maps after component separation are indeed clean or are contaminated by dust residuals.
+
+% In the cases where we used the \textbf{d6s1} model as the sky input, we assumed a different and simpler model in the component separation, namely the \textbf{d1s1} model. This approach allowed us to evaluate a realistic situation in which the sky emissions are more complex than we think, and the use of a parametric model may result in a biased estimation of $r$. Therefore, in these cases, we performed the log-likelihood evaluation using the noise covariance matrix in Eq.~(\ref{chi2}), $\textbf{N}$, obtained from simulations without frequency decorrelation in the dust emission.
+
+% calculate the best-fit $r$ for each of our sky realizations by minimizing the cost-function in Eq.~\ref{chi2}. The aim of this study is to assess the impact of unaccounted foreground complexities on the reconstructed tensor-to-scalar ratio. In another word, we perform the analysis assuming a simple foreground model, such as {\bf d1s1} (without dust decorrelation) while the simulated sky is more complex. As a result, we performed the log-likelihood evaluation assuming the noise covariance matrix $N$ obtained from simulations without frequency decorrelation in the dust emission.
+

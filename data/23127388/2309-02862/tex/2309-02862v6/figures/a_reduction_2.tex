@@ -1,0 +1,50 @@
+\begin{figure}
+\centering
+\begin{tikzpicture}[
+    state/.style={},
+    xscale=1,yscale=-1
+]
+    \node[state] at (0,0) (q1) {$\state_1$};
+    \node[state] at (0,1) (q2) {$\state_\channelmessage$};
+    \node[state] at (0,2) (q3) {$\state_3$};
+    \node[state] at (0,3) (q4) {$\state_4$};
+    \node[state] at (0,4) (q5) {$\state_5$};
+    \node[state] at (0,5) (q6) {$\state_6$};
+    \node[state] at (0,6) (q7) {$\state_7$};
+    \node[state] at (0,7) (q8) {$\state_8$};
+    \node[state] at (0,8) (q9) {$\state_9$};
+    \node[state] at (0,9) (q10) {$\state_{10}$};
+    \node[state] at (0,10) (q1') {$\state_1$};
+
+    \draw[->] (q1) -- node[right] {$\rd(\xwr,\channelmessage)$} (q2);
+    \draw[->] (q2) -- node[right] {$\wr(\xrd,\channelmessage)$} (q3);
+    \draw[->] (q3) -- node[right] {$\wr(\xwr,\bot)$} (q4);
+    \draw[->] (q4) -- node[right] {$\mf$} (q5);
+    \draw[->] (q5) -- node[right] {$\nop$} (q6);
+    \draw[->] (q6) -- node[right] {$\rd(\yvar,1)$} (q7);
+    \draw[->] (q7) -- node[right] {$\wr(\yvar,0)$} (q8);
+    \draw[->] (q8) -- node[right] {$\mf$} (q9);
+    \draw[->] (q9) -- node[right] {$\wr(\xrd,\bot)$} (q10);
+    \draw[->] (q10) -- node[right] {$\mf$} (q1');
+
+    \node[state] at (5,0) (qf) {$\state_F$};
+    \draw[->] (q1) -- node[above right] {$\rd(\xwr,\channelmessage)$} (qf);
+
+    \node[state] at (5,2) (qf) {$\state_F$};
+    \draw[->] (q3) -- node[above right] {$\rd(\yvar,1)$} (qf);
+
+    \node[state] at (5,3) (qf) {$\state_F$};
+    \draw[->] (q4) -- node[above right] {$\nop$} (qf);
+
+    \node[state] at (5,4) (qf) {$\state_F$};
+    \draw[->] (q5) -- node[above right] {$\rd(\yvar,1)$} (qf);
+
+    \node[state] at (5,8) (qf) {$\state_F$};
+    \draw[->] (q9) -- node[above right] {$\rd(\xwr,\channelmessage)$} (qf);
+
+    \draw[thick,decoration={brace, mirror},decorate] (q1.south west) -- node[left]{for all $\channelmessage \in \channelmessageset$} (q3.north west);
+\end{tikzpicture}
+\bigskip
+\caption{$\process^2$ of the A-TSO reduction from PCS}
+\label{fig:a-reduction-2}
+\end{figure}

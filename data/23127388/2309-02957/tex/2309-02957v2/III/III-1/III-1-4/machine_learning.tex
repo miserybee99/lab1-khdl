@@ -1,0 +1,17 @@
+
+
+%\begin{enumerate}
+%    \item produce 500 sky realizations with $r=0.006$\footnote{The value of $r=0.006$ was chosen so that the average reconstructed $r$ matched the bias that would be obtained from a map with CMB with $r=0$ and \textbf{d6s1} foregrounds removed assuming a \textbf{d1s1} model with a single reconstructed sub-band(see Fig.~\ref{fig:results_d6s1_r})} in which the sky is generated with \textbf{d1s1} and fitted with the same model (we call this dataset \textbf{d1-d1}), this dataset is labeled as "clean"; 
+%    \item produce 500 simulations with $r=0$, in which the sky is generated with \textbf{d6s1} ($\ell_\mathrm{corr}=10$) and fitted with \textbf{d1s1} (we call this dataset \textbf{d6-d1}), this dataset is labelled as "contaminated"; 
+%    \item \label{item:train_set} for each simulation and for each value of $n_\mathrm{sub}$ calculate the following two quantities: $\rho(n_\mathrm{sub}) = r(n_\mathrm{sub}) / r(n_\mathrm{sub}=1)$ and $\sigma_\rho(n_\mathrm{sub}) = \sigma(r(n_\mathrm{sub})) / \sigma(r(n_\mathrm{sub}=1))$  (``training'' dataset), both with "clean" or "contaminated" label, depending on the model used as an input. These quantities are those that discriminate whether we have foreground residuals or not: if $\rho \neq 1$ it means that the detection depends on the number of sub-bands and, therefore, is likely to be affected by foreground residuals;
+%    \item train the network with 250 \textbf{(d1s1, $r=0.006$)} and 250 \textbf{(d6s1, $r=0$)} randomly selected realizations from the training dataset (using 100 cross-validation subsets); 
+%    \item \label{item:predict_set} calculate $\rho(n_\mathrm{sub})$ and $\sigma_\rho(n_\mathrm{sub})$ for the remaining 250 \textbf{(d1s1, $r=0.006$)} and 250 \textbf{(d6s1, $r=0$)} simulations (``test'' dataset);
+%    \item feed the trained network with the values calculated in step \ref{item:predict_set} to test its ability to classify the simulations as ``clean'' (constant $\rho(n_\mathrm{sub})$) or ``contaminated'' (variable $\rho(n_\mathrm{sub})$.
+%\end{enumerate}
+
+
+
+
+% We used machine learning based classification using our simulated data and explore if one can use, on a individual realization basis, the evolution of the reconstructed $r$ as a function of the number of sub-bands to distinguish between skies with or without frequency decorrelation. 
+
+% We trained . In order not to be sensitive to a possible non-zero input tensor-to-scalar ratio $r$, for each of our realization, we divide the reconstructed $r(N_{sub})$ and their uncertainties $\sigma_r(N_{sub})$ for all sub-bands by the value found by the classical imager with $N_{sub}=1$. The features used for training are therefore all the values of $r(N_{sub})/r(N_{sub}=1)$ and uncertainties $\sigma_r(N_{sub}) / r(N_{sub}=1)$ for all the realizations from {\bf d1s1} and {\bf d6s1} both with an input $r$ equal to zero, as well as {\bf d1s1} with input $r=0.01$. We have used a {\em cross-validation scheme} in order to optimize the hyper-parameters of the decision tree and to avoid over-fitting in our training.

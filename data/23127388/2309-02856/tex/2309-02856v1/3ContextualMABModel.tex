@@ -1,0 +1,30 @@
+\section{Contextual MAB Algorithms}
+% ANR: This is where I'd be tempted to introduce contextual versus non-contextual MAB, with non-contextual MAB being basically the one extreme on the continuum in terms of amount of personalization.
+
+We treat the problem of determining what version of an educational technology will be most effective for a student as a MAB problem. In such problems, a system must repeatedly choose among several actions, $a_{1},\ldots,a_{K}$. The system initially does not know which action is likely to be the most effective, but after each action choice, the system receives feedback in the form of a stochastic reward $r^{(t)}$. 
+% Different MAB algorithms may have different objectives for choosing actions; here, we focus on Thompson sampling~\cite{agrawal2012Analysis}, which is a regret-minimizing algorithm that exhibits logarithmic regret grown. 
+%Cumulative regret is the total difference between the expected rewards if the optimal action had been chosen at every point and the actual rewards given the choices of the algorithm. % this point got made in related work
+%Regret for Thompson sampling scales logarithmically: at later time steps, the algorithm is less likely to choose actions with lower expected rewards. 
+
+There are a variety of MAB algorithms for choosing actions. We focus on Thompson sampling~\cite{agrawal2012Analysis}, which is a regret-minimizing algorithm that exhibits logarithmic regret growth. 
+Thompson sampling maintains for each action a distribution over reward values. This distribution is updated after each action choice and represents the posterior distribution over reward values given the observed data.
+% For ease of computation, a conjugate prior is typically used.
+At each timestep, the algorithm samples from the posterior distribution over rewards for each action, and then chooses the action with the highest sampled value.
+While Thompson sampling is also applicable to real-valued rewards, many educational outcomes are binary, such as whether a student completes a homework assignment or answers a question correctly. Thus, we focus on these binary rewards in this paper, using a Beta prior distribution to enable simple conjugate updates after each choice. 
+
+% the algorithm can begin with a $\text{Beta}(n_{1,k},n_{2,k})$ prior distribution for each action, and upon observing a success or failure from choosing action $k$, the parameters of the Beta are updated by adding one to 
+
+In our setting in which we choose versions of an educational technology for each student, the actions are the different versions of the technology, and the reward is the student outcome. For example, imagine a student interacting with a system to do her math homework. The system might choose between two actions when the student asks for a hint: (a) show a fully worked example, versus (b) provide the first step of the problem as a hint and ask the student to identify an appropriate second step. The student outcome could be whether or not she completes the homework assignment. 
+
+In a traditional MAB problem, the reward distribution is fixed given the action choice. However, in the situation above, the reward may be dependent on the characteristics of the student. For instance, a student who has stronger proficiency in the prerequisite skills may be more prepared to identify what to do next in the problem, while a student with weaker proficiency may not be able to identify what to do next. A contextual MAB algorithm incorporates such student characteristics as features into its action choices.
+
+For parametric contextual MAB algorithms, the features must be predetermined, including whether interactions between features is permitted. 
+We adopt a contextual Thompson sampling approach that uses regularized Bayesian logistic regression to approximate the distribution of rewards given the features~\cite{agrawal2013thompson,chapelle2011empirical}. The algorithm learns a distribution over the feature weights as coefficients using a Gaussian posterior approximation. To make each new action choice, the algorithm computes a reward value for each action by sampling each weight independently. The chosen action is the action with the highest sampled reward value. Updates may occur after each action or in batches to decrease computational costs; because the feature vectors that we consider are relatively small, we update after each action.
+
+
+% Outline:
+% \begin{itemize}
+%   \item Choosing which version of an educational technology to give to a specific student can be viewed as a MAB problem. (brief walk through notation and what it refers to in this setting - most of this paragraph will be spent on the second item)
+%   \item When student characteristics may influence the effectiveness of different versions of the technology, can view this as a contextual MAB problem. (big idea)
+%   \item For a parametric contextual bandit algorithm, features and interactions pre-specified (talk about the model, introduce Thompson sampling here).
+% \end{itemize}

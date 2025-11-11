@@ -1,0 +1,659 @@
+% SECTION Experiements %
+\section{Experiments and Analysis} \label{Experiments}
+\subsection{Experimental Design}
+% This section outlines our methodology to propose a new classification model ViCGCN. Firstly, three benchmark datasets mentioned in Section \ref{Experiments/Datasets} are collected, and they be cleaned as described in the following. Consequently, the data after pre-processing is used to train our baselines and proposed model. With each model implemented, we fine-tune to find optimal hyper-parameters and improve their performance. Then, we evaluated the performance of models by Macro F1-score and Weighted F1-score deputed in Section \ref{Experiments/Metrics}. Section \ref{Experiments/Result} details the model evaluation results. To better understand our proposed model, we analyze and discuss the proposed model from various aspects: Impact of graph convolutional networks (see Section \ref{imapactGCN}) and impact of lambda (see Section \ref{impactlamda}). In addition, comparisons with previous studies were made to assess the achievement of our study correctly (see Section \ref{comparisonprestudies}). We also select the model that exhibits the most exceptional performance to conduct an error analysis on the inaccurate predictions detected within our proposed model (see Section \ref{erroranalysis}). At the end of the experiment, an ablation study was made to investigate the effectiveness and contribution of our proposed approach ViCGCN (see Section \ref{ablationstudy}). Figure \ref{fig::Experiments/Procedure/Overview} illustrates our methodology, including data preparation, fine-tuning baselines, proposed model, and performance analysis.
+
+This section delineates our approach for introducing a novel classification model called ViCGCN. Initially, we gather three benchmark datasets, as mentioned in Section \ref{Experiments/Datasets}, and subject them to a cleaning process described subsequently. Subsequently, the pre-processed data is employed for training both our baseline models and the proposed model. We fine-tune each model to identify optimal hyperparameters and enhance their performance. The evaluation of model performance is conducted using Macro F1-score and Weighted F1-score, as discussed in Section \ref{Experiments/Metrics}. Detailed results of model evaluations are presented in Section \ref{Experiments/Result}.
+
+To gain a deeper insight into our proposed model, we conduct a comprehensive analysis and discussion from various angles. This includes assessing the impact of graph convolutional networks (see Section \ref{imapactGCN}) and the influence of the lambda parameter (see Section \ref{impactlamda}). Additionally, we make comparisons with prior studies to accurately gauge the accomplishments of our research (see Section \ref{comparisonprestudies}). Furthermore, we select the model that exhibits the most outstanding performance to carry out an error analysis on the inaccuracies detected within our proposed model (see Section \ref{erroranalysis}). Towards the end of the experiment, we conduct an ablation study to investigate the effectiveness and contribution of our proposed approach, ViCGCN (see Section \ref{ablationstudy}). Figure \ref{fig::Experiments/Procedure/Overview} provides an overview of our methodology, encompassing data preparation, baseline fine-tuning, the proposed model, and performance analysis.
+
+\begin{figure}[!hpbt]
+    \centering
+    \includegraphics[width=\textwidth]{Procedures.png}
+    \caption{Overview of our experimental design.}
+    \label{fig::Experiments/Procedure/Overview}
+\end{figure}
+
+\subsection{Baseline Models} \label{Experiments/Baseline}
+Contextualized language models have been extensively used in various natural language processing tasks, including text classification. Additionally, since PhoBERT and viBERT are monolingual models specifically designed for the Vietnamese language, comparing their performance with a widely used and established model like mBERT is essential. Furthermore, as GCN has been shown to effectively capture the context and relationships between words in a text, integrating it with a contextualized language model could improve its performance in text classification tasks. Because of the following reasons, we compare our ViCGCN model with baseline models.
+\subsubsection{Contextualized Language Models}
+\begin{itemize}
+    % \item \textbf{BERT\footnote{\url{https://github.com/google-research/bert}}}: BERT is a contextualized word representation model pre-trained using bidirectional transformers and based on a masked language model. BERT showed power in various NLP tasks. BERT and its variants are called the BERTology, two versions of BERT, base and large, respectively. Moreover, each version has two different versions: cased\footnote{\url{https://huggingface.co/bert-base-cased}} and uncased\footnote{\url{https://huggingface.co/bert-base-uncased}}, respectively. The only difference is that in \textit{BERT case uncased}, the text has been lowercase before the WordPiece tokenization step, while in the mBERT cased version, the text is the same as the input text.
+    % \item \textbf{BERT (case uncased)}
+    \item \textbf{Multilingual BERT (mBERT)\footnote{\url{https://github.com/google-research/bert}}}: mBERT, introduced by \citet{devlin-etal-2019-bert}, is a BERT-based model with specific characteristics. It consists of 12 layers, 768 hidden units, 12 attention heads, and a total of 110 million parameters. Remarkably, mBERT is designed to support 104 distinct languages, and it has been trained on and can be applied to text in these 104 languages using a combination of masked language modeling (MLM) and next sentence prediction objectives. This training corpus includes content from Wikipedia\footnote{\url{https://www.wikipedia.org/}}. \textit{mBERT} consists of two versions cased\footnote{\url{https://huggingface.co/bert-base-multilingual-cased}} and uncased\footnote{\url{https://huggingface.co/bert-base-multilingual-uncased}}.
+    \item \textbf{RoBERTa\footnote{\url{https://huggingface.co/roberta-base}}}: \citet{DBLP:journals/corr/abs-1907-11692} proposed RoBERTa. They utilize a dynamic masking technique during the training process, instructing the model to predict intentionally hidden segments of text within unannotated language samples. RoBERTa, implemented using the PyTorch framework, makes critical adjustments to BERT's essential hyperparameters.
+    \item \textbf{XLM-RoBERTa (XLM-R)\footnote{\url{https://github.com/facebookresearch/XLM}}}: \citet{XLMR}  proposed XLM-R a masked language model based on the transformer architecture. This model stands out as a multilingual powerhouse, having been pre-trained on text from a staggering 100 languages. What makes XLM-R particularly impressive is the extensive and careful curation of over 2.5TB of data from CommonCrawl. Among its notable contributions are the improvements made for low-resource languages through specialized training and vocabulary expansion. Moreover, XLM-R boasts a more expansive shared vocabulary and a substantial increase in its overall model capacity, incorporating a whopping 550 million parameters. XLM-R includes \textit{base}\footnote{\url{https://huggingface.co/xlm-roberta-base}} and \textit{large}\footnote{\url{https://huggingface.co/xlm-roberta-large}} version.
+    \item \textbf{PhoBERT\footnote{\url{https://huggingface.co/vinai/phobert-base}}}: \citet{nguyen-tuan-nguyen-2020-phobert} introduced a set of large-scale monolingual language models specifically designed for the Vietnamese language. Among these models, PhoBERT stands out as the state-of-the-art contextualized language model for Vietnamese. PhoBERT's architecture is built upon the RoBERTa model, but it has been optimized for training on a substantial Vietnamese corpus to effectively handle Vietnamese text. PhoBERT comes in two versions: \textit{base} and the \textit{large} versions.
+    \item \textbf{viBERT\footnote{\url{https://huggingface.co/FPTAI/vibert-base-cased}}}: \citet{viBERT} introduced viBERT, a pre-trained language model for Vietnamese based on the BERT architecture. The architecture of viBERT is similar to that of mBERT, and it has been pre-trained on a large corpus of 10GB of uncompressed Vietnamese text. However, unlike mBERT, viBERT excludes insufficient vocabulary due to the inclusion of languages other than Vietnamese in the mBERT vocabulary.
+    \item \textbf{vELECTRA\footnote{\url{https://huggingface.co/FPTAI/velectra-base-discriminator-cased}}}: \citet{viBERT}  unveiled vELECTRA, a pre-trained language model tailored for Vietnamese that adheres to the ELECTRA framework. vELECTRA shares a parallel architectural structure with ELECTRA and has undergone pretraining on an extensive corpus comprising 60GB of uncompressed Vietnamese text.
+\end{itemize}
+
+\subsubsection{Other Graph Neural Networks}
+Bert-GCN was introduced by \citet{BertGCN}, presenting a novel approach that harnesses the benefits of extensive pretraining alongside transductive learning for the purpose of text classification. Bert-GCN achieves this by constructing a diverse graph over the dataset, where documents are represented as nodes, all leveraging the embedding power of BERT. Consequently, this research undertakes the implementation of various BERT variations, such as multilingual and Vietnamese monolingual models, in conjunction with GCN-combined models to assess their effectiveness in text classification for Vietnamese tasks. Additionally, when compared to mBERT-GCN, RoBERTa-GCN, viBERT-GCN, and vELECTRA-GCN, our proposed ViCGCN model offers valuable insights into the impact of integrating both monolingual and multilingual Contextualized Language Models with GCN on three standardized benchmark datasets. 
+
+\subsection{Benchmark Datasets} \label{Experiments/Datasets}
+\subsubsection{Benchmark Datasets} \label{Experiments/Datasets/Data}
+To verify the efficiency of our proposed approach to text classification on Vietnamese social media, we conducted our experiments on three widely used Vietnamese social media corpora, including Vietnamese Social Media Emotion Corpus (UIT-VSMEC) that was made available by Ho et al. \citet{DBLP:journals/corr/abs-1911-09339}, Vietnamese Students' Feedback Corpus (UIT-VSFC) built by \citet{VSFC}, and Vietnamese Constructive and Toxic Speech Detection (UIT-ViCTSD) introduced by \citet{DBLP:journals/corr/abs-2103-10069}.
+
+
+\begin{itemize}
+    \item \textbf{UIT-VSMEC \citet{DBLP:journals/corr/abs-1911-09339}}: UIT-VSMEC consists of 6,927 sentences that have been annotated with emotions to tackle the challenge of identifying emotions in Vietnamese social media comments. This dataset encompasses seven emotion categories: Enjoyment, Disgust, Sadness, Anger, Fear, Surprise, and Other.
+    \item \textbf{UIT-VSFC \citet{VSFC}}: UIT-VSFC comprises 16,000 sentences that have been investigated for two distinct purposes: one related to sentiment analysis and the other related to topic classification. The sentiment analysis task involves categorizing sentences into three classes: Positive, Negative, and Neutral. Meanwhile, the topic classification task involves assigning sentences to one of four categories: Lecturer, Curriculum, Facility, or Others.
+    \item \textbf{UIT-ViCTSD \cite{DBLP:journals/corr/abs-2103-10069}}: UIT-ViCTSD consists of 10,000 human-annotated comments on ten domains. Each comment is categorized into two tasks: constructiveness and toxicity in Vietnamese social media, which are binary classifications. Two categories are used to denote feedback: constructive and non-constructive. Similarly, comments can be labeled as toxic or non-toxic to identify harmful behavior.
+\end{itemize}
+
+\subsubsection{Pre-processing techniques}
+A few efficient pre-processing techniques for Vietnamese text in general and Vietnamese social media text in particular were presented \cite{nguyen2020exploiting, PhoBERT-CNN}. However, we only follow some simple preprocessed techniques according to the quality of the three benchmark datasets mentioned in Section \ref{Experiments/Datasets/Data} and more essential to prove the outperform and efficiency of our model ViCGCN on Vietnamese social media raw text. Firstly, we removed stopwords defined in Vietnamese stopwords dict\footnote{\url{https://github.com/stopwords/vietnamese-stopwords}}. We, then, segment sentences into words by applying Word Segmenter of VnCoreNLP\footnote{\url{https://github.com/vncorenlp/VnCoreNLP}} for all of the models. Finally, the Regex\footnote{\url{https://docs.python.org/3/library/re.html}} library in Python is used to remove all punctuations in three benchmark datasets.
+
+% remove stopwords, segmentation, remove punctuation 
+
+The statistics of the pre-processed datasets are summarized in Table \ref{4/Dataset}.
+
+% Experiments/Datasets/Table %
+    
+\begin{table}[!ht]
+\centering
+\caption{Statistics and descriptions of tasks of each dataset in this study.}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lrrrlr} 
+\hline
+\textbf{Dataset}            & \multicolumn{1}{l}{\textbf{Train}} & \multicolumn{1}{l}{\textbf{Dev}} & \multicolumn{1}{l}{\textbf{Test}} & \multicolumn{1}{c}{\textbf{Task}}         & \multicolumn{1}{l}{\textbf{Classes}}  \\ 
+\hline
+\multicolumn{6}{c}{\textit{Binary text classification}}                                                                                                                                                                     \\ 
+\hline
+\multirow{2}{*}{UIT-ViCTSD} & 7,000                              & 2,000                            & 1,000                             & Constructive speech detection             & 2                                     \\
+                            & 7,000                              & 2,000                            & 1,000                             & Toxic speech detection                    & 2                                     \\ 
+\hline
+\multicolumn{6}{c}{\textit{Multi-class text classification}}                                                                                                                                                                \\ 
+\hline
+\multirow{2}{*}{UIT-VSMEC}  & 5,548                              & 686                              & 693                               & Emotion recognition (with Other label)    & 7                                     \\
+                            & 4,527                              & 583                              & 589                               & Emotion recognition (without Other label) & 6                                     \\ 
+\cline{1-1}
+\multirow{2}{*}{UIT-VSFC}   & 11,426                             & 1,583                            & 3,166                             & Sentiment-based classification            & 3                                     \\
+                            & 11,426                             & 1,583                            & 3,166                             & Topic-based classification                & 4                                     \\
+\hline
+\end{tabular}}
+\label{4/Dataset}
+\end{table}
+
+
+\subsection{Evaluation Metric} \label{Experiments/Metrics}
+% This section describes the performance evaluation metrics employed in this study. The commonly used metric for classification tasks, particularly for the three datasets mentioned in this study, is the Average Macro F1-score (\%). However, owing to significantly imbalanced classes in the given datasets, the most suitable metric for this study is the average macro F1-score, which is the harmonic mean of Precision and Recall. Additionally, to facilitate comparisons with previous studies, we used the corresponding measure based on the metrics used in those studies, such as the average weighted F1-score (\%) for both UIT-VSMEC and UIT-VSFC.
+
+This section outlines the performance evaluation criteria utilized in this research. In the realm of classification tasks, especially concerning the three datasets highlighted within this study, the conventional metric employed is the Average Macro F1-score (\%). However, given the significant class imbalances in the provided datasets, the most appropriate metric for this study is the Average Macro F1-score, which is derived as the harmonic mean of Precision and Recall. Furthermore, to facilitate comparisons with prior studies, we have also adopted relevant measures based on the metrics employed in those studies, such as the Average Weighted F1-score (\%) for both UIT-VSMEC and UIT-VSFC datasets.
+
+ To compute the average macro F1-score, firstly, we calculate Precision and Recall by Equation (\ref{eq::Experiments/Metrics/Presision}) and Equation (\ref{eq::Experiments/Metrics/Recall}) respectively. Then, Equation (\ref{eq::Experiments/Metrics/F1-score}) is used to determine F1-score per class in the dataset. $tp$ are truly positive, $fp$ – false positive, $fn$ – false negative, and $tn$ – true negative counts, respectively.
+\begin{equation}
+    Precision = \frac{tp}{tp+fp} \label{eq::Experiments/Metrics/Presision}
+\end{equation}
+\begin{equation}
+    Recall=\frac{tp}{tp+fn} \label{eq::Experiments/Metrics/Recall}
+\end{equation}
+\begin{equation}
+    \textit{F1-score}=2\times\frac{Precision\times Recall}{Precision+Recall} \label{eq::Experiments/Metrics/F1-score}
+\end{equation}
+
+We compute the average macro F1-score (mF1) and weighted F1-score (wF1) after acquiring the F1 scores for all classes. Equation (\ref{eq::Experiments/Metrics/macro F1-score}) and Equation (\ref{eq::Experiments/Metrics/weighted F1-score}) present the macro F1-score and weighted F1-score, respectively, for multi-class classification for multi classes $C_{i}$, i $\in$ \{1, 2,... n\} (denoted for every class of the dataset). Where $\textit{F1-score}_{i}$ and $W_{i}$ are the \textit{F1-score} and weight of class \textit{i} of the dataset, respectively.
+
+\begin{equation}
+    \textit{mF1} = \frac{{\sum_{i=1}^{n} \textit{F1-score}_{i}}}{n} \label{eq::Experiments/Metrics/macro F1-score}
+\end{equation}
+\begin{equation}
+    \textit{wF1} = \frac{\sum_{i=1}^{n} {\textit{F1-score}_{i} \times W_{i}}}{\sum_{i=1}^{n} W_{i}} \label{eq::Experiments/Metrics/weighted F1-score}
+\end{equation}
+\subsection{Experiment Configuration}
+% In this study, we implemented many transfer learning models including $\text{BERT}_{base}$ \textit{cased}, $\text{BERT}_{base}$ \textit{uncased}, mBERT \textit{cased}, mBERT \textit{uncased}, $\text{RoBERTa}_{large}$, $\text{PhoBERT}_{base}$, $\text{PhoBERT}_{large}$. Besides, several combined models are conducted along with Text-GCN, Bert-GCN and mBERT-GCN. 
+Section \ref{Experiments/Configuration/Baseline} and Section \ref{Experiments/Configuration/Proposed} provide our settings for both baselines and the proposed approach in detail.
+
+\subsubsection{Basesline models' configuration} \label{Experiments/Configuration/Baseline}
+We implemented many transfer learning models including mBERT both \textit{cased} and \textit{uncased}, $\text{RoBERTa}$, XLM-R, $\text{PhoBERT}_{base}$, $\text{PhoBERT}_{large}$, vELECTRA, and viBERT in this study. They run with their max sequence length of 256, batch size of 32, epoch of 10, and Adam optimizer \cite{https://doi.org/10.48550/arxiv.1412.6980} with a fixed learning rate of 2e-5.
+ 
+\subsubsection{Our approach's configuration} \label{Experiments/Configuration/Proposed}
+In our proposed approach, $\text{PhoBERT}_{base}$ is the output feature of the [CLS] token as the sentence node, followed by a feedforward layer to derive the final prediction. We use $\text{PhoBERT}_{base}$ pre-trained model from HuggingFace combined with a two-layer GCN to implement ViCGCN. We initialize Adam optimizer \cite{https://doi.org/10.48550/arxiv.1412.6980} with a fixed learning rate of 1e-3 and 1e-5 for the GCN and PhoBERT module, respectively. Moreover, PhoBERT runs with a 256 max sequence length.
+
+\subsection{Experimental Results} \label{Experiments/Result}
+
+
+% \begin{table}[!hpbt]
+% \centering
+% \caption{F1-score performances of models on the test sets of various Vietnamese social media textual datasets. Improvement (1) and Improvement (2) denoted the improvement over BERTology models and the improvement over BERTology integrated with GCN models, respectively}
+% \label{tab::Experiments/Result}
+% \resizebox{\linewidth}{!}{%
+% \begin{tabular}{c|cc|cc|cc|cc|cc|cc} 
+% \hline
+% \textbf{Datasets}                & \multicolumn{4}{c|}{\textbf{UIT-VSMEC}}                                               & \multicolumn{4}{c|}{\textbf{UIT-ViCTSD}}                                                & \multicolumn{4}{c}{\textbf{UIT-VSFC}}                                                     \\ 
+% \hline
+% \textbf{Tasks}                   & \multicolumn{2}{c|}{\textbf{Seven labels}} & \multicolumn{2}{c|}{\textbf{Six labels}} & \multicolumn{2}{c|}{\textbf{Constructiveness}} & \multicolumn{2}{c|}{\textbf{Toxicity}} & \multicolumn{2}{c|}{\textbf{Sentiment-based}} & \multicolumn{2}{c}{\textbf{Topic-based}}  \\ 
+% \hline
+%                                  & \textbf{wF1}   & \textbf{mF1}              & \textbf{wF1}   & \textbf{mF1}            & \textbf{wF1}   & \textbf{mF1}                  & \textbf{wF1}   & \textbf{mF1}          & \textbf{wF1}   & \textbf{mF1}                 & \textbf{wF1}   & \textbf{mF1}             \\ 
+% \hline
+% BERT (cased)                     & 55.06          & 55.88                     & 66.34          & 65.31                   & 79.34          & 77.29                         & 87.45          & 64.49                 & 86.32          & 72.38                        & 86.17          & 73.62                    \\
+% BERT (uncased)                   & 55.98          & 56.40                     & 58.55          & 56.65                   & 80.42          & 78.90                         & 85.21          & 63.28                 & 85.51          & 71.44                        & 85.98          & 72.56                    \\
+% mBERT (\textit{cased)}           & 61.23          & 59.57                     & 66.72          & 66.72                   & 78.15          & 76.93                         & 86.71          & 64.36                 & 91.21          & 78.94                        & 88.06          & 77.63                    \\
+% mBERT (\textit{uncased)}         & 58.31          & 57.03                     & 67.13          & 67.70                   & 78.11          & 76.63                         & 87.65          & 64.96                 & 89.52          & 76.60                        & 87.12          & 76.96                    \\
+% RoBERTa                          & 56.51          & 56.22                     & 62.11          & 64.64                   & 78.92          & 77.71                         & 83.82          & 61.73                 & 90.11          & 76.98                        & 87.03          & 76.77                    \\
+% XLM-R              & 69.55          & 68.12                     & 68.66          & 68.32                   & 81.97          & 80.02                         & 88.35          & 65.21                 & 91.02          & 76.95                        & 87.32          & 76.25                    \\
+% PhoBERT \textit{base}            & 71.86          & 69.58                     & 75.19          & 74.32                   & 81.03          & 79.53                         & 88.83          & 65.61                 & 90.51          & 76.47                        & 87.84          & 76.98                    \\
+% PhoBERT \textit{large}           & 72.87          & 70.22                     & 76.22          & 75.32                   & 83.21          & 80.22                         & 89.32          & 66.21                 & 91.81          & 77.81                        & 88.12          & 77.22                    \\
+% viBERT                           & 67.55          & 65.32                     & 69.95          & 69.08                   & 82.27          & 80.12                         & 88.13          & 64.35                 & 89.77          & 76.25                        & 87.43          & 76.25                    \\ 
+% \hline
+% Bert-GCN (BERT \textit{cased)}   & 74.22          & 73.51                     & 78.25          & 77.02                   & 81.13          & 79.72                         & 88.10          & 64.52                 & 88.72          & 76.23                        & 88.15          & 76.25                    \\
+% Bert-GCN (BERT \textit{uncased)} & 74.18          & 73.29                     & 80.54          & 78.31                   & 81.05          & 79.60                         & 88.67          & 64.96                 & 88.51          & 75.99                        & 87.75          & 76.06                    \\
+% mBERT-GCN (mBERT cased)          & 75.12          & 74.83                     & 79.55          & 77.84                   & 82.15          & 80.33                         & 89.13          & 65.13                 & 91.89          & 79.84                        & 89.73          & 79.02                    \\
+% mBERT-GCN (mBERT uncased)        & 74.56          & 73.98                     & 80.21          & 78.12                   & 82.88          & 81.12                         & 89.83          & 65.89                 & 91.72          & 79.64                        & 88.89          & 78.82                    \\
+% RoBERTa-GCN                      & 74.82          & 74.22                     & 79.33          & 78.32                   & 83.47          & 82.77                         & 86.55          & 64.33                 & 91.12          & 79.32                        & 90.12          & 79.34                    \\
+% viBERT-GCN                       & 78.25          & 78.37                     & 82.33          & 81.98                   & 86.12          & 85.02                         & 91.27          & 75.93                 & 93.27          & 87.52                        & 92.11          & 88.35                    \\ 
+% \hline
+% \textbf{ViCGCN}                  & \textbf{80.24} & \textbf{80.96}            & \textbf{84.91} & \textbf{83.27}          & \textbf{86.97} & \textbf{85.81}                & \textbf{91.95} & \textbf{76.29}        & \textbf{94.81} & \textbf{88.80}               & \textbf{93.91} & \textbf{89.61}           \\
+% Improvement (1)                  & $\uparrow$7.37 & $\uparrow$10.74           & $\uparrow$8.69 & $\uparrow$7.95          & $\uparrow$3.76 & $\uparrow$5.59                & $\uparrow$2.63 & $\uparrow$9.98        & $\uparrow$3.00 & $\uparrow$9.86               & $\uparrow$5.69 & $\uparrow$11.98          \\
+% Improvement (2)                  & $\uparrow$1.99 & $\uparrow$2.59            & $\uparrow$2.58 & $\uparrow$1.29          & $\uparrow$0.85 & $\uparrow$0.79                & $\uparrow$0.68 & $\uparrow$0.26        & $\uparrow$1.54 & $\uparrow$1.28               & $\uparrow$1.70 & $\uparrow$1.26           \\
+% \hline
+% \end{tabular}}
+% \end{table}
+
+\begin{table}[!ht]
+\centering
+\caption{F1-score performances of models on the test sets of various Vietnamese social media textual datasets. Improvement (1) and Improvement (2) denoted the improvement over BERTology models and the improvement over BERTology integrated with GCN models, respectively.}
+\label{tab::Experiments/Result}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{c|cc|cc|cc|cc|cc|cc} 
+\hline
+\textbf{Datasets}        & \multicolumn{4}{c|}{\textbf{UIT-VSMEC}}                                               & \multicolumn{4}{c|}{\textbf{UIT-ViCTSD}}                                                & \multicolumn{4}{c}{\textbf{UIT-VSFC}}                                                     \\ 
+\hline
+\textbf{Tasks}           & \multicolumn{2}{c|}{\textbf{Seven labels}} & \multicolumn{2}{c|}{\textbf{Six labels}} & \multicolumn{2}{c|}{\textbf{Constructiveness}} & \multicolumn{2}{c|}{\textbf{Toxicity}} & \multicolumn{2}{c|}{\textbf{Sentiment-based}} & \multicolumn{2}{c}{\textbf{Topic-based}}  \\ 
+\hline
+                         & \textbf{wF1}   & \textbf{mF1}              & \textbf{wF1}   & \textbf{mF1}            & \textbf{wF1}   & \textbf{mF1}                  & \textbf{wF1}   & \textbf{mF1}          & \textbf{wF1}   & \textbf{mF1}                 & \textbf{wF1}   & \textbf{mF1}             \\ 
+\hline
+mBERT (\textit{cased)}   & 60.47          & 59.48                     & 65.02          & 62.65                   & 81.03          & 79.55                         & 88.32          & 65.63                 & 90.39          & 77.15                        & 87.32          & 77.93                    \\
+mBERT (\textit{uncased)} & 60.17          & 59.18                     & 64.93          & 62.11                   & 80.89          & 79.47                         & 87.6           & 64.77                 & 89.95          & 77.8                         & 87.62          & 77.58                    \\
+RoBERTa                  & 58.17          & 57.32                     & 63.32          & 59.97                   & 77.41          & 75.62                         & 85.85          & 59.71                 & 87.13          & 75.52                        & 86.77          & 75.30                    \\
+XLM-R                    & 62.02          & 61.01                     & 68.19          & 63.70                   & 81.81          & 80.85                         & 89.92          & 73.09                 & 93.03          & 82.61                        & 89.67          & 79.25                    \\
+PhoBERT \textit{base}    & 64.36          & 61.41                     & 69.02          & 64.12                   & 81.65          & 80.24                         & 89.58          & 72.12                 & 92.94          & 82.15                        & 88.29          & 78.54                    \\
+PhoBERT \textit{large}   & 65.12          & 63.23                     & 71.13          & 65.12                   & 82.07          & 81.27                         & 90.12          & 73.32                 & 93.24          & 82.96                        & 88.72          & 79.12                    \\
+vELECTRA                 & 63.58          & 61.38                     & 68.33          & 63.12                   & 82.41          & 80.82                         & 89.33          & 72.02                 & 91.89          & 82.01                        & 88.12          & 78.12                    \\
+viBERT                   & 61.33          & 60.28                     & 68.48          & 62.09                   & 81.62          & 80.07                         & 89.14          & 71.87                 & 91.29          & 81.95                        & 88.22          & 78.35                    \\ 
+\hline
+mBERT-GCN (cased)        & 68.32          & 64.32                     & 69.32          & 66.18                   & 83.12          & 82.88                         & 90.32          & 69.42                 & 92.12          & 79.32                        & 88.32          & 79.42                    \\
+mBERT-GCN (uncased)      & 67.98          & 64.11                     & 69.12          & 65.89                   & 82.32          & 82.01                         & 89.15          & 68.32                 & 91.01          & 79.02                        & 88.07          & 79.02                    \\
+RoBERTa-GCN              & 66.17          & 62.12                     & 67.12          & 64.17                   & 81.33          & 80.96                         & 89.02          & 64.32                 & 90.12          & 78.42                        & 87.45          & 78.12                    \\
+vELECTRA-GCN             & 69.42          & 65.44                     & 70.95          & 67.20                   & 84.62          & 84.62                         & 91.88          & 74.85                 & 93.56          & 83.12                        & 89.95          & 80.02                    \\
+viBERT-GCN               & 69.32          & 65.12                     & 70.83          & 66.68                   & 84.32          & 83.12                         & 91.12          & 74.25                 & 93.12          & 82.47                        & 89.42          & 79.63                    \\ 
+\hline
+\textbf{ViCGCN (base)}   & \textbf{70.32} & \textbf{67.17}            & \textbf{71.02} & \textbf{67.48}          & \textbf{85.64} & \textbf{85.12}                & \textbf{92.22} & \textbf{75.32}        & \textbf{94.12} & \textbf{83.67}               & \textbf{90.12} & \textbf{80.11}           \\
+\textbf{ViCGCN (large)}  & \textbf{71.33} & \textbf{67.82}            & \textbf{72.08} & \textbf{68.12}          & \textbf{86.12} & \textbf{85.88}                & \textbf{93.11} & \textbf{76.12}        & \textbf{94.83} & \textbf{84.23}               & \textbf{91.02} & \textbf{81.88}           \\ 
+\hline
+Improvement (1)          & $\uparrow$6.21 & $\uparrow$4.59            & $\uparrow$0.95 & $\uparrow$3.00          & $\uparrow$3.71 & $\uparrow$4.61                & $\uparrow$2.99 & $\uparrow$2.80        & $\uparrow$1.59 & $\uparrow$1.27               & $\uparrow$1.35 & $\uparrow$2.63           \\
+Improvement (2)          & $\uparrow$1.91 & $\uparrow$2.38            & $\uparrow$1.13 & $\uparrow$0.92          & $\uparrow$1.50 & $\uparrow$1.26                & $\uparrow$1.23 & $\uparrow$1.27        & $\uparrow$1.27 & $\uparrow$1.11               & $\uparrow$1.07 & $\uparrow$1.86           \\
+\hline
+\end{tabular}}
+\end{table}
+
+To demonstrate the classification performance of our model ViCGCN, we compare it with other state-of-the-art and Integrated models as mentioned in Section \ref{Experiments/Baseline}. The F1-score results for both baseline and proposed models on the test sets of three Vietnamese social media text datasets are shown in Table \ref{tab::Experiments/Result} and we obtain the following observations.
+
+Among BERTology models, RoBERTa and mBERT, including \textit{cased} and \textit{uncased}, have the most unfavorable performance of almost tasks of the three benchmark datasets. Moreover, the results show that monolingual models such as PhoBERT and viBERT perform better than other BERTology models. Additionally, through the execution of parallel computations for words, the problem of vanishing gradients is minimized, and PhoBERT archives the highest results in nearly all the tasks. However, in general, BERTology baseline models still find it hard to handle the complexity of social media: imbalanced and noisy data, which leads to poor performance compared to the integrated GCN model.
+    
+Our baseline integrated models can also benefit from graph structure by combining GCN as the final prediction module. Compared to BERTology baseline models, the performance boost from contextualized pre-trained language models with the GCN module is significant. Moreover, the multilingual and monolingual models integrated with GCN perform massively better than others. This explains the significance of incorporating both the Contextualized and GCN models into the integrated models can be attributed to their complementary nature in addressing the limitations of each other.
+
+Compared to baseline models, our approach ViCGCN adopts large-scale, monolingual Vietnamese language model PhoBERT. Our integrated model ViCGCN obtains the ability to compute the new features of a node as the weighted average of itself and its second-order neighbors. In the context of imbalanced and noisy datasets, such as UIT-ViCTSD, the proposed ViCGCN model has demonstrated significant performance improvements compared to other baseline models, making it a promising approach for social media mining tasks. Moreover, Our proposed model demonstrated superior performance to the current state-of-the-art Vietnamese model, achieving improvements of 6.21\%, 4.61\%, and 2.63\% on three benchmark datasets. These results demonstrate the efficacy and validity of ViCGCN for Vietnamese text classification. As a result, our method achieves the best performance among all the tasks on three benchmark datasets in terms of UIT-VSMEC, UIT-ViCTSD, and UIT-VSFC, respectively.
+
+\subsection{Analysis and Discussion}
+
+\subsubsection{Impact of graph convolutional networks}
+\label{imapactGCN}
+
+Although we can implicitly infer the effectiveness of graph convolutional networks from Table \ref{tab::Experiments/Result}, we would like to discuss more the contribution of graph convolutional networks in contextualized language models. Table \ref{Result/Graph/VSMEC/table}, Table \ref{/Result/Graph/ViCTSD/table} and Table \ref{/Result/Graph/VSFC/table} display the comparisons between with and without GCN on three benchmark datasets as we can find that contextualized language model integrated with GCN outperformed all of the corresponding single models, respectively. As mentioned in Section \ref{Experiments/Result}, Contextualized Language Models have not performed well on three benchmark datasets. Integrating GCN with the BERTology model massively enhances the performance, which leads to improvements of up to 8.00\%, 7.99\%, 5.84\%, and 7.99\% of RoBERTa, viBERT, vELECTRA, and $\text{PhoBERT}_{base}$, respectively, on three benchmark datasets, UIT-VSMEC, UIT-ViCTSD, and UIT-VSFC, respectively. The average length of three datasets in UIT-VSMEC, UIT-ViCTSD, and UIT-VSFC is approximately 14. Additionally, the short sequence lengths can construct more dense graphs that provide richer contextual information, which may explain better performance by combining contextualized language models with GCN. This further demonstrates that Graph Convolutional Networks are essential in improving text classification performance.
+
+
+% \begin{table}[!hp] 
+% \centering
+% \caption{Model performance on UIT-VSMEC.}
+% \label{Result/Graph/VSMEC/table}
+% %\centerline{
+% \resizebox{\linewidth}{!}{
+% \begin{tabular}{l|cc|cc} 
+% \hline
+% \textbf{Tasks}            & \multicolumn{2}{c|}{\textbf{Seven labels}}                                           & \multicolumn{2}{c}{\textbf{Six labels}}                                              \\ 
+% \hline
+%                           & \textbf{wF1}                             & \textbf{mF1}                              & \textbf{wF1}                             & \textbf{mF1}                              \\ 
+% \hline
+% BERT (cased)              & 55.06                                    & 55.88                                     & 66.34                                    & 65.31                                     \\
+% Bert-GCN (BERT cased)     & 74.22 ($\uparrow$19.16)                  & 73.51 ($\uparrow$17.63)                   & 78.25 ($\uparrow$11.91)                  & 77.02 ($\uparrow$11.71)                   \\ 
+% \hline
+% BERT (uncased)            & 55.98                                    & 56.40                                     & 58.55                                    & 56.65                                     \\
+% Bert-GCN (BERT uncased)   & 74.18 ($\uparrow$18.20)                  & 73.29 ($\uparrow$16.89)                   & 80.54 ($\uparrow$21.99)                  & 78.31 ($\uparrow$21.66)                   \\ 
+% \hline
+% mBERT (mBERT cased)       & 61.23                                    & 59.57                                     & 66.72                                    & 66.72                                     \\
+% mBERT-GCN (mBERT cased)   & 75.12 ($\uparrow$13.89)                  & 74.83 ($\uparrow$15.26)                   & 79.55 ($\uparrow$12.83)                  & 77.84 ($\uparrow$11.12)                   \\ 
+% \hline
+% mBERT (uncased)           & 58.31                                    & 57.03                                     & 67.13                                    & 67.70                                     \\
+% mBERT-GCN (mBERT uncased) & 74.56 ($\uparrow$16.25)                  & 73.98 ($\uparrow$16.95)                   & 80.21 ($\uparrow$13.08)                  & 78.12 ($\uparrow$10.42)                   \\ 
+% \hline
+% RoBERTa                   & 56.51                                    & 56.22                                     & 62.11                                    & 64.64                                     \\
+% RoBERTa-GCN               & 74.82 ($\uparrow$18.31)                  & 74.22 ($\uparrow$18.00)                   & 79.33 ($\uparrow$17.22)                  & 78.32 ($\uparrow$13.68)                   \\ 
+% \hline
+% viBERT                    & 67.55                                    & 65.32                                     & 69.95                                    & 69.08                                     \\
+% viBERT-GCN                & 78.25 ($\uparrow$10.70)                  & 78.37 ($\uparrow$13.05)                   & 82.33 ($\uparrow$12.38)                  & 81.98 ($\uparrow$12.90)                   \\ 
+% \hline
+% PhoBERT                   & 71.86                                    & 69.58                                     & 75.19                                    & 74.32                                     \\
+% \textbf{ViCGCN (Ours)}    & \textbf{80.24 ($\uparrow$\textbf{8.38)}} & \textbf{80.96 ($\uparrow$\textbf{11.38)}} & \textbf{84.91 ($\uparrow$\textbf{9.72)}} & \textbf{83.27 ($\uparrow$\textbf{8.95)}}  \\
+% \hline
+% \end{tabular}}
+% \end{table}
+
+% \begin{table}[!hpbt] 
+% \centering
+% \caption{Model performance on UIT-ViCTSD.}
+% \label{/Result/Graph/ViCTSD/table}
+% \resizebox{\linewidth}{!}{%
+% \begin{tabular}{l|cc|cc} 
+% \hline
+% \textbf{Tasks}            & \multicolumn{2}{c|}{\textbf{Constructiveness}}                    & \multicolumn{2}{c}{\textbf{Toxicity}}                               \\ 
+% \hline
+%                           & \textbf{wF1}                    & \textbf{mF1}                    & \textbf{wF1}                    & \textbf{mF1}                      \\ 
+% \hline
+% BERT (cased)              & 79.34                           & 77.29                           & 87.45                           & 64.49                             \\
+% Bert-GCN (BERT cased)     & 81.13 ($\uparrow$1.79)          & 79.72 ($\uparrow$2.43)          & 88.10 ($\uparrow$0.65)          & 64.52 ($\uparrow$0.03)            \\ 
+% \hline
+% BERT (uncased)            & 80.42                           & 78.90                           & 85.21                           & 63.28                             \\
+% Bert-GCN (BERT uncased)   & 81.05 ($\uparrow$0.63)          & 79.6 ($\uparrow$0.70)           & 88.67 ($\uparrow$3.46)          & 64.96 ($\uparrow$1.68)            \\ 
+% \hline
+% mBERT (mBERT cased)       & 78.15                           & 76.93                           & 86.71                           & 64.36                             \\
+% mBERT-GCN (mBERT cased)   & 82.15 ($\uparrow$4.00)          & 80.33 ($\uparrow$3.40)          & 89.13 ($\uparrow$0.46)          & 65.13 ($\uparrow$0.77)            \\ 
+% \hline
+% mBERT (uncased)           & 78.11                           & 76.63                           & 87.65                           & 64.96                             \\
+% mBERT-GCN (mBERT uncased) & 82.88 ($\uparrow$4.77)          & 81.12 ($\uparrow$4.49)          & 89.93 ($\uparrow$2.28)          & 65.89 ($\uparrow$0.93)            \\ 
+% \hline
+% RoBERTa                   & 78.92                           & 77.71                           & 83.82                           & 61.73                             \\
+% RoBERTa-GCN               & 83.47 ($\uparrow$4.55)          & 82.77 ($\uparrow$5.06)          & 86.55 ($\uparrow$2.73)          & 64.33 ($\uparrow$2.60)            \\ 
+% \hline
+% viBERT                    & 82.27                           & 80.12                           & 88.13                           & 64.35                             \\
+% viBERT-GCN                & 86.12 ($\uparrow$3.85)          & 85.02 ($\uparrow$4.90)          & 91.27 ($\uparrow$3.14)          & 75.93 ($\uparrow$11.58)           \\ 
+% \hline
+% PhoBERT                   & 81.03                           & 79.53                           & 88.83                           & 65.61                             \\
+% \textbf{ViCGCN (Ours)}    & \textbf{86.97 ($\uparrow$5.94)} & \textbf{85.81 ($\uparrow$6.28)} & \textbf{91.95 ($\uparrow$3.12)} & \textbf{76.29 ($\uparrow$10.68)}  \\
+% \hline
+% \end{tabular}}
+% \end{table}
+
+% \begin{table}[!hpbt] 
+% \centering
+% \caption{Model performance on UIT-VSFC.}
+% \label{/Result/Graph/VSFC/table}
+% \resizebox{\linewidth}{!}{%
+% \begin{tabular}{l|cc|cc} 
+% \hline
+% \textbf{Tasks}            & \multicolumn{2}{c|}{\textbf{Sentiment-based}}                      & \multicolumn{2}{c}{\textbf{Topic-based}}                                  \\ 
+% \hline
+%                           & \textbf{wF1}                    & \textbf{mF1}                     & \textbf{wF1}                    & \textbf{mF1}                            \\ 
+% \hline
+% BERT (cased)              & 86.32                           & 72.38                            & 86.17                           & 73.62                                   \\
+% Bert-GCN (BERT cased)     & 88.72 ($\uparrow$2.40)          & 76.23 ($\uparrow$3.85)           & 88.15 ($\uparrow$1.98)          & 76.25 ($\uparrow$2.63)                  \\ 
+% \hline
+% BERT (uncased)            & 85.51                           & 71.44                            & 85.98                           & 72.56                                   \\
+% Bert-GCN (BERT uncased)   & 88.51 ($\uparrow$3.00)          & 75.99 ($\uparrow$4.55)           & 87.75 ($\uparrow$1.77)          & 76.06 ($\uparrow$3.50)                  \\ 
+% \hline
+% mBERT (mBERT cased)       & 91.21                           & 78.94                            & 88.06                           & 77.63                                   \\
+% mBERT-GCN (mBERT cased)   & 91.89 ($\uparrow$0.68)          & 79.84 ($\uparrow$0.90)           & 89.73 ($\uparrow$1.98)          & 79.02 ($\uparrow$1.39)                  \\ 
+% \hline
+% mBERT (uncased)           & 89.52                           & 76.60                            & 87.12                           & 76.96                                   \\
+% mBERT-GCN (mBERT uncased) & 91.72 ($\uparrow$2.20)          & 79.64 ($\uparrow$3.04)           & 88.89 ($\uparrow$1.77)          & 78.82 ($\uparrow$1.86)                  \\ 
+% \hline
+% RoBERTa                   & 90.11                           & 76.98                            & 87.03                           & 76.77                                   \\
+% RoBERTa-GCN               & 91.12 ($\uparrow$1.01)          & 79.32 ($\uparrow$2.34)           & 90.12 ($\uparrow$3.09)          & 79.34 ($\uparrow$2.57)                  \\ 
+% \hline
+% viBERT                    & 89.77                           & 76.25                            & 87.43                           & 76.55                                   \\
+% viBERT-GCN                & 93.27 ($\uparrow$3.50)          & 87.52 ($\uparrow$11.27)          & 92.11 ($\uparrow$4.68)          & 88.35 ($\uparrow$11.80)  \\ 
+% \hline
+% PhoBERT                   & 90.51                           & 76.47                            & 87.84                           & 76.98                                   \\
+% \textbf{ViCGCN (Ours)}    & \textbf{94.81 ($\uparrow$4.30)} & \textbf{88.80 ($\uparrow$12.33)} & \textbf{93.81 ($\uparrow$5.97)} & \textbf{89.61 ($\uparrow$12.63)}        \\
+% \hline
+% \end{tabular}}
+% \end{table}
+
+\begin{table}[!ht]
+\centering
+\caption{Model performance on UIT-VSMEC.}
+\label{Result/Graph/VSMEC/table}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{l|cc|cc} 
+\hline
+\textbf{Tasks}          & \multicolumn{2}{c|}{\textbf{Seven labels}}                        & \multicolumn{2}{c}{\textbf{Six labels}}                            \\ 
+\hline
+                        & \textbf{wF1}                    & \textbf{mF1}                    & \textbf{wF1}                    & \textbf{mF1}                     \\ 
+\hline
+mBERT (cased)           & 60.47                           & 59.48                           & 65.02                           & 62.65                            \\
+mBERT-GCN (cased)       & 68.32 ($\uparrow$7.85)          & 64.32 ($\uparrow$4.84)          & 69.32 ($\uparrow$4.30)          & 66.18 ($\uparrow$3.53)           \\ 
+\hline
+mBERT (uncased)         & 60.17                           & 59.18                           & 64.93                           & 62.11                            \\
+mBERT-GCN (uncased)     & 67.98 ($\uparrow$7.81)          & 64.11 ($\uparrow$4.93)          & 69.12 ($\uparrow$4.90)          & 65.89 ($\uparrow$3.78)           \\ 
+\hline
+RoBERTa                 & 58.17                           & 57.32                           & 63.32                           & 59.97                            \\
+RoBERTa-GCN             & 66.17 ($\uparrow$8.00)          & 62.12 ($\uparrow$4.80)          & 67.12 ($\uparrow$3.80)          & 64.17 ($\uparrow$4.20)           \\ 
+\hline
+viBERT                  & 61.33                           & 60.28                           & 68.48                           & 62.09                            \\
+viBERT-GCN              & 69.32 ($\uparrow$7.99)          & 78.37 ($\uparrow$4.84)          & 82.33 ($\uparrow$2.35)          & 81.98 ($\uparrow$4.59)           \\ 
+\hline
+vELECTRA                & 63.58                           & 61.38                           & 68.33                           & 63.12                            \\
+vELETRA-GCN             & 69.42 ($\uparrow$5.84)          & 65.44 ($\uparrow$4.06)          & 70.95 ($\uparrow$2.62)          & 67.20 ($\uparrow$4.08)           \\ 
+\hline
+PhoBERT (base)          & 64.36                           & 61.41                           & 69.02                           & 64.12                            \\
+\textbf{ViCGCN (base)}  & \textbf{69.32 ($\uparrow$7.99)} & \textbf{65.12 ($\uparrow$4.84)} & \textbf{70.83 ($\uparrow$2.35)} & \textbf{66.68 ($\uparrow$4.59)}  \\ 
+\hline
+PhoBERT (large)         & 65.12                           & 71.13                           & 63.23                           & 65.12                            \\
+\textbf{ViCGCN (large)} & \textbf{71.33 ($\uparrow$6.21)} & \textbf{72.08 ($\uparrow$0.95)} & \textbf{67.82 ($\uparrow$4.59)} & \textbf{68.12 ($\uparrow$3.00)}  \\
+\hline
+\end{tabular}}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Model performance on UIT-ViCTSD.}
+\label{/Result/Graph/ViCTSD/table}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{l|cc|cc} 
+\hline
+\textbf{Tasks}            & \multicolumn{2}{c|}{\textbf{Constructiveness}}                    & \multicolumn{2}{c}{\textbf{Toxicity}}                              \\ 
+\hline
+                          & \textbf{wF1}                    & \textbf{mF1}                    & \textbf{wF1}                    & \textbf{mF1}                     \\ 
+\hline
+mBERT (mBERT cased)       & 81.03                           & 79.55                           & 88.32                           & 65.63                            \\
+mBERT-GCN (mBERT cased)   & 83.12 ($\uparrow$2.09)          & 82.88 ($\uparrow$3.33)          & 90.32 ($\uparrow$2.00)          & 69.42 ($\uparrow$3.79)           \\ 
+\hline
+mBERT (uncased)           & 80.89                           & 79.47                           & 87.60                           & 64.77                            \\
+mBERT-GCN (mBERT uncased) & 82.32 ($\uparrow$1.43)          & 82.01 ($\uparrow$2.54)          & 89.15 ($\uparrow$1.55)          & 68.32 ($\uparrow$3.55)           \\ 
+\hline
+RoBERTa                   & 77.41                           & 75.62                           & 85.85                           & 59.71                            \\
+RoBERTa-GCN               & 81.33 ($\uparrow$3.92)          & 80.96 ($\uparrow$5.34)          & 89.02 ($\uparrow$3.17)          & 64.32 ($\uparrow$4.61)           \\ 
+\hline
+viBERT                    & 81.62                           & 80.07                           & 89.14                           & 71.87                            \\
+viBERT-GCN                & 84.32 ($\uparrow$2.70)          & 83.12 ($\uparrow$3.05)          & 91.12 ($\uparrow$1.98)          & 74.25 ($\uparrow$2.38)           \\ 
+\hline
+vELECTRA                  & 82.41                           & 80.82                           & 89.33                           & 72.02                            \\
+vELETRA-GCN               & 84.62 ($\uparrow$2.21)          & 84.62 ($\uparrow$3.80)          & 91.88 ($\uparrow$2.55)          & 74.85 ($\uparrow$2.83)           \\ 
+\hline
+PhoBERT (base)            & 81.65                           & 80.24                           & 89.58                           & 72.12                            \\
+\textbf{ViCGCN (base)}    & \textbf{85.64 ($\uparrow$3.99)} & \textbf{85.12 ($\uparrow$4.88)} & \textbf{92.22 ($\uparrow$2.64)} & \textbf{75.32 ($\uparrow$3.20)}  \\ 
+\hline
+PhoBERT large             & 82.07                           & 90.12                           & 81.27                           & 73.32                            \\
+\textbf{ViCGCN (large)}   & \textbf{86.12 ($\uparrow$4.05)} & \textbf{93.11 ($\uparrow$2.99)} & \textbf{85.88 ($\uparrow$4.61)} & \textbf{76.12 ($\uparrow$2.80)}  \\
+\hline
+\end{tabular}}
+\end{table}
+
+\begin{table}[!ht]
+\centering
+\caption{Model performance on UIT-VSFC.}
+\label{/Result/Graph/VSFC/table}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{l|cc|cc} 
+\hline
+\textbf{Tasks}            & \multicolumn{2}{c|}{\textbf{Sentiment-based}}                                                                                          & \multicolumn{2}{c}{\textbf{Topic-based}}                                             \\ 
+\hline
+                          & \textbf{wF1}                                                                                & \textbf{mF1}                             & \textbf{wF1}                             & \textbf{mF1}                              \\ 
+\hline
+mBERT (cased)             & 90.39                                                                                       & 77.15                                    & 87.32                                    & 77.93                                     \\
+mBERT-GCN (cased)         & 92.12 ($\uparrow$1.73)                                                                      & 79.32 ($\uparrow$2.17)                   & 88.32 ($\uparrow$1.00)                   & 79.42 ($\uparrow$1.49)                    \\
+mBERT (uncased)           & 89.95                                                                                       & 77.80                                    & 87.62                                    & 77.58                                     \\
+mBERT-GCN (mBERT uncased) & 91.01 ($\uparrow$1.06)                                                                      & 79.02 ($\uparrow$1.22)                   & 88.07 ($\uparrow$0.45)                   & 79.02 ($\uparrow$1.44)                    \\ 
+\hline
+RoBERTa                   & 87.13                                                                                       & 75.52                                    & 86.77                                    & 75.30                                     \\
+RoBERTa-GCN               & 90.12 ($\uparrow$2.99)                                                                      & 78.42 ($\uparrow$2.90)                   & 87.45 ($\uparrow$0.68)                   & 78.12 ($\uparrow$2.82)                    \\ 
+\hline
+viBERT                    & 91.29                                                                                       & 81.95                                    & 88.22                                    & 78.35                                     \\
+viBERT-GCN                & 93.12 ($\uparrow$1.83)                                                                      & 82.47 ($\uparrow$0.52)                   & 89.42 ($\uparrow$1.20)                   & 79.63 ($\uparrow$1.28)                    \\ 
+\hline
+vELECTRA                  & 91.89                                                                                       & 82.01                                    & 88.12                                    & 78.12                                     \\
+vELETRA-GCN               & 93.56 ($\uparrow$1.67)                                                                      & 83.12 $(\uparrow$1.11)                   & 89.95 ($\uparrow$1.83)                   & 80.02 ($\uparrow$1.90)                    \\ 
+\hline
+PhoBERT (base)            & 92.94                                                                                       & 82.15                                    & 88.29                                    & 78.54                                     \\
+\textbf{ViCGCN (base)}    & \begin{tabular}[c]{@{}c@{}}\textbf{94.12~}($\uparrow$\textbf{}\textbf{1.18)}\end{tabular} & \textbf{83.67~}($\uparrow$\textbf{1.52)} & \textbf{90.12~}($\uparrow$\textbf{1.83)} & \textbf{80.11~}($\uparrow$\textbf{1.57)}  \\ 
+\hline
+PhoBERT (large)           & 93.24                                                                                       & 88.72                                    & 82.96                                    & 79.12                                     \\
+\textbf{ViCGCN (large)}   & \textbf{94.83~}($\uparrow$\textbf{1.59)}                                                    & \textbf{91.02~}($\uparrow$\textbf{2.3)}  & \textbf{84.23~}($\uparrow$\textbf{1.27)} & \textbf{81.88~}($\uparrow$\textbf{2.76)}  \\
+\hline
+\end{tabular}}
+\end{table}
+
+\subsubsection{Impact of lambda ($\lambda$)}
+\label{impactlamda}
+
+According to Equation \ref{equa::lambda}, the hyperparameter $\lambda$ controls the trade-off between two objectives, ViCGCN and PhoBERT, respectively. The optimal value of $\lambda$ may vary depending on the task. Therefore, extensive experiments on the dev set were conducted to determine the optimal value of $\lambda$. Figure \ref{fig::Experiments/Lamda/UIT-VSFC} shows the performances of ViCGCN on three benchmark datasets in terms of UIT-VSMEC, UIT-ViCTSD, and UIT-VSFC with different $\lambda$. On all three benchmark datasets, the F1-score is consistently higher with a more enormous $\lambda$ value. Moreover, taking only ViCGCN ($\lambda = 1$) as the final training objective consistently achieves a better performance than considering only PhoBERT ($\lambda = 0$). Setting $\lambda$ to a value from 0.6 to 0.8 is more desirable and can make the model reach its best when $\lambda = 0.6$ on all datasets. These observations indicate that the linear interpolation of the prediction from ViCGCN and the prediction from PhoBERT with higher ViCGCN weight can improve the Vietnamese social media text classification performance. On the other hand, the PhoBERT module is also indispensable.
+% \begin{figure}[H]
+%     \centering
+%     \subfigure[Seven labels task]{\includegraphics[width=0.49\textwidth]{ldVSMEC_7.pdf}}
+%     \subfigure[Six labels task]{\includegraphics[width=0.49\textwidth]{ldVSMEC_6.pdf}}
+%     \caption{F1-score of ViCGCN when varying $\lambda$ on UIT-VSMEC dev set.}
+%     \label{fig::Experiments/Lamda/VSMEC}
+% \end{figure}
+% \begin{figure}[H]
+%     \centering
+%     \subfigure[Constructiveness task]{\includegraphics[width=0.49\textwidth]{ldViCTSD_Constructiveness.pdf}}
+%     \subfigure[Toxicity task]{\includegraphics[width=0.49\textwidth]{ldViCTSD_toxic.pdf}}
+%     \caption{F1-score of ViCGCN when varying $\lambda$ on UIT-ViCTSD dev set.}
+%     \label{fig::Experiments/Lamda/ViCTSD}
+% \end{figure}
+\begin{figure}[!hpt]
+    \centering
+
+    \subfigure[Seven labels task]{\includegraphics[width=0.49\textwidth]{ldVSMEC_7.pdf}}
+    \subfigure[Six labels task]{\includegraphics[width=0.49\textwidth]{ldVSMEC_6.pdf}}
+
+     \subfigure[Constructiveness task]{\includegraphics[width=0.49\textwidth]{ldViCTSD_Constructiveness.pdf}}
+    \subfigure[Toxicity task]{\includegraphics[width=0.49\textwidth]{ldViCTSD_toxic.pdf}}
+    
+    \subfigure[Sentiment-based task]{\includegraphics[width=0.49\textwidth]{ldVSFC_sentiment.pdf}}
+    \subfigure[Topic-based task]{\includegraphics[width=0.49\textwidth]{ldVSFC_topic.pdf}}
+    % \caption{F1-score of ViCGCN when varying $\lambda$ on UIT-VSFC dev set.}
+    
+    \caption{F1-score of ViCGCN when varying $\lambda$ on the dev set.}
+    
+    \label{fig::Experiments/Lamda/UIT-VSFC}
+\end{figure}
+
+\subsubsection{Comparison with Previous Studies}
+\label{comparisonprestudies}
+% \subsubsection{UIT-VSMEC}
+We conducted a number of surveys to evaluate how well our suggested technique performed in comparison to earlier studies. On the UIT-VSMEC, UIT-ViCTSD, and UIT-VSFC datasets, our method fared better than in any prior research. To provide for fair comparisons, similar evaluation metrics from earlier studies are employed. For all datasets used in this study, we use the average macro F1-score (\%) and average weighted F1-score (\%). 
+
+Our integrated model ViCGCN outperformed the best results of each previous study on the VSMEC dataset by achieving 80.24\% weighted F1-score and 80.96\% macro F1-score on task Seven labels, which improves by 10.18\% and 13.93\% compared to the best previous study. Additionally, our model obtains 84.91\% weighted F1-score on the Six labels task as shown in Table \ref{tab::Experiments/Comparison/VSMEC}, increased by 13.92\% in comparison to the highest previous ones. Furthermore, Table \ref{tab::Experiments/Comparison/ViCTSD} deputed that ViCGCN achieves the best results, with a macro F1-score of 85.81\% for UIT-ViCTSD Constructiveness task, and 76.29\% macro F1-score for UIT-ViCSTD Toxicity task,  increased by 16.89\%. By obtaining 88.80\% macro F1-score and 94.81\% weighted F1-score, 89.61\% macro F1-score, and 93.81\% weighted F1-score on task Sentiment-based and Topic-based, respectively, our integrated model ViCGCN surpassed every previous study's top result on the UIT-VSFC dataset as describes in Table \ref{tab::Experiments/Comparison/VSFC}. In addition, our proposed approach reached new state-of-the-art performances on three Vietnamese benchmark social media datasets, UIT-VSMEC, UIT-ViCTSD, and UIT-VSFC, respectively. As a result, the proposed approach ViCGCN is significantly suitable and efficient for dealing with Vietnamese text in general and Vietnamese social media text classification tasks in particular.
+
+\begin{table}[!hpt]
+\centering
+\caption{The comparison with previous studies on UIT-VSMEC.} \label{tab::Experiments/Comparison/VSMEC}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{l|cc|cc} 
+\hline
+\textbf{Tasks}                                  & \multicolumn{2}{c|}{\textbf{Seven labels }} & \multicolumn{2}{c}{\textbf{Six labels }}  \\ 
+\hline
+                                                & \textbf{wF1}   & \textbf{mF1}               & \textbf{wF1}   & \textbf{mF1}             \\ 
+\hline
+CNN + Word2Vec                                  & 59.74          & -                          & 66.34          & -                        \\
+MLR + TF-IDF Vectorizer + Key-clause extraction & 64.40          & -                          & -              & -                        \\
+GRU + CNN + BiLSTM + LSTM                       & 65.79          & -                          & 70.99          & -                        \\
+PhoBERT                                         & -              & 65.44                      & -              & -                        \\
+XLM-R + VnEmolex                                & 70.06          & 67.03                      & -              & -                        \\ 
+\hline
+\textbf{ViCGCN (base)}                          & \textbf{70.32} & \textbf{67.17}             & \textbf{71.02} & \textbf{67.48}           \\
+\textbf{ViCGCN (large)}                         & \textbf{71.33} & \textbf{67.82}             & \textbf{72.08} & \textbf{68.12}           \\
+\hline
+\end{tabular}}
+\end{table}
+
+
+% \subsubsection{ViCTSD}
+\begin{table}[!ht] 
+\centering
+\caption{The comparison with previous studies on UIT-ViCTSD.}
+\label{tab::Experiments/Comparison/ViCTSD}
+\begin{tabular}{l|cc|cc} 
+\hline
+\textbf{Tasks}          & \multicolumn{2}{c|}{\textbf{Constructiveness }} & \multicolumn{2}{c}{\textbf{Toxicity }}  \\ 
+\hline
+                        & \textbf{wF1}   & \textbf{mF1}                   & \textbf{wF1}   & \textbf{mF1}           \\ 
+\hline
+PhoBERT                 & -              & 78.59                          & -              & 59.40                  \\
+viBERT4news             & -              & 84.15                          & -              & -                      \\ 
+\hline
+\textbf{ViCGCN (base)}  & \textbf{85.64} & \textbf{85.12}                 & \textbf{92.22} & \textbf{75.32}         \\
+\textbf{ViCGCN (large)} & \textbf{86.12} & \textbf{85.88}                 & \textbf{93.11} & \textbf{76.12}         \\
+\hline
+\end{tabular}
+\end{table}
+
+% \subsubsection{VSFC}
+\begin{table}[!ht] 
+\centering
+\caption{The comparison with previous studies on UIT-VSFC.}
+\label{tab::Experiments/Comparison/VSFC}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{l|cc|cc} 
+\hline
+\textbf{Tasks}             & \multicolumn{2}{c|}{\textbf{Sentiment-based }} & \multicolumn{2}{c}{\textbf{Topic-based }}  \\ 
+\hline
+                           & \textbf{wF1}   & \textbf{mF1}                  & \textbf{wF1}   & \textbf{mF1}              \\ 
+\hline
+Maximum Entropy            & 87.64          & -                             & 84.03          & -                         \\
+BiLSTM +Word2Vec~          & 92.03          & -                             & 89.62          & -                         \\
+LD + SVM ()                & 92.20          & -                             & -              & -                         \\
+BERT + CNN + BiLSTM + LSTM & 92.79          & -                             & 89.38          & -                         \\
+BERT + CNN + BiLSTM        & 92.13          & -                             & 89.70          & -                         \\
+XLM-R + VnEmoLex           & 93.97          & 83.40                         & -              & -                         \\ 
+\hline
+\textbf{ViCGCN (base)}     & \textbf{94.12} & \textbf{83.67}                & \textbf{90.12} & \textbf{80.11}            \\
+\textbf{ViCGCN (large)}    & \textbf{94.83} & \textbf{84.23}                & \textbf{91.02} & \textbf{81.88}            \\
+\hline
+\end{tabular}}
+\end{table}
+
+% SECTION Errors and analysis %
+\subsubsection{Errors Analysis}
+\label{erroranalysis}
+
+We utilize the error analysis of ViCGCN, our top-performing model, to analyze the errors observed in our proposed model. Figure\ref{fig::Experiments/CfMatrix/VSMEC}, Figure \ref{fig::Experiments/CfMatrix/ViCTSD} and Figure \ref{fig::Experiments/CfMatrix/VSFC}, respectively, show the confusion matrices for our best model's predictions on the test set for UIT-VSMEC, UIT-ViCTSD, and UIT-VSFC.
+
+\begin{figure}[!ht]
+    \centering
+    \subfigure[Seven labels task]{\includegraphics[width=0.49\textwidth]{cfVSMEC_7.pdf}}
+    \subfigure[Six labels task]{\includegraphics[width=0.49\textwidth]{cfVSMEC_6.pdf}}
+    \caption{Error analysis of our proposed approach for UIT-VSMEC dataset.}
+    \label{fig::Experiments/CfMatrix/VSMEC}
+\end{figure}
+\begin{figure}[!ht]
+    \centering
+    \subfigure[Constructiveness task]{\includegraphics[width=0.49\textwidth]{cfViCTSD_contructive.pdf}}
+    \subfigure[Toxicity task]{\includegraphics[width=0.49\textwidth]{cfViCTSD_toxic.pdf}}
+    \caption{Error analysis of our proposed approach for UIT-ViCTSD dataset.}
+    \label{fig::Experiments/CfMatrix/ViCTSD}
+\end{figure}
+\begin{figure}[!ht]
+    \centering
+    \subfigure[Sentiment-based task]{\includegraphics[width=0.49\textwidth]{cfVSFC_sentiment.pdf}}
+    \subfigure[Topic-based task]{\includegraphics[width=0.49\textwidth]{cfVSFC_topic.pdf}}
+    \caption{Error analysis of our proposed approach for UIT-VSFC dataset.}
+    \label{fig::Experiments/CfMatrix/VSFC}
+\end{figure}
+
+As described in Section \ref{Proposed model}, by incorporating contextualized language models such as BERT into GCN, ViCGCN can better capture the context and meaning of words and phrases, which can lead to more accurate identification of critical nodes. However, ViCGCN may not be able to explain why those nodes are essential or why specific nodes were not influential in the decision-making process. This can make it difficult for researchers to address specific issues in our proposed approach. Table \ref{fig:erroranalysissampleonViCTSD}, Table \ref{fig:erroranalysissampleonVSMEC}, and Table \ref{fig:erroranalysissampleonVSFC} contain a few illustrations of prediction errors. The results show that misclassifications were primarily due to the use of sarcasm, irony, and figurative language in social media comments. Furthermore, some misclassifications were due to the presence of multiple topics in a single comment, making it challenging to identify the primary intention. Additionally, ambiguity in identifying the labels of the datasets also leads to misclassifying of our proposed approach ViCGCN.
+
+% \subsubsection{VSMEC dataset} \label{Errors/VSMEC}
+
+
+\begin{table}[H]
+\centering
+\caption{Several examples of classification error on UIT-VSMEC dataset.}\label{fig:erroranalysissampleonVSMEC}
+\resizebox{\linewidth}{!}{%
+\begin{tblr}{
+  row{1} = {c},
+  cell{2}{2} = {c},
+  cell{2}{3} = {c},
+  cell{3}{2} = {c},
+  cell{3}{3} = {c},
+  hline{1-2,4} = {-}{},
+}
+\textbf{Comment}                                                       & \textbf{True Label} & \textbf{Predicted Label} \\
+{mấy ai được như vậy\\(\textbf{English:} not many people can do that)} & other               & surprise               \\
+{kinh khủng thật\\(\textbf{English:} it's terrible)}                   & fear                & sadness                
+\end{tblr}}
+\end{table}
+
+% \subsubsection{ViCTSD dataset} \label{Errors/ViCTSD}
+
+\begin{table}[!ht]
+\centering
+\caption{Several examples of classification error on UIT-ViCTSD dataset.}\label{fig:erroranalysissampleonViCTSD}
+\resizebox{\linewidth}{!}{%
+\begin{tblr}{
+  row{1} = {c},
+  cell{2}{2} = {c},
+  cell{2}{3} = {c},
+  cell{3}{2} = {c},
+  cell{3}{3} = {c},
+  hline{1-2,4} = {-}{},
+}
+\textbf{Comment}                                                                                                                                           & \textbf{True Label} & \textbf{Predicted Label} \\
+{Người ăn không hết kẻ lần không ra\\(\textbf{English:} This man has much to eat but that \\
+man finds no small piece.)}                                       & non\_constructive   & constructive           \\
+{người trẻ còn sức khoẻ k lo làm ăn đi ăn trộm\\(\textbf{English:} Young people who are still healthy \\ don't worry about doing business but go to steal)} & non\_toxic          & toxic                  
+\end{tblr}}
+\end{table}
+
+
+% % \subsubsection{UIT-VSFC dataset} \label{Errors/VSFC}
+
+\begin{table}[!ht]
+\centering
+\caption{Several examples of classification error on UIT-VSFC dataset.}\label{fig:erroranalysissampleonVSFC}
+\resizebox{\linewidth}{!}{%
+% \centerline{
+\begin{tblr}{
+  row{1} = {c},
+  cell{2}{2} = {c},
+  cell{2}{3} = {c},
+  cell{3}{2} = {c},
+  cell{3}{3} = {c},
+  hline{1-2,4} = {-}{},
+}
+\textbf{Comment}                                                                                                                                          & \textbf{True Label} & \textbf{Predicted Label} \\
+{ví dụ phù hợp với nội dung kiến thức , hướng dẫn chi tiết\\(\textbf{English:}~Examples are consistent with content knowledge, \\ detailed instructions)} & neural          & positive           \\
+{đảm bảo chất lượng tốt\\(\textbf{English:}~Good quality guarantee)}                                                                                               & others          & facility topic     
+\end{tblr}}
+% }
+\end{table}
+%%
+
+
+\subsubsection{Ablation Study}
+\label{ablationstudy}
+
+\begin{table}[H]
+\centering
+\caption{Ablation test on our proposed approach. w/o GCN and w/o PhoBERT denoted the result of the ablation GCN and the result of the ablation PhoBERT, respectively}
+\label{tab::Ablation}
+\resizebox{\linewidth}{!}{%
+% \centerline{
+\begin{tabular}{l|cc|cc|cc|cc|cc|cc} 
+\hline
+\textbf{Datasets} & \multicolumn{4}{c|}{\textbf{VSMEC}}                                                                          & \multicolumn{4}{c|}{\textbf{ViCTSD}}                                                                         & \multicolumn{4}{c}{\textbf{VSFC}}                                                                \\ 
+\hline
+\textbf{Tasks}    & \multicolumn{2}{c|}{\textbf{Seven labels}}            & \multicolumn{2}{c|}{\textbf{Six labels}}             & \multicolumn{2}{c|}{\textbf{Constructiveness}}       & \multicolumn{2}{c|}{\textbf{Toxicity}}                & \multicolumn{2}{c|}{\textbf{Sentiment-based}}        & \multicolumn{2}{c}{\textbf{Topic-based}}  \\ 
+\hline
+                  & \multicolumn{1}{c|}{\textbf{wF1}} & \textbf{mF1}      & \multicolumn{1}{c|}{\textbf{wF1}} & \textbf{mF1}     & \multicolumn{1}{c|}{\textbf{wF1}} & \textbf{mF1}     & \multicolumn{1}{c|}{\textbf{wF1}} & \textbf{mF1}      & \multicolumn{1}{c|}{\textbf{wF1}} & \textbf{mF1}     & \textbf{wF1}     & \textbf{mF1}           \\ 
+\hline
+\multicolumn{13}{c}{\textbf{ViCGCN}}                                                                                                                                                                                                                                                                                                               \\ 
+\hline
+Performance       & \textbf{71.33}                    & \textbf{67.82}    & \textbf{72.08}                    & \textbf{68.12}   & \textbf{86.12}                    & \textbf{85.88}   & \textbf{93.11}                    & \textbf{76.12}    & \textbf{94.83}                    & \textbf{84.23}   & \textbf{91.02}   & \textbf{81.88}         \\ 
+\hline
+\multicolumn{13}{c}{\textbf{w/o GCN}}                                                                                                                                                                                                                                                                                                              \\ 
+\hline
+Performance       & 65.12                             & 63.23             & 71.13                             & 65.12            & 81.03                             & 79.53            & 90.12                             & 73.32             & 93.24                             & 82.96            & 88.72            & 79.12                  \\
+Decrease          & $\downarrow$6.21                  & $\downarrow$4.59  & $\downarrow$0.95                  & $\downarrow$3.00 & $\downarrow$5.09                  & $\downarrow$6.35 & $\downarrow$2.99                  & $\downarrow$2.80  & $\downarrow$1.59                  & $\downarrow$1.27 & $\downarrow$2.30 & $\downarrow$2.76       \\ 
+\hline
+\multicolumn{13}{c}{\textbf{w/o PhoBERT}}                                                                                                                                                                                                                                                                                                          \\ 
+\hline
+Performance       & 52.32                             & 51.32             & 61.34                             & 58.42            & 79.63                             & 78.37            & 87.63                             & 64.32             & 88.32                             & 75.32            & 85.36            & 75.21                  \\
+Decrease          & $\downarrow$19.01                 & $\downarrow$16.50 & $\downarrow$10.74                 & $\downarrow$9.70 & $\downarrow$6.49                  & $\downarrow$7.51 & $\downarrow$5.48                  & $\downarrow$11.80 & $\downarrow$6.51                  & $\downarrow$8.91 & $\downarrow$5.66 & $\downarrow$6.67       \\
+\hline
+\end{tabular}}
+\end{table}
+
+Our proposed method is considerably more effective than most current techniques for classifying text on social media. Ablation experiments were carried out on the proposed approach to prove the effectiveness of these two modules, PhoBERT and GCN. Table \ref{tab::Ablation} shows the ablation experiment results of the text classification module. For the model with GCN ablation, the experimental results are inferior to the model without ablation. While results of the \textit{w/o PhoBERT} model are not as good as those of the model with the contextualized pre-trained language model. The results of the ablation experiments demonstrate the effectiveness of the proposed importance of each module in general, as well as the combination of our proposed approach in particular. Our proposed approach, especially contextualized language models Integrated with graph neural networks, yield promising outcome for improving performance in further study. As a result, we conclude that all proposed modules are crucial in text classification on social media.

@@ -1,0 +1,38 @@
+\begin{table}[htb]
+    \centering
+    \caption{
+        \textbf{Localization performance of different query designs in the $20k$-th, $40k$-th, $80k$-th, and $160k$-th iteration on the ScanNet validation set.} 
+        %
+        Introducing $p_{vq}$ as query positions leads to a 0.97\% mAP@0.5$\uparrow$ than the 3DETR-m\cite{misra2021-3detr} baseline.
+        % 
+        Besides, aggregating query feature $f_{vq}$ from its local content for initial query features leads to a boost in both performance and convergence.
+    }
+    \label{tab:ablation_detection}
+    \resizebox{\linewidth}{!}{
+    \begin{tabular}{ccccccccc}
+    \toprule
+    \multicolumn{1}{l}{\multirow{2}{*}{$q_{query}$}} & \multicolumn{1}{l}{\multirow{2}{*}{$f_{query}^{0}$}} & \multicolumn{4}{c}{mAP@0.5$\uparrow$}      \\ \cline{3-6} 
+    \multicolumn{1}{l}{}                             & \multicolumn{1}{l}{}                                 & 20k iter & 40k iter & 80k iter & 160k iter \\ \hline
+    \multicolumn{2}{c}{VoteNet\cite{chen2021scan2cap}}                                                      & -        & -        & -        & 32.21     \\
+    \multicolumn{2}{c}{VoteNet$^*$}                                                                         & -        & -        & -        & 44.96     \\ \cline{1-2}
+    $q_{seed}$                                       & $\mathbf{0}$                                         & 28.26    & 37.27    & 43.41    & 48.18     \\
+    $q_{vq}$                                         & $\mathbf{0}$                                         & 24.73    & 33.21    & 41.56    & 49.15     \\
+    $q_{vq}$                                         & $f_{vq}$                                             & \textbf{32.73}    & \textbf{39.55}    & \textbf{47.63}    & \textbf{52.13}     \\
+    \bottomrule
+    \end{tabular}
+    }
+\end{table}
+
+
+
+
+% \begin{figure}[htbp]
+% 	\centering
+% 	\includegraphics[width=\linewidth]{exp-fig/exp-detr-convergence.pdf}
+% 	\caption{
+%         \textbf{Convergence speed of different query designs.}
+%         % 
+%         Introducing $p_{vq}$ alone converges slower in the earlier training epochs, while aggregating local contexts for initial query feature $f_{vq}$ further boosts both performance and convergence.
+% 	}
+% 	\label{fig:exp-det-convergence}
+% \end{figure}

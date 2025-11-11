@@ -1,0 +1,143 @@
+\subsection{Gradients w.r.t. Weight Matrices and Zeroth Biases}\label{sec:gradients}
+
+Since we are interested in the flat minima, gradients will be heavily involved. Therefore, we will compute gradients and updates to weight matrices in this subsection. We will also define the notion of effective gradient sparsity and argue its practical and theoretical importance, justifying our theories that are built on effective gradient sparsity.
+
+Let $\mlp_*^l$ be any sublayer of the block $\mlp^l$, whose weight matrix is $W^l$. Let $g^{l}_{*, i}$ be the gradient w.r.t. the output of $\mlp_*^l$ on sample $(x_s, y_s)$ at a token $u_i^{l}$, where $u_i^{l}$ abstracts $x^{l-1}$, $x^{l-1} + d^l$ or $\alpha^l$. Let $G^{l}_{*}$ be the stacked version of $g^{l}_{*, i}$ and $U^l$ be that of $u_i^l$.
+
+One can compute the gradient w.r.t. $W^l$ on a token input $u^{l}_i$ by
+\begin{align}
+    \left(g^{l}_{*, i} \hadamard \sigma'_i \right) \left(u^{l}_i\right)^{\transpose},
+\end{align}
+where $\sigma'_i = \gamma^l_i$ for weight matrices, while $\sigma'$ is $[1]_{i \in \set{1, \dots, d}}$ for value matrices since there are no activation functions in value layers.
+Summing updates from all tokens to obtain gradients of sample $(x_s, y_s)$ gives
+\begin{align}
+    \derivatives{\loss(\theta, (x_s, y_s))}{W^l}
+    \defeq&  \sum_{i} \left(g^{l}_{*, i} \hadamard \sigma'_i \right) \left(u^{l}_{i}\right)^\transpose
+    =      \left(G^{l}_* \hadamard \Sigma'\right) \left(U^l\right)^\transpose.
+\end{align}
+
+The gradients w.r.t. zeroth biases, if they exist, are also computed.
+\begin{align}
+    \derivatives{\loss(\theta, (x_s, y_s))}{d^l_i}
+    =& \left(J_{\loss}\left(\alpha^l\right) J_{\alpha^l}\left(K^l \left(x^l_i + d^l_i\right) + b_K^l\right) J_{K^l \left(x^l_i + d^l_i\right) + b_K^l}\left(d^l_i\right)\right)^\transpose\\
+    =& \left(\left(g^{l}_{K, i}\right)^\transpose \diag{\gamma^l_i} K^l\right)^\transpose
+    =   \left(K^l\right)^\transpose \left(g^l_{K, i} \hadamard \gamma^l_i\right).
+\end{align}
+
+
+Instantiating these results on key and value matrices obtains \cref{lemma:gradients}.
+\begin{lemma}[Gradients w.r.t. weight matrices]\label{lemma:gradients}
+    The gradients w.r.t. weight matrices and zeroth biases in $\dbmlp^l$ of sample $(x_s, y_s)$ are
+    \begin{align}
+        \derivatives{\loss(\theta, (x_s, y_s))}{K^l}
+        =& \left(G^{l}_K \hadamard \Gamma^l\right) \left(X^{l-1} + D^l\right)^\transpose,
+        \derivatives{\loss(\theta, (x_s, y_s))}{V^l}
+        = G^{l}_V \left(\Alpha^{l}\right)^\transpose,\\
+        \derivatives{\loss(\theta, (x_s, y_s))}{D^l}
+        =&  \left(K^l\right)^\transpose \left(G^l_K \hadamard \Gamma^l\right).
+    \end{align}
+    Particularly if hidden features are single tokens, there are
+    \begin{align}
+        \derivatives{\loss(\theta, (x_s, y_s))}{K^l}
+        =& \left(g^{l}_K \hadamard \gamma^l\right) \left(x^{l-1} + d^l\right)^\transpose,
+        \derivatives{\loss(\theta, (x_s, y_s))}{V^l}
+        = g^{l}_V \left(\alpha^{l}\right)^\transpose,\\
+        \derivatives{\loss(\theta, (x_s, y_s))}{d^l}
+        =&  \left(K^l\right)^\transpose \left(g_{K}^l \hadamard \gamma^l\right).
+    \end{align}
+\end{lemma}
+
+\cref{lemma:gradients} introduces a Hadamard product between gradients from deeper layers and the derivatives of the activation in weight layers. We define it as the effective gradient pattern.
+\begin{definition}[Effective gradient sparsity]\label{def:effective_gradient_sparsity}
+    Define effective gradient patterns of $\mlp^l$ on sample $(x_s, y_s)$ at token $x^{l-1}$ to be 
+    \begin{align}
+        \eta^l \defeq \diag{g^l_K} \gamma^l = g^l_K \hadamard \gamma^l. 
+    \end{align}
+    Let $\Eta^l = G^l_K \hadamard \Gamma^l \in \reals^{n \times k}$ (capitalized ``$\eta$'' instead of capitalized ``$h$'') be its stacked version when there are $k$ tokens.
+
+    Effective gradient sparsity is that most elements in $\eta^l$ are near zero for most samples and tokens.
+    For mathematical convenience, define $\norm{\eta^l}_2^2 = \norm{\diag{g^l_K} \gamma^l}_2^2 = \norm{g^l_K \hadamard \gamma^l}_2^2$ to be the effective gradient sparsity measured in squared $L_2$ norm.
+\end{definition}
+
+This notion first simplifies \cref{lemma:gradients}.
+\begin{lemma}[Gradients w.r.t. weight matrices, restated with $\eta$ and $\Eta$]\label{lemma:gradients_with_eff}
+    The gradients w.r.t. weight matrices and zeroth biases in $\dbmlp^l$ of sample $(x_s, y_s)$ are
+    \begin{align}
+        \derivatives{\loss(\theta, (x_s, y_s))}{K^l}
+        =& \Eta^l \left(X^{l-1} + D^l\right)^\transpose,
+        \derivatives{\loss(\theta, (x_s, y_s))}{V^l}
+        = G^{l}_V \left(\Alpha^{l}\right)^\transpose,\\
+        \derivatives{\loss(\theta, (x_s, y_s))}{D^l}
+        =&  \left(K^l\right)^\transpose \Eta^l.
+    \end{align}
+    Particularly if hidden features are single tokens, there are
+    \begin{align}
+        \derivatives{\loss(\theta, (x_s, y_s))}{K^l}
+        =& \eta^l \left(x^{l-1} + d^l\right)^\transpose,
+        \derivatives{\loss(\theta, (x_s, y_s))}{V^l}
+        = g^{l}_V \left(\alpha^{l}\right)^\transpose,
+        \derivatives{\loss(\theta, (x_s, y_s))}{d^l}
+        =  \left(K^l\right)^\transpose \eta^l.
+    \end{align}
+\end{lemma}
+
+This sparsity inherits sparsity in $\gamma$s but also allows more ``sparsity'' due to $g^l_K$s. Sparsity in $g^l_K$ is also meaningful in the sense that if the $i$-th entry $g^l_i$ of $g^l_K$ is small in magnitude, then 1) there is little contribution of $i$-th neuron in gradients to shallower layers during the backward propagation and 2) $\alpha^l_i$ does not influence the output much in forward propagation if the activation is also near-zero. Therefore, the $i$-th neuron can also be pruned during backward propagation and possibly during inference with minor cost in accuracy, and thus this notion is of even more practical value, although $g^l_K$ cannot be known before backward propagation. 
+The notion of effective gradient sparsity in $\eta^l$ considers the two kinds of sparsity in a combined manner.
+This incorporation of gradients w.r.t. activations also reminds us of the improved knowledge attribution method proposed by \citet{knowledge_neurons} where not only activation magnitude but also the gradients of model output w.r.t. the activation are exploited. 
+Last but not least, the effective sparsity hides the complexity of deeper layers and attributes its emergence solely to $K^l$, which is somehow shallow despite there being dozens of deeper modules and allows easier theoretical manipulations.
+
+More importantly, effective gradient sparsity patterns are what key layers try to memorize in columns, given in \cref{obs:memorizing_eff}. 
+\begin{observation}[$\eta$s are memorized in key matrices columns]\label{obs:memorizing_eff}
+    Consider the update of one sample to the key matrix given by \cref{lemma:gradients_with_eff}
+    \begin{align}
+            &\derivatives{\loss(\theta, (x_s, y_s))}{K^l}
+            = \Eta^l \left(X^{l-1} + D^l\right)^\transpose
+            = \sum_{i} \eta^l_i \left(x^{l-1}_i + d^l_i\right)^\transpose\\
+            =&  \begin{bmatrix}
+                \sum_i \left(X^{l-1}_{i, 1} + D^{l}_{i, 1}\right)\eta^l_i & \cdots & \sum_{i} \left(X^{l-1}_{i, j} + D^{l}_{i, j}\right) \eta^l_i & \cdots & \sum_{i} \left(X^{l-1}_{i, d} + D^{l}_{i, d}\right) \eta^l_i
+            \end{bmatrix}.
+    \end{align}
+    In the update of each column, a mixture of effective gradient sparsity patterns is borne into the key matrix with different weights given by the input.
+\end{observation}
+Taking a transposed view, key layers also memorize $x^{l-1}_i$s, under the control of $\eta^l_i$s.
+\begin{observation}[$\eta$s control row memorization in key matrices]\label{obs:memorizing_inputs}
+    Consider the update of one sample to the key matrix given by \cref{lemma:gradients_with_eff}
+    \begin{align}
+            \derivatives{\loss(\theta, (x_s, y_s))}{K^l}
+            =& \Eta^l \left(X^{l-1} + D^l\right)^\transpose
+            = \sum_{i} \eta^l_i \left(x^{l-1}_i + d^l_i\right)^\transpose
+            =  \begin{bmatrix}
+                \sum_i \Eta^l_{j, i} \left(x^{l-1}_i + d^l_i\right)^\transpose
+            \end{bmatrix}_j.
+    \end{align}
+    In the update of each row, a mixture of inputs is borne into the key matrix, weighted by entries of effective gradient sparsity pattern.
+\end{observation}
+
+Similar things also happen in value matrices but with $g^{l}_V$s and $\alpha^l$s memorized. 
+It is interesting to see that linear layers are trying to resemble the gradients back-propagated to them. 
+This observation may lead to a notion of pseudo gradients which can be calculated as the forward propagation sweeps by. Maybe a portion of samples can be trained by these pseudo gradients to save computation budgets. However, this is out of our scope and is left for future works to explore.
+
+Unfortunately, effective gradient sparsity is not strictly related to activation sparsity even under common activation functions, so we keep the notion of gradient sparsity as well. 
+The gap is due to the Hadamard product with $g^l_K$, which can cause smaller $\norm{\eta^l}_2^2$ without gradient sparsity on $\gamma^l$ by 1) reducing the norm of itself, or 2) misaligning itself with $\gamma^l$, i.e. multiplying small entries in $g^l_K$ with the derivatives of activated neurons and leaving large gradients to non-activated neurons. The $L_2$ modeling of sparsity also hinders the direct relation with sparsity measured in $L_0$ norms.
+The first possibility can be eliminated by the phenomenon of parameter growth already discovered by \citet{parameter_growth}. This indicates that the norm of Transformers' parameters will increase even under weight decay and normalization. Since gradients are obtained by multiplying parameters and hidden features, $\norm{g^l_K}_2^2$ is also likely to increase. We empirically examine it in \cref{sec:t_exp:spectral_increase} where $\trace{M^l_i} \defeq \trace{g_{K, i}^l \left(g_{K, i}^l\right)^\transpose}= \norm{g_{K, i}^l}_2^2$ is observed to increase, at least in ViTs.
+For the second possibility and the disconnection between $L_2$ and $L_0$ norm, under $\relu$-activation, similarly to \cref{remark:L2_and_L0}, $\norm{\eta^l}_2 = \norm{g^l \hadamard \gamma^l}_2$ can be seen as the $L_0$ norm of activations, but weighted by entries in $g^l_K$. In \cref{sec:t_exp:align_eff}, we will empirically demonstrate that $\gamma^l$ aligns with $g^l_K$ very well, i.e., the distribution of squared values of entries in $g^l_K$ that corresponds to non-zero entries in $\gamma^l$ is similar or even righter-shifted compared to the distribution of all entries' squared values in $g^l_K$, and the former avoids the long tail of the latter with small magnitudes. This indicates that it is not the case that effective gradient sparsity measured in $L_2$ norms is achieved by adversarially aligning non-zero derivatives of activation functions to small gradients and aligning zero derivatives to large gradients. Therefore, the weighting by $g^l$ to the $L_0$ norm is quite moderate, and a considerable portion of $0$-$1$ entries in $\gamma^l$ are attached to large weights that can be approximated by $\norm{g^l_K}_2^2 / d$ (which is increasing under parameter growth), so at least this portion of entries enjoy the approximate connection from effective gradient sparsity to gradient sparsity, and finally to activation sparsity. This intuition leads to \cref{lemma:eff_and_sparsity} that fully exploits coincidences in $\relu$ and the piecewise constancy of $L_0$ norm.
+\begin{lemma}[Relation between $\eta^l$ and $\gamma^l$ for $\relu$ networks]\label{lemma:eff_and_sparsity}
+    Let $\set{\gamma^l_i}_{i \in \set{1, \dots, n}} \subseteq \set{0, 1}^d$ be a set of $n$ $0$-$1$ vectors  and $\set{g^l_{K, i}}_{i \in \set{1, \dots, n}} \subseteq \reals^d$ be a set of $n$ real vectors. Let $\eta^l_i \defeq g^l_{K, i} \hadamard \gamma^l_i$, resembling \cref{def:effective_gradient_sparsity}.
+    For any distribution $D$ over subscripts $i \in \set{1, \dots, n}$, there is
+    \begin{align}
+        &   \ex[i \sim D]{\norm{\eta^l_i}_2^2}\\
+        =&  \ex[i \sim D]{d \cdot \ex[j \sim U[1, \dots, d]]{\left(g^l_{K, i, j}\right)^2 \left(\gamma^l_{i, j}\right)^2}}
+        =   d \cdot \ex[i, j]{\left(g^l_{K, i, j}\right)^2 \gamma^l_{i, j}}\\
+        =&  d \cdot \prob{\gamma^l_{i, j} = 1} \cdot 1 \cdot \ex{\left(g^l_{K, i, j}\right)^2 \mid \gamma^l_{i, j} = 1}
+            + d \cdot \prob{\gamma^l_{i, j} = 0} \cdot 0 \cdot \ex{\left(g^l_{K, i, j}\right)^2 \mid \gamma^l_{i, j} = 0}\\
+        =&  d \cdot \prob{\gamma^l_{i, j} = 1} \cdot 1 \cdot \ex{\left(g^l_{K, i, j}\right)^2 \mid \gamma^l_{i, j} = 1}
+            + d \cdot \prob{\gamma^l_{i, j} = 0} \cdot 0 \cdot \ex{\left(g^l_{K, i, j}\right)^2 \mid \gamma^l_{i, j} = 1}\\
+        =&  d \cdot \ex{\left(g^l_{K, i, j}\right)^2 \mid \gamma^l_{i, j} = 1} \cdot \left(\prob{\gamma^l_{i, j} = 1} \cdot 1 + \prob{\gamma^l_{i, j} = 0} \cdot 0\right)\\
+        =&  \ex[i \sim D, j \sim U[1,\dots, d]]{\left(g^l_{K, i, j}\right)^2 \mid \gamma^l_{i, j} = 1} \cdot \ex[i \sim D]{\norm{\gamma^l_i}_0},
+    \end{align}
+    where $U[1, \dots, d]$ stands for uniform distribution among $\set{1,2, \dots, d}$, $g^l_{K, i, j}$ and $\gamma^l_{i, j}$ stand for the $j$-th entry of the $i$-th vectors.
+\end{lemma}
+In \cref{sec:t_exp:align_eff} we will demonstrate that $\ex{\left(g^l_{K, i, j}\right)^2 \mid \gamma^l_{i, j} = 1}$ is comparable to or even larger than $\ex{\left(g^l_{K, i, j}\right)^2}$ that is increasing due to parameter growth.
+For other activation functions with jump discontinuity between deactivation and activation like $\jrelu$, the alignment is also moderate and the weighted $L_2$ norm first pushes activations towards zero, after which $L_2$ norms become closer to $L_0$ norm due to derivatives' jump discontinuity at $0$. Following a similar argument of \cref{lemma:eff_and_sparsity}, effective gradient sparsity then approximates sparsity measured in $L_0$ norms as well.
+Another very informal and heuristic argument for the alignment as well as $\eta^l$'s connection to activation and gradient sparsity is that, if the $i$-th entry in $\eta^l$ is near zero, then during the row memorization described by \cref{obs:memorizing_inputs}, little change is imposed by $x^{l-1}$ to the $i$-th row of $K^l$. Next time $x^{l-1}$ arrives, although with changes due to shallower layers, it is more likely the $i$-th row in $K^l$ forgets $x^{l-1}$ and $\left(K^l x^{l-1}\right)_i = \inner{K^l_i}{x^{l-1}}$ or $\left(K^l \left(x^{l-1} + d^l\right)\right)_i = \inner{K^l_i}{x^{l-1} + d^l}$ are closer to $0$ or negative values, leading to smaller possibility of activation, followed by activation sparsity in $\alpha^l$, and thus gradient sparsity in $\gamma^l$ under common activation functions.
+To sum up, effective gradient sparsity measured by $L_2$ norm can be connected to activation or gradient sparsity measured in $L_0$ norms, although the result requires empirical assumptions and is heuristic and informal for activation functions other than $\relu$. Therefore, we will base our theorems on $\norm{\eta^l}_2^2$ considering the connection discussed above and the mathematical convenience brought by $L_2$ norm and the Hadamard product.

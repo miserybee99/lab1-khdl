@@ -1,0 +1,173 @@
+The proof is adapted from \citet{mp_quadratic_form} where independence condition is replaced with new regularities.
+
+
+Cauchy-\sti{} transform method is used. 
+For completeness, \sti{} transform of a distribution $\mu$ is 
+\begin{align}
+    s^\mu(z) \defeq \int_{\reals} \frac{1}{\lambda - z} \mu(\dd \lambda), \forall z \in \positivecomplex,
+\end{align}
+where $\positivecomplex \defeq \set{u + v i: u, v \in \reals, v > 0} \subset \complexes$.
+When applied to empirical spectral density, by definition there is
+\begin{align}
+    s^{F^A}(z) = \trace{A - z I}^{-1} / p \defeq \trace{\left(A - z I\right)^{-1}} / p.
+\end{align}
+for positive semi-definite $A \in \reals^{p \times p}$.
+Specifically $\frac{1}{b T} U^p \left(U^p\right)^\transpose = \frac{1}{b T} U U^\transpose$'s \sti{} transform is
+\begin{align}
+    s_p(z) = \trace{\frac{1}{b T} U U^\transpose - z I}^{-1} / p = b T / p \trace{U U^\transpose - z b T I}.
+\end{align}
+By \sti{} continuity theorem \citep{RMT_book}, it is sufficient to show that $s_p(s) \asto s(z)$ for all $z \in \positivecomplex$, where $s$ is the \sti{} transform of Marchenko-Pastur distribution with parameter $p$ and $n$. To this end, typical steps include the following steps \citep{mp_proof_sketch}:
+\begin{itemize}
+    \item $s_p(z) - \ex{s_p(z)} \asto 0$, by a martingale argument;
+    \item $\ex{s_p(z)} \to s(z)$.
+\end{itemize}
+
+Before we start, a handy lemma proved by \citet{mp_quadratic_form} is repeated.
+\begin{lemma}[\citep[][Lemma 3.1]{mp_quadratic_form}]\label{lemma:3.1_from_mp_quadratic_form}
+    Let $C \in \reals^{p \times p}$ be a real symmetric positive semi-definite matrix and $x \in \reals^p$. If $z \in \complexes$ is such that $v = \ipart{z} > 0$, then
+    \begin{enumerate}
+        \item\label{lemma:spectral_bound_of_reverse} 
+            $\norm{\left(C - z I\right)^{-1}} \le 1 / v$ ;
+        \item\label{lemma:x_means_little_in_reversed_sample_covariance}
+            $\abs{\trace{C + x x^\transpose - z I}^{-1} - \trace{C - z I}^{-1}} \le 1 / v$;
+        \item $\abs{x^\transpose\left(C + x x^\transpose - z I\right)^{-1} x} \le 1 + \abs{z} / v$;
+        \item $\ipart{z + z \trace{C - z I}^{-1}} \ge v$ and $\ipart{\trace{C - z I}^{-1}} > 0$;
+        \item $\ipart{z + z x^\transpose (C - z I)^{-1} x} \ge v$.
+    \end{enumerate}
+\end{lemma}
+
+For $s_p(z) - \ex{s_p(z)}$'s almost sure convergence, \citet{mp_quadratic_form} refer to \citet{mp_proof_sketch}, which we will repeat here to examine and replace independence assumptions within.
+
+\NewDocumentCommand{\condiex}{O{k} m}{\ex[#1]{#2}}
+Let $\condiex[k]{\cdot} \defeq \ex{\cdot \mid U^p_{\cdot, 1: k}}$ denote the conditional expectation given $U^p_{\cdot, 1}, \dots, U^p_{\cdot, k}$. Then $s_p(z) = \condiex[b]{s_p(z)}$ and $\ex{s_p(z)} = \condiex[0]{s_p(z)}$, and there is
+\begin{align}
+    s_p(z) - \ex{s_p(z)}
+    =&  \sum_{k=1}^{b} \left(\condiex[k]{s_p(z)} - \condiex[k-1]{s_p(z)}\right)
+    =  \sum_{k=1}^{b} \gamma_k,
+\end{align}
+where $\gamma_k \defeq \condiex[k]{s_p(z)} - \condiex[k-1]{s_p(z)}$. Note that $\set{\condiex[k]{s_p(z)}}_k$ is already a Doob martingale, so $\set{\gamma_k}_k$, as its difference, is a sequence of martingale differences.
+        
+\NewDocumentCommand{\invC}{O{1}}{\left(C^p_k\right)^{-#1}}
+Let $C^p_{k} \defeq \frac{1}{b T} \sum_{k'} \uut[k'] - z I - \frac{1}{b T}u_k u_k^\transpose$. By \cref{lemma:3.1_from_mp_quadratic_form}(1), $C^p_{k}$ is invertible, and by Sherman-Morrison formula there is
+\begin{align}
+    s_p(z)
+    =&  \trace{C^p_k + \frac{1}{b T} u_k u_k^\transpose }^{-1} / p
+    =  \frac{1}{p} \trace{\invC - \frac{\invC u_k u_k^\transpose \invC / b T}{1 + u_k^\transpose \invC u_k / b T}}\\
+    =&  \frac{1}{p} \left(\trace{\invC} - \frac{u_k^\transpose \invC[2] u_k}{b T + u_k^\transpose \invC u_k}\right).
+\end{align}
+Since $u_k$ is not involved in $C^p_k$, $\condiex[k]{\trace{\invC}} = \condiex[k-1]{\trace{\invC}}$. Regarding the second term,
+\begin{align}
+    &   \abs{\frac{u_k^\transpose \invC[2] u_k}{b T + u_k^\transpose \invC u_k}}\\
+    =&      \frac{\abs{\trace{u_k u_k^T \invC \invC}}}{\abs{b T + u_k^\transpose \invC u_k}}
+    \le    \frac{\norm{u_k u_k^T \invC \invC}_1}{b T + u_k^\transpose \invC u_k}\\
+    \le&   \frac{\norm{u_k u_k^T \invC}_1 \norm{\invC}_{\infty}}{b T + u_k^\transpose \invC u_k}
+    \le    \frac{1}{v} \frac{u_k^T \invC u_k}{b T + u_k^\transpose \invC u_k}
+    \le \frac{1}{v},
+\end{align}
+where the second inequality follows \cref{lemma:3.1_from_mp_quadratic_form}(1).
+Therefore $\gamma_k$ can be bounded by
+\begin{align}
+    \gamma_k \le& \frac{2}{v} \frac{1}{p}.
+\end{align}
+By Azuma's inequality, there is
+\begin{align}
+    \prob{\abs{s_p(z) - \ex{s_p(z)}} > \epsilon} \le 2 \exp\left(-\frac{\epsilon^2}{2 p \left(\frac{2}{v} \frac{1}{p}\right)^2}\right) \le 2 \exp\left(-\epsilon^2 v^2 p / 8\right).
+\end{align}
+Given that $\prob{\abs{s_p(z) - \ex{s_p(z)}}}$ decays exponentially with $p$, for every $\epsilon > 0$, there is
+\begin{align}
+    \sum_{p=0}^\infty \prob{\abs{s_p(z) - \ex{s_p(z)}} > \epsilon} < \infty
+\end{align}
+which implies $s_p(z) - \ex{s_p(z)} \asto 0$ \citep[see][Theorem 7.5]{exponential_decay_to_as}.
+
+We adapt proof of Theorem 2.1 by \citet{mp_quadratic_form} to check $\ex{s_p(z)} \to \ex{s(z)}$. 
+Define $A^p \defeq \sum_{k} \uut$.
+Sample an auxiliary vector $u_{T, b+1} = u_{b T  + 1} \in \reals^p$ so that it is sampled from the conditional distribution given the first $T-1$ batches but it is conditionally independent with other samples in $U^T$, i.e., an extra sample for the last batch. This dependence relation can be expressed by only adding edges $U^{1: T-1} \to u_{T, b+1}$ to the Bayesian network. With the auxiliary vector, define $B^p \defeq A^p +  \uut[T, b+1]$. %Define $C^b_t \defeq B^p - u^t \left(u^t\right)^\transpose$
+
+By \cref{lemma:3.1_from_mp_quadratic_form}(1), $B^p - z b T I$ is non-degenerate and
+\begin{align}
+    p 
+    =&  \trace{\left(B^p - z b T I\right) \left(B^p - z b T I\right)^{-1}}\\
+    =&   \sum_{t=1}^{T} \sum_{l=1}^{b + \indic{t = T}} u_{t, l}^\transpose \left(B^p - z b T I\right)^{-1} u_{t, l} - z b T \trace{B^p - z b T I}^{-1}.
+\end{align}
+Taking expectation and using the exchangeability within a batch give
+\begin{align}
+    p = \sum_{t=1}^{T} (b + \indic{t = T}) \ex{u_t^\transpose \left(B^p - z b T I\right)^{-1} u_t} - z b T \ex{\trace{B^p - z b T I}^{-1}} \label{eq:a3}.
+\end{align}
+
+Independently sample $r_k$ based on $U$ by uniformly randomly selecting one $u_k$ in all $b T + 1$ of them. This leads to
+\begin{align}
+    &   \frac{1}{b T + 1}\sum_{l} \ex{f(r_l) \times g(U, u_{b T + 1})}\\
+    =&  \frac{1}{b T + 1} \sum_{l} \ex{\ex{f(r_l) \times g(U, u_{b T + 1}) \mid U}}
+    =  \frac{1}{b T + 1} \sum_{l} \ex{\ex{f(r_l) \mid U} \ex{g(U) \mid U}}\\
+    =&  \frac{1}{b T + 1} \sum_{l} \ex{\left(\frac{1}{b T + 1}\sum_{o} f(u_o)\right)\ex{g(U) \mid U}}
+    =   \frac{1}{b T + 1} \sum_{o} \ex{f(u_o) \ex{g(U) \mid U}}\\
+    =&  \frac{1}{b T + 1} \sum_{o} \ex{\ex{f(u_o) g(U) \mid U}}
+    =  \frac{1}{b T + 1} \sum_{o} \ex{f(u_o) g(U)}.
+\end{align}
+This construction reduces \cref{eq:a3} to \begin{align}
+    p = \ex{r \left(B^p - z b T I\right)^{-1} r} - z b T \ex{\trace{B^p - z b T I}^{-1}}.
+\end{align}
+
+Define $S_p(z) \defeq \trace{A^p - z b T I}^{-1}$ and note that $S_p(z) = (p / b T) s_p(z)$. 
+
+By \cref{lemma:3.1_from_mp_quadratic_form}(2)-(3), there are
+\begin{align}
+    \ex{\trace{B^p - z b T I}^{-1}} =& \ex{S_p(z)} + O(1/b T) \label{eq:a1},\\
+    \ex{u_t \left(B^p - z b T I\right)^{-1} u_t} =& O(1) \label{eq:a2}.
+\end{align}
+
+We now prove,
+\begin{align}
+    \frac{1}{T} \sum_{t=1}^{T} \ex{u_t^\transpose \left(B^p - z b T I\right)^{-1} u_t} = \frac{\ex{S_p(z)}}{1 + \ex{S_p(z)}} + o(1). \label{eq:claim}
+\end{align}
+\begin{align}
+    \ex{r^\transpose \left(B^p - z b T I\right)^{-1} r} = \frac{\ex{S_p(z)}}{1 + \ex{S_p(z)}} + o(1). \label{eq:claim}
+\end{align}
+By \cref{lemma:3.1_from_mp_quadratic_form}, $\norm{\left(A^p - z b T I\right)^{-1}} \le \frac{1}{v b T}$ and $\norm{b T\left(A^p - z b T I\right)^{-1}}  \le \frac{1}{v}$. So let $D \defeq b T \left(A^p - z b T I\right)^{-1}$ be the random variable with spectral norm bound $\frac{1}{v}$. Note that $S_p(z) = \trace{D}$ so in the following we shall focus on $\ex{\trace{D}}$. We now repeat steps in \cref{eq:p_convergence_start}-\cref{eq:p_convergence_end} to prove that $\frac{1}{T} \sum_{t=1}^{T}u_t^\transpose D u_t - \ex{\trace{D}} \xrightarrow{p} 0$.
+As before, first we prove the convergence of the expectation
+\begin{align}
+    &       \abs{\ex{\frac{1}{T} \sum_{t=1}^T u_t^\transpose \left(A^p - z b T I\right)^{-1} u_t} - \ex{S_p(z)}}\\
+    \sim&   \frac{\abs{\ex{\frac{1}{T} \sum_{t=1}^T u_t^\transpose b T\left(A^p - z b T I\right)^{-1} u_t} - \ex{b T S_p(z)}}}{p}\\
+    =&      \frac{\abs{\frac{1}{T} \sum_{t=1}^T  \ex{u_t^\transpose D u_t} - \ex{\trace{D}}}}{p}
+    =      \frac{\abs{\ex{\trace{\left(\frac{1}{T} \sum_{t=1}^T u_t u_t^\transpose - I\right) D}}}}{p}\\
+    \le&    \frac{\ex{\norm{\left(\frac{1}{T} \sum_{t=1}^T u_t u_t^\transpose - I\right) D}_1}}{p}
+    \le    \frac{\ex{\norm{\left(\frac{1}{T} \sum_{t=1}^T u_t u_t^\transpose - I\right)}_1 \norm{D}_{\infty}}}{p}\\
+    \le&    \frac{1}{v}\frac{\ex{\norm{\left(\frac{1}{T} \sum_{t=1}^T u_t u_t^\transpose - I\right)}_1}}{p}
+    \le    \frac{1}{v p}  \ex{\sqrt{p \trace{\left(T^p - I\right)^\transpose \left(T^p - I\right)}}}\\
+    =&      \frac{1}{v} \ex{\sqrt{\frac{\trace{\left(T^p - I\right)^\transpose \left(T^p - I\right)}}{p}}} \to 0.
+\end{align}
+\begin{align}
+    &       \abs{\ex{r^\transpose \left(A^p - z b T I\right)^{-1} r} - \ex{S_p(z)}}\\
+    \sim&   \frac{\abs{\ex{r^\transpose b T\left(A^p - z b T I\right)^{-1} r} - \ex{b T S_p(z)}}}{p}\\
+    =&      \frac{\abs{\ex{r^\transpose D r} - \ex{\trace{D}}}}{p}
+    =      \frac{\abs{\trace{\ex{\left(r r^\transpose - I\right) D}}}}{p}\\
+    \le&    \frac{\ex{\norm{\left(r r^\transpose - I\right) D}_1}}{p}
+    \le    \frac{\ex{\norm{\left(r r^\transpose - I\right)}_1 \norm{D}_{\infty}}}{p}\\
+    \le&    \frac{1}{v}\frac{\ex{\norm{\left(r r^\transpose - I\right)}_1}}{p}
+    \le    \frac{1}{v p}  \ex{\sqrt{p \trace{\left(T^p - I\right)^\transpose \left(T^p - I\right)}}}\\
+    =&      \frac{1}{v} \ex{\sqrt{\frac{\trace{\left(T^p - I\right)^\transpose \left(T^p - I\right)}}{p}}} \to 0.
+\end{align}
+The diminishment of variance is almost direct copies of 
+
+Since $\trace{\left(T^{p, t} - I\right)^\transpose \left(T^{p, t} - I\right)} / p \xrightarrow{p} 0$ for every $t$ and $\alpha^t$ is $o(p)$-bounded, repeating \cref{eq:p_convergence_start}-\cref{eq:p_convergence_end}, which are done by bounds on Schatten norms and are irrelevant to independence or dependence, gives
+\begin{align}
+    &\abs{u_t^\transpose \left(A^p - z b I\right)^{-1} u_t - S_p(z)}\\
+    \sim& \abs{u_t^\transpose b T\left(A^p - z b T I\right)^{-1} u_t - b T\trace{A^p - z b T I}^{-1}} / p\\
+    \xrightarrow{p}& 0.
+\end{align} 
+Combining $S_p(z) - \ex{S_p(z)} = (p / b T) \left(s_p(z) - \ex{s_p(z)}\right) \xrightarrow{p} 0$, there is further
+\begin{align}
+    &   \abs{u_t^\transpose \left(B^p - z b T I\right)^{-1} u_t - \frac{\ex{S_p(z)}}{1 + \ex{S_p(z)}}}\\
+    \xrightarrow{p}& 0,
+\end{align}
+where the first step is due to Sherman-Morrison formula. We refer readers to \citet{mp_quadratic_form} for details of this convergence and its implication to \cref{eq:claim} since it requires no dependence condition.
+
+With \cref{eq:claim}, \cref{eq:a1} and \cref{eq:a2}, \cref{eq:a3} can be reduced to
+\begin{align}
+    p =& T (b + O(1)) \left(\frac{\ex{S_p(z)}}{1 + \ex{S_p(x)}} + o(1)\right) - z b T \left(\ex{S_p(z)} + O(1 / b)\right),
+\end{align}
+and
+\begin{align}
+    \frac{\ex{S_p(z)}}{1 + \ex{S_p(x)}} - z \ex{S_p(z)} =& \frac{p}{b T} + o(1) = c + o(1).
+\end{align}
+The final conclusion is reached the same way as \citet{mp_quadratic_form}.

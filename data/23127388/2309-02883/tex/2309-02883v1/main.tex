@@ -1,0 +1,248 @@
+% Please make sure you insert your
+% data according to the instructions in PoSauthmanual.pdf
+\documentclass[a4paper,11pt]{article}
+\usepackage{pos}
+\newcommand{\ha}[1]{\textcolor{red}{ Halim: #1}}
+\usepackage{bibspacing}
+\setlength{\bibitemsep}{.2\baselineskip plus .05\baselineskip minus .05\baselineskip}
+
+
+\title{All sky archival search for FRB high energy counterparts with Swift and Fermi}
+ \ShortTitle{FRB-GRB counterparts}
+
+\author*[1]{H. Ashkar}
+\author[1]{M. El Bouhaddouti}
+\author[1]{S. Fegan}
+\author[2]{F. Sch\"ussler}
+\affiliation[1]{Laboratoire Leprince-Ringuet, École Polytechnique, CNRS, Institut Polytechnique de Paris, F-91128 Palaiseau, France}
+
+\affiliation[2]{IRFU, CEA, Universit\'e Paris-Saclay, F-91191 Gif-sur-Yvette, France}
+
+
+% Uncomment \onbehalf{...} for collaboration if you want.
+%\onbehalf{for the XXXX collaboration} 
+
+% In this case, you also have to uncomment the lines after "%Full authors list" below and include the full authors list,
+
+\emailAdd{halim.ashkar@llr.in2p3.fr}
+
+
+\abstract{Fast radio bursts (FRBs) are millisecond-duration radio signals from unknown cosmic origin. Many models associate FRBs with high-energy astrophysical objects such as magnetars. In this attempt to find counterparts to FRBs, we explore gamma-ray bursts (GRBs) from the Swift and Fermi missions. We first search for spatial correlations between FRB and GRB populations as a whole and then search for a one-by-one correlation between each of the FRBs and GRBs investigated. Temporal coincidences are not considered. To evaluate the significance of any correlation found, we generate background realizations that take into account instrumentally induced anisotropies in the distribution of the sources. Neither study yields any significant counterpart detection. We estimate that less than 4\% of the FRBs are associated with GRBs in the studied samples.}
+
+
+
+
+
+\ConferenceLogo{PoS_ICRC2023_logo.pdf}
+
+\FullConference{%
+38th International Cosmic Ray Conference (ICRC2023)\\
+  26 July - 3 August, 2023\\
+  Nagoya, Japan}
+
+
+
+%% \tableofcontents
+
+\begin{document}
+\maketitle
+
+
+
+
+\section{Introduction}
+\label{sec:introduction}
+Fast Radio Bursts (FRBs) are flashes of radio emission from astrophysical origin that last from a fraction of a millisecond to a few milliseconds. The Lorimer Burst~\citep{Lorimer_2007} was the first FRB discovered using the archival data of the Parkes radio telescope. Since then, FRB detections have increased and reached more than 600 detections by July 2022. There are two types of FRBs: repeaters and non-repeaters. In 2020, for the first time, an FRB from galactic origin, FRB\,20200428A, was detected~\citep{SGR1935_CHIME, SGR1935_CHIME2, SGR1935_STAR2} repeatedly~\citep{SGR1935_FAST, Kirsten_2020}. The FRB is associated to a soft gamma-ray repeater (SGR), SGR1925+2154~\citep{Zhou:2020} which is a magnetar. FRB\,20200428A was detected during an active outburst phase of the magnetar that lasted several weeks. Coincidentally with the FRB, X-ray outbursts have been detected by several instruments~\citep{tavani2020xray, Ridnaia:2021,li2020insighthxmt, INTEGRAL_BURST_A}. A hint of a gamma-ray transient was discovered in the Swift satellite data contemporaneously to FRB\,20131104~\citep{DeLaunay_2016}. However, the 2022 outburst remains the only confirmed electromagnetic counterpart to an FRB until now (October 2022).
+
+The short emission time and the high-temperature brightness of FRBs imply small emission regions and coherent processes~\citep{Petroff:2019tty}. Some of the most prominent sources linked to FRBs, and repeating FRBs in particular, are magnetars~\citep{Popov:2007uv,2017ApJ...843L..26B}. For example, the interaction of a magnetar with a surrounding nebula could produce FRBs through synchrotron maser emission~\citep{Lyubarsky:2014jta, Metzger:2019, Beloborodov:2020}. Some of these models suggest the FRB could be accompanied by a gamma-ray outburst. FRB\,20200428A, in spite of having a low energy budget on the FRB scale, is the first observational evidence of this association. For this specific FRB, it has been suggested that the unusually hard spectrum implies a common origin for the radio and X-ray emission~\citep{Ridnaia:2021}. The hard X-ray spectrum points to a non-thermal nature, which can lead to the production of gamma rays~\citep{li2020insighthxmt}. Other prominent sources linked to FRBs are neutron star interactions, hyperflares and giant flares from magnetars~\citep{PP13, PPP+18}, binary white dwarf mergers \citep{KIM13}, black hole interactions~\citep{LRL+16, Falcke_2014} and neutron star interactions~\citep{Totani13, Lyutikov_2013, YTK+18, VRB+17, Zhang18}. Whether the sources of FRBs are magnetars or compact object interactions, they are undoubtedly very energetic sources that would be capable of producing gamma rays. Magnetars for example are linked to short gamma-ray bursts ~\citep[GRBs,][]{burns2021identification} as well as mergers involving at least one neutron star~\citep{1989Natur.340..126E, 2015ApJ...815..102F}.
+
+Several attempts have been made to search for FRB counterparts either by looking in archival data or by actively observing or following-up FRBs with no clear success until now. From recent archival searches no clear relations were found between IceCube neutrinos and CHIME FRBs~\citep{https://doi.org/10.48550/arxiv.2112.13820} and no association between gravitational waves and FRBs was found~\citep{https://doi.org/10.48550/arxiv.2203.17222, https://doi.org/10.48550/arxiv.2203.12038}. An optical counterpart was possibly found for FRB\,20180916b~\citep{Li_2022}. On the gamma-ray transients side, a possible counterpart for FRB\,20171209 was found~\citep{Wang_2020} from a search including 110 FRB and 1440 GRBs with an afterglow detection. Moreover, a gamma-ray transient has been reported as a possible counterpart to FRB\,20121104~\citep{2016ApJ...832L...1D}. A search including CHIME FRBs and GRBs (short and long) detected between July 2018 and July 2019 did not find any GRB counterparts to FRBs~\citep{https://doi.org/10.48550/arxiv.2208.00803}. A similar result was found for Insight-HXMT gamma-ray transients and FRBs~\citep{2020A&A...637A..69G}.
+
+%With the gap between long and short GRBs getting narrower~\citep{2022arXiv220410864R}, we do not differentiate between the two types. This is also backed up by the fact that the emission mechanisms behind long and short GRBs are the same with a lower energy budget for the latter~\citep{sGRB-lGRB}.  
+
+Our work aims to independently establish a spatial link between FRBs and gamma-ray transients, notably GRBs, by looking at archival data of the last two decades from active GRB observatories such as Swift and Fermi. Several models expect different timescales for FRB emission from GRB progenitors. For example, in some models of FRBs from young magnetars, the time difference between the initial cataclysmic event (GRB progenitor) and the FRB emission can be years or even decades~\citep{Metzger_2017, Murase_2016}. On the other hand, in the case of FRB\,20200428A the high energy emission arrived simultaneously with the FRB. In a merger-driven explosion scenario, it is possible that the FRB emission precedes the high energy emission from a long GRB~\citep{Dong_2021}. For these reasons, we do not consider any temporal constraints on the emission in our study. Since both neutron star mergers and the core collapse of massive stars could lead to the production of a magnetar, we do not differentiate between short and long GRBs. Finally, given that a fraction of  non-repeater FRBs might be undetected repeaters~\citep{10.1093/mnras/stac2174} and that the difference between repeaters and non-repeaters is not perfectly clear, we do not differentiate between these two types either.  %If some GRBs are associated with giant magnetar flares~\citep{Zhang_2020, 2021NatAs...5..385F} and magnetars are associated with FRBs, then it is possible that an FRB is detected before a GRB coming from the same source. 
+
+%This document is organized as follows. In Sec.~\ref{sec:Data}, the data and the background generated for the rest of the study are presented.  In  Sec.\ref{sec:PopulationFRB}, we treat FRB and GRB populations as a whole in order to search for spatial correlations between the two. In Sec.\ref{sec:CaseByCaseFRB} we consider FRBs and GRBs included in our study and analyze their spatial coincidences one by one. Finally, we discuss our results and conclude in Sec.\ref{sec:Discussion}. 
+
+
+
+
+\section{Data and background}
+\label{sec:Data}
+For this study, we consider all FRBs since the first detection until July 2022. This sample of FRBs is taken from the Transient Name Server (TNS)\footnote{\url{https://www.wis-tns.org}}. For GRBs, we consider those detected by the Burst Alert Telescope (BAT) on board the  Swift obsevatory~\citep{2004ApJ...611.1005G} for their precise localisation~\citep{Lien_2016}. To avoid duplication, when the X-ray Telescope (XRT) position is available we only consider it. We also enlarge our sample by adding Fermi GRB detections. The Fermi GRBs are taken from the Gamma-ray Burst Monitor (GBM)~\citep{Meegan_2009} GRB catalog that is the catalog~\citep{von_Kienlin_2020, Gruber_2014, von_Kienlin_2014, Bhat_2016}. Moreover, we include GRBs from the Large Area Telescope~\citep[LAT,][]{Cecchi_2008,Abdollahi_2020} on the Fermi gamma-ray space telescope. We remove all entries from the Fermi catalogs that are also detected by Swift. Fermi-GBM GRBs are poorly localized with localization regions that span several square degrees in the sky. Therefore, we consider Fermi-GBM GRBs with localization uncertainties smaller than 1 degree separately. These are mainly detected and localized by other instruments. The three datasets represent GRBs detected in different energy ranges with different instrumental detection biases. They are first treated separately to highlight these differences, then combined into one dataset including all selected GRBs. %\ha{In addition to those, we also consider Fermi-GBM and BATSE GRBs with poor localisations (> 1 deg) and Fermi-GBM triggers, gamma-ray candidate transients that are not classified as GRBs.} \\
+
+%These triggers are either local, artificial, unknown in origin or related to known galactic or extragalactic sources. From the Fermi-GBM triggers we filter out all the entries related to artificial, local and galactic triggers. The reason for the latter is that FRBs are extragalctic in origin. We only keep the triggers from unknown origin and generic transients. Finally, we also consider Fermi's Large Area Telescope (LAT)~\citep{Cecchi_2008} gamma-ray transients and add them to the study~\citep{Abdollahi_2020}. These transients include \ha{what are the transients included}. In summary, for this study we use information on 617 FRBs, 1712 Swift-BAT GRBs, 3246 Fermi-GBM GRBs, \ha{x} Fermi-GBM triggers and  \ha{x} Fermi-LAT transients. \\
+
+
+The data is compared to a background generated from the data itself. While the underlying distribution of GRBs can be approximated as isotropic, the distribution of detected positions can be affected by instrumental biasses. Therefore, to simulate the background we use the positions of the sources in the dataset. The goal is to generate 1000 simulated GRB catalogues with positions that follow the distribution of the Swift-BAT GRBs in the sky. The separations squared between FRBs and GRBs are calculated for each simulated catalogue, binned and plotted in histogram after averaging the bins. %The separation squared is used in order to have bins representing equal areas. 
+%Fig.~\ref{fig:compare_hist_dec} illustrates the method used to generate the background for the Swift-BAT catalogue case. 
+Equidistant elements from the Swift-BAT declinations cosines are taken to generate a function describing their distribution.  The function is then applied to a set of random numbers between 0 and 1 having the same length as the initial sample to generate the cosine of the simulated declinations. The right ascensions are generated by subdividing the declination cosine distribution into 20 intervals and applying the same method as above for each of the sub-intervals. %The cosine of the Swift-BAT declinations $\mathrm{cos(Dec_{BAT})}$ are in a [-1,1] interval. Equidistant elements from this interval are taken to generate a function describing their distribution $\mathrm{f_{Dec}}$.  The function is then applied to a set of random numbers between 0 and 1 having the same length as the initial sample to generate the cosine of the simulated declinations. The acrcosine function gives the declinations. 
+
+%\begin{figure}[h!]
+%    \centering
+%    \includegraphics[scale=0.6]{./Figures/BACK_GEN.png}
+%    \caption{\textbf{Top:} Histograms of the distribution of $\mathrm{cos(Dec)}$ of Swift GRBs used to generate $\mathrm{cos(Dec_g)}$ from random numbers ($\mathrm{rand}$) between 0 and 1. $\mathrm{f_{Dec}}$ is the function that describes the distribution of $\mathrm{cos(Dec)}$.    \textbf{Bottom:} Histogram of the distribution of the  RA of SWIFT GRBs that have \mathrm{$ -1  < \mathrm{cos(Dec)} < -0.9$}. $\mathrm{f_{RA}}$ is the function describing the distribution of the right ascensions of these GRBs.}
+%    \label{fig:compare_hist_dec}
+%\end{figure}
+
+
+
+
+
+
+\section{Searching for gamma-ray counterparts for FRB and GRB populations}
+\label{sec:PopulationFRB}
+
+
+
+\begin{figure*}[!th]
+  \centering
+  \begin{minipage}[b]{0.40\textwidth}
+    \includegraphics[width=\textwidth]{Figures/hist/bat_sens_0.png}
+  \end{minipage}
+    \begin{minipage}[b]{0.40\textwidth}
+    \includegraphics[width=\textwidth]{Figures/hist/gbm_sens_0.png}
+  \end{minipage}
+     \begin{minipage}[b]{0.40\textwidth}
+    \includegraphics[width=\textwidth]{Figures/hist/lat_sens_0.png}
+    \end{minipage}
+    \begin{minipage}[b]{0.40\textwidth}
+    \includegraphics[width=\textwidth]{Figures/hist/all_sens_0.png}
+      \end{minipage}
+     \caption{$\mathrm{sep^2}$ between FRBs and Swift-BAT (upper left), Fermi-GBM ($<$ 1 deg uncertainty, upper right), Fermi-LAT (lower left), and the combination of all three GRB catalogs (lower right) distribution. The blue dots show the number of matches in each bin and their uncertainty (signal) and the red dots show the same for the averaged generated background (background). The bottom plots show the significance of the excess computed for each bin.}
+     \label{fig:hist_frb_grb}
+\end{figure*}
+
+Populations of FRBs and gamma-ray transients can be studied to test spatial correlations between them~\citep{https://doi.org/10.48550/arxiv.2112.13820}. The idea here is to calculate separations squared ($\mathrm{sep^2}$) between FRBs and other transients, plot the histograms of separations squared and compare them to a background. If there is any spatial correlation between FRBs and other transients populations, we would expect to see a significant excess in the first few histogram bins. 
+
+The background is generated as explained in Sec.~\ref{sec:Data}. The separation squared between FRBs and  GRBs is calculated. To determine the bin size, the average positional uncertainty is considered for FRBs and GRBs. The average error squared is: $\mathrm{\langle \delta^2 \rangle=\langle \delta_{FRB}^2 \rangle + \langle \delta_{GRB}^2 \rangle}$
+
+We generate 1000 realizations. The separation squared are binned and the average of the bins are calculated. The resulting histograms are shown in Fig.~\ref{fig:hist_frb_grb}. The excess and the significance of the excess in each bin is: 
+\begin{equation}
+\mathrm{Excess=N_{On} - \alpha N_{Off}}
+\quad\text{and}\quad
+\mathrm{\sigma=\frac{N_{On}-\alpha N_{Off}}{\sqrt{N_{On}+\alpha^2 N_{Off}}}}
+\end{equation}
+where $\mathrm{N_{On}}$ is the number of entries for each signal bin, $\mathrm{N_{Off}}$ is the sum of entries of the background bins and $\mathrm{\alpha}$ is 1/1000.
+
+This method is used to establish correlations between FRBs and Swift-BAT, Fermi-GBM ($<$ 1 deg uncertainties) and Fermi-LAT GRBs. The study is also repeated combining all three GRB catalogues. The bin size depends on the localization uncertainties. We find that for the comparison with Swift-BAT and Fermi-GBM, a bin size of 0.5 deg$\mathrm{^2}$ is suitable, allowing any excess to appear in the first bins if any significant correlation exists. Due to a small number of GRBs detected by Fermi-LAT, the bin size is slightly larger in order to increase the statistics in each bin. The simulated background follows the signal distribution which is a good indication of the reliability of the background generation method.  No significant excess can be extracted from the first few bins. 
+
+
+%The Fermi-GBM trigger catalogue, contains triggers that strongly bias the distribution of the position in the sky such as solar flares. For relevance purposes we remove all the sources that cannot physically be connected to FRBs, such as triggers originating from the solar system, galactic triggers and artificially induced triggers. Only generic transients and transients from unknowns origin are kept leading to a final number of \ha{x} GBM triggers. The same study is repeated. 
+
+
+
+
+
+
+
+
+\section{Searching for gamma-ray counterparts for FRBs case by case}
+\label{sec:CaseByCaseFRB}
+
+
+\begin{table*}[!ht]
+%\centering
+\centering
+\small
+\begin{tabular}{ccccccc}
+  \hline
+    Catalogues & FRB & GRB & Separation & $P_1$ & P \\  
+        \hline
+     FRB - BAT & FRB\,20190304C & GRB\,201128A &  0.057 & 0.028   & 1 \\
+     FRB - BAT & FRB\,20171209A & GRB\,110715A &  0.084 & 0.005   & 1 \\
+     FRB - GBM & FRB\,20181218A & GRB\,20306761 &  0.152 & 0.1734   & 1 \\
+     FRB - GBM & FRB\,20181018C & GRB\,210308276 &  0.429 & 0.0132  & 1 \\
+     FRB - LAT & FRB\,20190612A & GRB\,151006413 &  0.237 & 0.041  & 1 \\
+     FRB - LAT & FRB\,20190201A & GRB\,211023546 &  0.805 & 0.033  & 1 \\
+     FRB - ALL & FRB\,20190304C & GRB\,201128A &  0.057 &  0.044  & 1 \\
+     FRB - ALL & FRB\,20171209A & GRB\,110715A &  0.084 & 0.007  & 1 \\
+     
+   \hline
+   \hline
+\end{tabular}
+\caption{Smallest separations and chance probabilities obtained for FRB and GRB pairs. }
+\label{tab:FRB-GRB-SEP}
+\end{table*} 
+
+
+%In a first attempt to associate FRBs to GRBs, we explore  localised FRBs to host galaxies to see if there are any GRBs in the vicinity of these galaxies that can be associated to them. 19 localised FRBs\footnote{\url{https://frbhosts.org/}} discovered until now are considered. The closest match that could be found is FRB\,20181112A and GRB\,080804 that are separated by 0.8252 degrees. The second best match is FRB\,20200906A and GRB\,GRB050906 with a separation of 0.8573 degrees. The separation between the rest of the localised FRBs and GRBs are greater than 1 degree. The error radius of the localisation of the two closest matches are in the order of the arcminute, much smaller than the separation with the FRB. Therefore we conclude that this search method is not worth pursuing here. \\
+
+As a second attempt to establish a link between FRBs and GRBs we look at spatial coincidences between all well-localized GRBs and FRBs. %As their localisation errors are easily obtained, FRBs from the CHIME catalogue~\citep{Amiri_2021} are considered. %As for gamma-ray transients, the Swift-BAT GRBs are considered due to their good localisation.  For this study we do not assume and isotropic distribution for either GRBs or FRBs. 
+Following~\cite{Wang_2020} and~\cite{Li_2022}, for each FRB, a 10-degree radius region around it is considered. The effective expected number of GRBs inside each of these areas is: $\mathrm{\lambda = \rho_i S}$, where $\mathrm{\rho_i}$ is the effective density of GRBs in the region around each of the FRBs and $S$ is the surface of the region. Taking into consideration the whole sky: $\mathrm{S = 41252.96(1-cos(D+\delta_{FRB}+\delta_{GRB}))~deg^{2}}$ where $\mathrm{D}$ is the angle between the FRB and the GRB, $\mathrm{\delta_{FRB} = \sqrt{\delta_{RA,FRB}\delta_{Dec,FRB}}}$ is the error radius of the FRB and $\mathrm{\delta_{GRB}}$ is the error radius of the GRB.
+The GRBs inside the 10-degree radius region follow a Poisson distribution. The chance probability of finding one or more GRBs in the FRB test region is $\mathrm{P_{1,i}}$ and the post-trial chance probability $\mathrm{P}$ are:
+\begin{equation}
+\mathrm{P_{1,i} = 1 - \mathrm{exp(-\lambda)}}
+\quad\text{and}\quad
+\mathrm{P =1 - \prod_{i=1}^N (1- P_{1,i})}
+\end{equation}
+where $\mathrm{N = 627}$ is the total number of FRBs in our study. $\mathrm{P_{1,i}}$ and $\mathrm{P}$ values are computed for all the matches between CHIME FRBs and GRBs. 
+
+We search for coincidences between FRBs and Swift-BAT, Fermi-GBM ($<$ 1 deg uncertainties) and Fermi-LAT GRBs making sure to remove all duplicate detections. We also combine all three catalogs together. The most significant results are shown in Tab.~\ref{tab:FRB-GRB-SEP}. We find several matches with small separations and small chance probabilities $P_{1}$. One of them is the pair FRB\,20171209A - GRB\,110715A found in~\citep{Wang_2020}. The fact that we used a bigger sample and a slightly different approach yields to slightly different chance probabilities. %Our study does not yield a low enough post-trial chance probability that could indicate a significant association for a FRB-GRB pair. %The smallest separation that could be found between an FRB and a GRB is 0.026 degrees for the FRB\,20190218B - GRB\,180828A pair. The chance probability of finding GRB\,180828A this close the FRB\,20190218B is $P_{1}$ = 0.14, which translates to a post-trial value of 1. Unlike \ha{ref grb-frb paper} taking into account the anisotropy of GRBs gives a high value of chance coincidence between \ha{x and y}. We then consider adding Fermi-GBM GRBs with localisation uncertainties greater than 1 degree and tha BATSE GRB catalogue and a combination of both poorly localised GRB catalogues. \ha{result}.
+
+%Finally combining all 5 GRB samples did not also yield any significant spatial correlation between FRBs and GRBs. \ha{result}. 
+
+%The smallest chance probability found is $P_{1}$ = 2.48\% for FRB20181218A and \ha{GRB from which observatory} which become $P$ ~ 100\%.  We conclude that no significant association can be seen between any of the FRBs and GRBs pairs.  \\
+%\ha{Do we need to talk about simulated background here?}\\
+%\ha{Do we add GRBs with large localisation uncertainties and trigger catalogues ? }\\
+
+
+\section{Discussion and conclusions}
+\label{sec:Discussion}
+
+\begin{figure*}[!th]
+  \centering
+  \begin{minipage}[b]{0.40\textwidth}
+    \includegraphics[width=\textwidth]{Figures/sens/BAT_FINAL_SENSITIVITY.png}
+  \end{minipage}
+    \begin{minipage}[b]{0.40\textwidth}
+    \includegraphics[width=\textwidth]{Figures/sens/GBM_FINAL_SENSITIVITY.png}
+  \end{minipage}
+     \begin{minipage}[b]{0.40\textwidth}
+    \includegraphics[width=\textwidth]{Figures/sens/LAT_FINAL_SENSITIVITY.png}
+    \end{minipage}
+    \begin{minipage}[b]{0.40\textwidth}
+    \includegraphics[width=\textwidth]{Figures/sens/ALL_FINAL_SENSITIVITY.png}
+      \end{minipage}
+     \caption{Sensitivity curves showing the significance vs the percentage of injected fake GRBs with FRB positions for the Swift-BAT (upper left), Fermi-GBM ($<$1 deg uncertainty, upper right), Fermi-LAT (lower left) and the combination of all three GRB catalogues (lower right). The black curves show the result of individual sensitivity studies repeated 10 times for each case. The red curves are the average of the black curves for each case.}
+     \label{fig:sens_frb_grb}
+\end{figure*}
+
+For the population study, where we considered FRB and GRB population as a whole, the histograms show that the signal in the first few bins does not exceed the background by a significant amount that allows us to claim an association between the two populations. In order to asses the sensitivity of the study in Sec.~\ref{sec:PopulationFRB}, we inject fake GRBs that are spatially associated with FRBs. For that, we consider the position of a random FRB with its localization uncertainty. We generate a new position based on this information and assign it to a random GRB in the GRB catalog. The new GRB position is also generated taking into consideration the localization uncertainties of the GRB instruments. The number of fake GRB injections is increased progressively and the analysis in Sec.~\ref{sec:PopulationFRB} is repeated each time. The entire study is then repeated 10 times. Fig.\ref{fig:sens_frb_grb} shows the sensitivity curves for each of the GRB catalogs, apart and combined. The x-axis shows the percentage of GRBs needed to be associated with FRBs to claim as a significant population association and the y-axis shows the confidence level. From these plots, we conclude that less than 3\%, 5\%, 48\% and 3\% of the FRBs are associated with Swift-BAT, Fermi-GBM, Fermi-LAT, and all GRBs combined respectively with a 95\% confidence level. It is also worth mentioning that we applied this study to the Fermi-GBM GRBs that have localization uncertainties larger than 1 degree. The average uncertainty for these GRBs are larger than 6 degrees. We also applied this study to the Fermi-GBM trigger catalog that consists of gamma-ray transients that are not classified as GRBs. Both studies did not yield any significant detection in their current form. Large uncertainties in these catalogs significantly decreases the sensitivity of the study and prevent us from claiming any detection. This discourages us to investigate further catalogs with large uncertainties such as the BATSE GRB catalogue~\citep{Paciesas_1999} with the current methods. %\ha{we could use an average background.} \\ %The certain conclusion that can be drawn from these histograms is that the method of generating the background works well as the latter follows the distribution of the signal
+
+In the case-by-case search in Sec.~\ref{sec:CaseByCaseFRB}, several matches between FRBs and GRBs with small chance probabilities were found. However, taking into account the number of trials increases these chance probabilities to 1 for nearly all matches. This concludes that no significant association can be claimed for any of the FRB - GRB pairs. The sensitivity of the radio telescopes like CHIME to increasing declination is a caveat that should be taken into consideration. The localization precision of CHIME seems to deteriorate with increasing altitudes. However, the inclusion of this caveat is beyond the scope of this study.  
+
+Finally, considering a scenario where the GRB is generated in the initial cataclysmic event that created the magnetar and the FRB later on by the interactions of the magnetar and the surrounding nebula, it is possible that the delay between the GRB and the FRB might be longer than a few years. In the case of the repeater FRB\,20121104B, the system is believed to be between 20 and 50 years young, while observations of FRB\,20180916A suggest a system between 200 and 500 years old. The contemporaneity of the GRB and the FRB data used here might be an explanation for the lack of significant association. In that case, the use of older GRB data might be beneficial to test this scenario.
+ 
+
+%\section*{Acknowledgement}
+%We thank the gamma-ray team at the Laboratoire Leprince-Ringuet, École Polytechnique, for their helpful insights and discussions, notably Rémi Adam, Philippe Bruel, Deirdre Horan and Mathieu de Naurois.\\
+
+\bibliographystyle{JHEP}
+\bibliography{main}
+%\begin{thebibliography}{99}
+%\bibitem{...}
+%....
+
+%\end{thebibliography}
+
+%% Full authors list (ONLY FOR COLLABORATIONS)
+%\clearpage
+%\section*{Full Authors List: \Coll\ Collaboration}
+%
+%\noindent \textbf{Note comment afterwards:} Collaborations have the possibility to provide an authors list in xml format which will be used while generating the DOI entries making the full authors list searchable in databases like Inspire HEP. For instructions please go to icrc2021.desy.de/proceedings or contact us under icrc2021proc@desy.de.\\
+%
+%\scriptsize
+%\noindent
+%first.author$^1$, 
+%second.author$^2$, 
+%third.author$^3$ % .... more names
+%and 
+%last.author$^{n}$ \\
+%
+%\noindent
+%$^1$first.affiliation.
+%$^2$second.affiliation. % .... more affiliation
+%$^{m}$last.affiliation.
+
+\end{document}

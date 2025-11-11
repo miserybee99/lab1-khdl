@@ -1,0 +1,87 @@
+\subsection{Spectral Concentration at Initialization}\label{sec:spectral_init}
+
+In this section, we prove that $K^l \left(K^l\right)^\transpose$ has eigenvalues that are close to each other, at least at initialization. With effective gradient sparsity measured by $\norm{\eta^l}_2^2$, this spectral concentration allows us to approximate the first term in RHS of \cref{eq:main} with $\lambda r \left(\eta^l\right)^\transpose \eta^l$, which is almost directly effective gradient sparsity measured in $L_2$ norms. 
+
+To reach this goal, recall Marchenko–Pastur distribution in \cref{theorem:singular_value_of_product_of_random_matrices} that reveals the asymptotic spectral distribution of random matrices' product.
+Applying \cref{theorem:singular_value_of_product_of_random_matrices} to $K^l\left(K^l\right)^\transpose$ initialized by Xavier or Kaiming initialization, we obtain \cref{theorem:initial_spectral_properties_of_kkT}.
+
+\begin{theorem}[Initial spectral concentration of $\kkT$]\label{theorem:initial_spectral_properties_of_kkT}
+    Assume $n \neq d$. Let $K^l \in \reals^{n \times d}$ be the weight matrix initialized by (Gaussian, uniform, or other distribution-based) Xavier or Kaiming initialization. When $n, d \to \infty$ with $d / n = 1 / c$, the ratio between the largest and smallest \emph{non-zero} eigenvalues of $\kkT$ converges weakly to
+    \begin{align}
+        \frac{\lambda_1\left(\kkT\right)}{\min_{k: \lambda_k\left(\kkT\right) > 0} \lambda_k\left(\kkT\right)} \le \frac{\left(1 + \sqrt{c}\right)^2}{\left(1 - \sqrt{c}\right)^2}.
+    \end{align}
+    Regarding zero eigenvalues, if $d > n$, there is no zero eigenvalue, and if $d \le n$, the expected portion of zero eigenvalues is $1 - \frac{1}{c} = 1 - \frac{d}{n}$.
+    
+\end{theorem}
+\begin{proof}
+    The initialization methods utilize centered distribution, and thus there is $\ex{K^l_{i, j}} = 0$.
+
+    $\kkT$ differs from $S^p$ of \cref{theorem:singular_value_of_product_of_random_matrices} in 1) the shared standard variance of entries not being $1$, and 2) the scaling factor $\frac{1}{d}$. Since we are only interested in the ratio between eigenvalues, these differences of simultaneous scaling can be ignored.
+
+    By \cref{eq:mp_density}, we can see that the support of eigenvalues is restricted to $[a, b] \cup \set{0}$. As a result, non-zero eigenvalues can only be found in $[a, b]$.
+
+    When $c < 1$, i.e., $d > n$, the support degenerates to $[a, b]$. 
+    When $c \ge 1$, the probability to pick a zero eigenvalue is $F(0) = \lim_{u \to 0^+} \int_{0}^{u} f(x) \mathrm{d}x = \lim_{u \to 0^+} \int_{0}^{u} \left(1 - \frac{1}{c}\right) \delta(x) \mathrm{d} x = 1 - \frac{1}{c}$ .
+\end{proof}
+
+Note that \cref{theorem:initial_spectral_properties_of_kkT} applies to uniform or other base initialization distribution as long as it is centered and entrywisely independent with the same variance. Since $n, d$ are generally large, even in small model sizes like Small and Base, we believe this lemma applies to common practice. In Base-sized Transformers, it is usually the case where $n = 3072, d = 768$, indicating $1 - \frac{768}{3072} = \frac{3}{4}$ of eigenvalues are $0$, while the rest of them varies up to the ratio of $\frac{\left(1 + \sqrt{\frac{1}{4}}\right)^2}{\left(1 - \sqrt{\frac{1}{4}}\right)^2} = 9$. This is a surprisingly small value compared to the number of dimensions.
+
+Effective gradient sparsity patterns have a great affinity to $\kkT$, allowing \cref{theorem:initial_spectral_properties}.
+
+\begin{theorem}[Implication of spectral concentration of $\kkT$ at initialization]\label{theorem:initial_spectral_properties}
+    Assume $d \neq n$ and they are sufficiently large. $K^l \in \reals^{n \times d}$ is initialized as in \cref{theorem:initial_spectral_properties_of_kkT}. Let $M^l = g^l_K \left(g^l_K\right)^\transpose$, $\gamma^l$ and $\eta^l$ be those defined previously. 
+    
+    If $d > n$ then there is
+    \begin{align}
+        \left(\gamma^l\right)^\transpose \left(\left(K^l \left(K^l\right)^\transpose\right) \hadamard M^l\right) \gamma^l
+        =& \left(\eta^l\right)^\transpose \kkT \eta^l\\
+        \ge&    \lambda_{n}\left(\kkT\right) \cdot \norm{\eta^l}_2^2,
+    \end{align}
+    where $n$-th eigenvalue $\lambda_n\left(\kkT\right)$ is moderate and cannot be arbitrarily small because
+    \begin{align}
+        \frac{\lambda_1}{\lambda_{n}} \le \left(\frac{1 + \sqrt{c}}{1 - \sqrt{c}}\right)^2,
+    \end{align}
+    where $c = d / n$.
+
+    If $n > d$, let $K^l = U \Sigma V^\transpose$ be the singular value decomposition of $K^l$. The result is restricted to the projection to the subspace expanded by $\left(U^\transpose\right)_{1:d}$, i.e.,
+    \begin{align}
+        \left(\gamma^l\right)^\transpose \left(\left(K^l \left(K^l\right)^\transpose\right) \hadamard M^l\right) \gamma^l
+        =& \left(\eta^l\right)^\transpose \kkT \eta^l\\
+        \ge&    \lambda_{d}\left(\kkT\right) \cdot \norm{\left(U^{T}\right)_{1: d}\eta^l}_2^2,
+    \end{align}
+    where $d$-th eigenvalue $\lambda_d\left(\kkT\right)$ satisfies
+    \begin{align}
+        \frac{\lambda_1}{\lambda_{d}} \le \left(\frac{1 + \sqrt{c}}{1 - \sqrt{c}}\right)^2,
+    \end{align}
+    where $c = d / n$.
+
+    For demonstration, when $\set{n, d} = \set{3072, 768}$, the ratio upperbound is $9$.
+\end{theorem}
+\begin{proof}
+    The proof is straightforward after \cref{theorem:initial_spectral_properties_of_kkT}, by noting that when $n > d$ there are exactly $\left(1 - \frac{1}{c}\right) n = n - d$ zero eigenvalues in $\kkT$, or equivalently $d$ non-zero eigenvalues in $\kkT$.
+\end{proof}
+
+There are still gaps between $\lambda \left(\eta^l\right)^\transpose \eta^l$ and current practices where $d < n$ and there are a lot of zero eigenvalues in $\kkT$, but \cref{theorem:initial_spectral_properties} is perfectly useful for wide MLPs where $d > n$. Therefore, we propose a drastic architectural modification called wide MLP where $d > n$, i.e., the model dimension is larger than the hidden dimension in MLP blocks. Aside from more powerful motivation toward sparsity, wide MLPs also allow rows in $K^l$ to be mutually orthogonal and permit perfect sparsity, which is impossible when $n > d$.
+ 
+In non-wide MLPs, we believe that since $\kkT$ are randomly initialized and samples are randomly selected, there are moderate projections of $\eta^l$ into the non-null subspace of $\kkT$. Another supporting intuition is that although $\sigma'$ is not identity or linear, the derivatives of common activation functions are often monotonically increasing and form an approximation to its inputs. This approximation is better when part of the activation derivatives are linear, as in the case of Squared-$\relu$\citep{primer} and our $\jrelu$. Therefore, taking $\sigma'$ to $K^l x + b^l$, which already falls near the subspace expanded by $\left(U^\transpose\right)_{1: d}$, does not deviate far from the subspace. 
+\cref{obs:memorizing_eff} also supports this moderate projection dynamically because if $\eta^l$ is in the null space, it will be borne into every column of the key matrix and next time it will have non-zero projections if $\eta^l$ does not change too much after one epoch and the column memory is not blurred too severely. Repeatedly memorizing different $\eta^l$ will make the non-null space of $\kkT$ a mixture of the majority $\eta^l$s provided by the training data set. 
+The empirical evidence for this is that $\left(\eta^l\right)^\transpose \kkT \eta^l$, according to the derivation in \cref{lemma:adversarial_and_sparsity}, is actually the norm of gradients back propagated to shallower layers. Extreme cases where $\eta^l$ are contained only in the null space of $\kkT$ result in zero gradients for shallower layers, which rarely happens. If no residual connection is involved this insight strongly augments the spectral explanation. The detailed and formal analysis of the zero eigenvalues especially when there are residual connections is left for future empirical and theoretical works. For now, we can simply cover the gap with wide MLPs.
+
+\subsection{Spectral Concentration during Stochastic Training}\label{sec:spectral_training}
+
+In this subsection, we discuss how spectral concentration re-emerges during later stochastic training. 
+
+First recall the Marchenko-Pastur distribution in \cref{theorem:singular_value_of_product_of_random_matrices}. The condition of random centered matrices in \cref{theorem:singular_value_of_product_of_random_matrices} invites another randomness other than initialization to the party, i.e., stochastic gradient noise (SGN) brought by stochastic optimizers.
+After $t$ updates, $K^{l}$ can be written as the sum of random initialization, stochastic gradient noises and full-batch gradients that are not as stochastic as the two former terms, i.e.
+\begin{align}
+    K^{l, t} = \underbrace{K^{l, 0} - \sum_{i=1}^{t} U^{i}_{K^l}}_{\text{stochastic, centered}} - \sum_{i=1}^t \derivatives{\loss(\theta^t)}{K^l}
+\end{align}
+As discussed in \cref{sec:flat_minima}, $U^{i}_{K^l}$ is by definition centered. If it can be assumed that the $\sas$ SGN with large variance and noise norm shadows full-batch gradient, then $K^{l, t}$ is the sum of two centered random matrix with a slight non-stochastic bias, to which Marchenko-Pastur distribution would approximately apply if further entries in $U^{i}_{K^l}$ shared similar variance and were sampled independently. \citet{relax_mp_distribution} and works cited by them have tried to relax the independence condition of \cref{theorem:singular_value_of_product_of_random_matrices}, but it is still far from applying relaxed Marchenko-Pastur distribution here. Aside from waiting for this mathematical progress, we build empirical basis in \cref{sec:t_exp:spectral_concentration} where at all steps, in $\kkT$ of ViT and the decoder of T5, there is a stable portion of near-zero eigenvalues as in \cref{theorem:initial_spectral_properties} across all layers, and the majority of non-zero ones, with significant gap with near-zero ones, vary up to a ratio of $<100$ for most of the time. It is not surprising that this effect empirically sustains and even becomes stronger at the end of training because the model is well-learned by then and the full-batch gradient is of a smaller norm.
+
+\input{theory/marchenko-pastur.tex} 
+
+Finally, we have discussed the spectral concentration of $\kkT$. To put everything together, assuming moderate projection of $\eta^l$ into non-null space of $\kkT$, and considering the increasing trace of $\kkT$ and spectral concentration in $\kkT$, the only way to suppress 
+\begin{align}
+    \trace{\hessian[\theta_D]} \ge \left(\gamma^l\right)^\transpose \left(\kkT \hadamard M^l\right) \gamma^l = \left(\eta^l\right)^\transpose \kkT \eta^l \ge \lambda r \left(\eta^l\right)^\transpose \eta^l
+\end{align}
+is to reduce $\norm{\eta^l}_2^2 = \norm{g^l_K \hadamard \gamma^l}_2^2$. To see gradient-sparsity-induced activation sparsity's emergence, given empirically that $\trace{M^l} = \trace{\left(g^l_K\right)^\transpose g^l_K} = \norm{g^l_K}_2^2$ will not decrease during training, the only way to suppress $\norm{\eta^l}_2^2$ is to decrease $\gamma^l$, at least at entries where $g^l_K$ has large magnitudes.

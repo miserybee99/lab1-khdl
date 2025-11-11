@@ -1,0 +1,38 @@
+In order to navigate in the Lambda-Field, we define a risk function that reflects the potential obstacles that the robot can face. We choose to describe the risk by the maximum potential energy absorbed by the wheels.
+
+We illustrate in \autoref{fig:elevation_risk} the modeling of the wheel.
+The wheel is modeled as a deformable disk, see \autoref{fig:elevation_risk}.
+When the wheel crosses an elevated obstacle, it deforms at the point where the two objects collide.
+This deformation is approximated with the deformation of a spring of stiffness $k_r$.
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=\linewidth]{media/tikz_risk.pdf}
+  \caption{Modeling of the wheel of radius $R$ in collision with the curb (in blue) of height $H$, with a speed $v$ and angle $\Psi$.
+  The deformation of the wheel due to the collision is approximated with the deformation of a spring of stiffness $k_r$.}
+  \label{fig:elevation_risk}
+  \vskip-.5em
+\end{figure}
+In order to find the maximum amplitude $l_{m}$ of the tire compression due to the collision, we solve the following differential equation:
+\begin{equation}
+    \label{eq:eq_diff_spring}
+    \ddot{l} + \omega^2l = 0 \quad \text{with } \omega = \sqrt{\frac{k_r}{m}}
+\end{equation}
+where $l$ is the compression at the contact point and $m$ is the mass of the vehicle.
+As such, the maximum amplitude $l_{m}$ of the tire compression is
+\begin{equation}
+    \label{eq:max_defflection_spring}
+    l_{m} = \frac{v\cos(\Psi)}{\omega}
+\end{equation}
+where $v$ is the linear velocity of the robot and ${\Psi=\arcsin(\frac{R-\min(H,R)}{R})}$ is the angle of attack of the collision.
+The angle $\Psi$ depends on the elevation of the obstacle and the radius $R$ of the wheel.
+To be conservative, we take the maximum difference in elevation $H$ of the obstacles that lie in the transverse axis of the robot path $\mathcal{P}$.
+Finally, the risk function is defined as the maximum potential energy that will be absorbed in the wheels at the time of collision and is computed by
+\begin{equation}
+    \label{eq:risk_function}
+    r(X) = \dfrac{1}{2} k_r  l_{m}^2
+\end{equation}
+As such, the risk function $r(X)$ has a clear physical meaning and is expressed in Joule.
+%
+%
+%
+In the next section, we use this risk assessment to construct safe paths in 3D environments.

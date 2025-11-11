@@ -1,0 +1,52 @@
+We will show here that when the cluster variable $y$ is binary, the OvA and OvO GEMINIs are equal if we use IPMs for distance between distributions. Indeed we can first unfold both equations:
+
+\begin{equation}\label{eq:unfold_ova}\begin{split}
+\I_\text{IPM}^\text{ova}(\vec{x},y) &= \E_{y\sim p(y)}\left[D_\text{IPM}(p(\vec{x}|y)\|\px\right]\\
+&=p(y=0)D_\text{IPM}(p(\vec{x}|y=0)\|p(\vec{x})) + p(y=1)D_\text{IPM}(p(\vec{x}|y=1)\|\px)\\
+&= p(y=0)\sup_{f\in\mathcal{F}} \{ \E_{\vec{x}\sim p(\vec{x}|y=0)}[f(\vec{x})] - \E_{\vec{x}\sim \px}[f(\vec{x})] \} \\&\quad+ p(y=1) \sup_{g\in\mathcal{F}} \{\E_{\vec{x}\sim p(\vec{x}|y=1)}[g(\vec{x})] - \E_{\vec{x}\sim \px}[g(\vec{x})]\},
+\end{split}\end{equation}
+
+and for the OvO, we simply use the symmetric property of IPMs:
+
+\begin{equation}\label{eq:unfold_ovo}\begin{split}
+\I_\text{IPM}^\text{ovo}(\vec{x},y) &=\E_{\ya,\yb \sim p(y)}\left[D_\text{IPM}(p(\vec{x}|\ya)\|p(\vec{x}|\yb))\right]\\
+&=p(y=0)p(y=1)D_\text{IPM}(p(\vec{x}|y=0)||p(\vec{x}|y=1)) \\&\qquad+ p(y=1)p(y=0)D_\text{IPM}(p(\vec{x}|y=1)||p(\vec{x}|y=0))\\
+&= 2 p(y=0)p(y=1) D_\text{IPM}(p(\vec{x}|y=0)||p(\vec{x}|y=1)).
+\end{split}\end{equation}
+
+Notice that in Eq. (\ref{eq:unfold_ovo}), we skipped the terms where both the random variables $y_1$ and $y_2$ are equal, since the implied distance is necessarily 0.
+
+Now, to show the equivalence of both equations (\ref{eq:unfold_ova}) and (\ref{eq:unfold_ovo}), we simply need to write the sum rule of probabilities leading to the marginalisation of $\vec{x}$:
+
+\begin{equation*}%\label{eq:marginalisation}
+\px=p(\vec{x}|y=0)p(y=0) + p(\vec{x}|y=1)p(y=1).
+\end{equation*}
+
+Thus, we can rewrite the expectations depending on the distribution $\px$ with other distributions for any function $f$:
+
+\begin{equation*}%\label{eq:rewritten_expectation_px}
+\E_{\vec{x}\sim \px}[f(\vec{x})] = p(y=0)\E_{\vec{x} \sim p(\vec{x}|y=0)}[f(\vec{x})] + p(y=1)\E_{\vec{x}\sim p(\vec{x}|y=1)} [f(\vec{x})]],
+\end{equation*}
+
+which we can incorporate back into Eq. (\ref{eq:unfold_ova}) to get:
+
+\begin{multline*}
+\I_\text{IPM}^\text{ova}(\vec{x},y) = p(y=0)\sup_{f\in\mathcal{F}}\{(1-p(y=0))\E_{\vec{x}\sim p(\vec{x}|y=0)}[f(\vec{x})] - p(y=1)\E_{\vec{x}\sim p(\vec{x}|y=1)} [f(\vec{x})]]\}\\+p(y=1)\sup_{g\in\mathcal{F}} \{ (1-p(y=1))\E_{\vec{x}\sim p(\vec{x}|y=1)}[g(\vec{x})] - p(y=0)\E_{\vec{x} \sim p(\vec{x}|y=0)}[g(\vec{x})]\}.
+\end{multline*}
+
+Since we only use two clusters, we know that $p(y=1)=1-p(y=0)$. This helps us factorising terms inside the sup expressions:
+
+\begin{equation*}\begin{split}
+\I_\text{IPM}^\text{ova}(\vec{x},y) &= p(y=0)\sup_{f\in\mathcal{F}} \left\{p(y=1)\left[ \E_{\vec{x}\sim p(\vec{x}|y=0)}[f(\vec{x})] - \E_{\vec{x}\sim p(\vec{x}|y=1)}[f(\vec{x})]\right] \right\}\\
+&\qquad p(y=1)\sup_{g\in\mathcal{F}} \left\{ p(y=0)\left[ \E_{\vec{x}\sim p(\vec{x}|y=1)}[g(\vec{x})] - \E_{\vec{x}\sim p(\vec{x}|y=0)}[g(\vec{x})]\right]\right\}.
+\end{split}\end{equation*}
+
+Eventually, the factors $p(y=0)$ and $p(y=1)$ do not depend on the functions $f$ and $g$, so we can pull them out of the supremum. The remaining expressions are then symmetric and can be thus factorised:
+
+\begin{equation*}\label{eq:final_ova}\begin{split}
+\I_\text{IPM}^\text{ova}(\vec{x},y) &= 2p(y=0)p(y=1)\sup_{f\in\mathcal{F}} \left\{ \E_{\vec{x}\sim p(\vec{x}|y=0)}[f(\vec{x})] - \E_{\vec{x}\sim p(\vec{x}|y=1)}[f(\vec{x})]\right\}\\
+&= 2p(y=0)p(y=1)D_\text{IPM}(p(\vec{x}|y=0)||p(\vec{x}|y=1))\\
+&=\I_\text{IPM}^\text{ovo}(\vec{x},y)
+\end{split}\end{equation*} 
+
+This concludes the proof.

@@ -1,0 +1,88 @@
+\NewDocumentCommand{\DKDKT}{O{t}}{\DK{#1}\left(\DK{#1}\right)^\transpose}
+\NewDocumentCommand{\DKTDK}{O{t}}{\left(\DK{#1}\right)^\transpose \DK{#1}}
+
+To have a more satisfying discussion, we propose an extended version of Marchenko-Pastur distribution and find a re-directed view on stochastic gradients to apply it. To this end, what conditions and assumptions can stochastic training provide must be figured out first.
+
+Observing the structure of $\mlp$ or $\dbmlp$ layers, the most essential operation involving weight matrix $K^l$ is
+\begin{align}
+    z^l \defeq K^l x^l,
+\end{align}
+where $x$ is abused to represent anything that is multiplied with $K^l$, abstracting $x^l$ or $x^l + d^l$, while $z^l$ is the vector passed to the vanilla bias, activation function or later layers. This structure gives birth to the update of a sample $(x_s, y_s)$ to $K^l$ that writes
+\NewDocumentCommand{\DK}{m}{\Delta K^{l, #1}}
+\begin{align}
+    \DK{s}
+    =&  -\eta_{\mathrm{lr}} \cdot \derivatives{\loss(\theta, (x_s, y_s))}{z^{l, s}} \times (x^{l, s})^\transpose
+    =  -\eta_{\mathrm{lr}} \cdot \eta^{l, s} \left(x^{l, s}\right)^\transpose,
+\end{align}
+where $\eta_{\mathrm{lr}}$ is the learning rate, assuming no scheduling is used.
+At step $t$ with batch $B_t$, the update on $K^l$ averages these samplewise differences, i.e.
+\begin{align}
+    \DK{t}
+    \defeq& - \frac{\eta_{\mathrm{lr}}}{\size{B_t}} \sum_{s \in B_t} \eta^{l, s} \left(x^{l, s}\right)^\transpose
+    =  - \frac{\eta_{\mathrm{lr}}}{\size{B_t}} H^t \left(X^t\right)^\transpose,
+\end{align}
+where $\Eta^t \in \reals^{n \times \size{B_t}}$ (capitalized ``$\eta$'') is the matrix consisting of column vectors $\eta^{l,s}$ for sample $s$ in the batch $B_t$, and $X^t \in \reals^{d \times \size{B_t}}$ is similarly constructed with $x^{l,s}, s \in B_t$. 
+Note that $X^t$ and $\Eta^t$ are random matrices because samples are independently randomly selected and gradients are also random variables as functions of variables.
+Taking a similar view throughout the training, there is
+\begin{align}
+    K^{l, T} - K^{l, 0}
+    =&  -\eta_{\mathrm{lr}} \sum_{t=1}^T \frac{1}{\size{B_t}} \sum_{s \in B_t} \eta^{l, s} \left(x^{l, s}\right)^\transpose
+    =  -\frac{\eta_{\mathrm{lr}}}{b} \Eta^{1: T} \left(X^{1:T}\right)^\transpose \label{eq:update_and_large_matrices},
+\end{align}
+where $T$ is the number of batches, $b$ is batch size, and $\Eta^{1:T} \defeq \begin{bmatrix}  \Eta^1 & \cdots & \Eta^t & \cdots & \Eta^T  \end{bmatrix}$, and $X^{1:T} \defeq \begin{bmatrix} X^1 & \cdots & X^t & \cdots & X^T \end{bmatrix}$.
+Another product of large random matrices emerges in the empirical covariance matrix of the difference, i.e.,
+\begin{align}
+    \left(K^{l, T} - K^{l, 0}\right) \left(K^{l, T} - K^{l, 0}\right)^\transpose = \frac{\eta_{\mathrm{lr}}^2}{b^2} \Eta^{1: T} \left(X^{1:T}\right)^\transpose X^{1:T} \left(\Eta^{1:T}\right)^\transpose,
+\end{align}
+where $X^{1:T}$ and $\Eta^{1:T}$ are random matrices in the sense that samples or gradient vectors in each batch are independently randomly sampled, if conditioned on the model state.
+
+Since we are interested in spectral distribution and that cycling a matrix product does \emph{not} change non-zero eigenvalues, a more desirable form is
+\begin{align}
+    \left(\Eta^{1:T}\right)^\transpose \Eta^{1:T} \left(X^{1:T}\right)^\transpose X^{1:T},
+\end{align}
+and we intend to separately investigate the spectral distributions of 
+\begin{align}
+    &\text{$\left(\Eta^{1:T}\right)^\transpose \Eta^{1:T}$ or spectrally equivalent $\Eta^{1:T} \left(\Eta^{1:T}\right)^\transpose$},\\
+    \text{and, }&\text{$\left(X^{1:T}\right)^\transpose X^{1:T}$ or spectrally equivalent $X^{1:T} \left(X^{1:T}\right)^\transpose$}.
+\end{align}
+
+After these transforms and dividing-and-conquering, the empirical covariance matrices look ready for Marchenko-Pastur law. However, there are dependencies between previous and later batches through model states, hindering the direct application of independence conditions of Marchenko-Pastur law. Fortunately, there is still conditional independence \emph{within} a batch. This mixture of dependence and independence is captured by \cref{def:batch_model}.
+\begin{definition}[Batch Dependence Model]\label{def:batch_model}
+    Let $U^{1: T} \in \reals^{p \times (b T)}$ be a random matrices. Decompose it into blocks with batch size $b$, i.e., 
+        \begin{align}
+            U^{1: T} = 
+                \begin{bmatrix}
+                    U^1 & \cdots & U^t & \cdots & U^{T-1} & U^{T}
+                \end{bmatrix},
+        \end{align}
+    where $U^t \in \reals^{p \times b}$.
+    If the dependence between elements can be described by SCMs
+    \begin{align}
+        \set{u^t_k \defeq g^t\left(U^{1}, U^{2}, \dots, U^{t-1}, \epsilon^t_k\right): t \in [1, T], k \in [1, b]}
+    \end{align}
+    or SCMs that resemble the notions of samples and model state
+    \begin{align}
+        \set{u^t_k \defeq g^t\left(m^{t-1}, \epsilon^t_k\right) : t \in [1, T], k \in [1, b]} \cup \set{m^t \defeq h^t\left(m^{t-1}, U^{t}\right)}
+    \end{align}
+    where $u^t_k$s are columns in $U^t$, $m^{t}$ is the model state (parameters, momentum, etc.) after step $t$, $\epsilon^{t}_k$ is I.I.D. random noises, then $U^{1: T}$ is a random matrix with batch dependence.
+    \begin{remark}
+        Within each batch (i.e., when conditioned on all previous batches), samples are I.I.D. sampled to simulate batch sampling. However, previous samples have trained the parameters and will shift the distribution of shallow layers's output as well as back-propagated gradients. Therefore, the current batch depends on previous batches.
+    \end{remark}
+\end{definition}
+
+There are works re-establishing Marchenko-Pastur law with independence conditions relaxed to martingale conditions \citep{mp_martingale}, but some conditions in it require entrywise conditional independence. There are also Marchenko-Pastur laws for time series \citep{mp_linear_time_series1,mp_linear_time_series2}, but restricted to linear dependence. 
+We adapt proofs by \citet{mp_quadratic_form}, and use anisotropy condition in all samples or gradients to extend Marchenko-Pastur distribution under the batch dependence in $X^{1:T}$ and $\Eta^{1:T}$, leading to \cref{theorem:spectral_of_accumulated}.
+In later formal definitions, theorems and proofs, $X$ is abstractly used to represent both $\Eta^{1: T}$ or $X^{1:T}$, $p$ indicates the height of $X^{1:T}$ or $\Eta^{1: T}$, i.e., the hidden dimensions $d$ or $n$, while $b$ and $T$ keep their meanings as batch size and total number of batches.
+
+\def\StateSpectralOfAccumulated{display}
+\input{theory/theorems/ext_mp.tex}
+
+Its proof is left in \cref{proof:spectral_of_accumulated}. This concludes that spectral concentration also happens in $\Eta^{1: T} \left(\Eta^{1:T}\right)^\transpose$ and $X^{1:T} \left(X^{1:T}\right)^\transpose$, as long as the samples in one batch are independently sampled and all model-state-specific samples involved during training are diverse enough to have low anisotropy and norm bounds. To see that the conditions are satisfied, note the only hard conditions are that of continuity, which is hard to verify and thus simply assumed, as well as the choice of $v$ and $v_0$. We assume enough steps have been trained so $c$ can be very small, for example effectively $\frac{768}{32 \times 50,042} \approx 4.8 \times 10^{-4}$ under strong weight decay (it is even smaller when weight decay weakens or disappears) as we shall see in latter paragraphs. So $v_0 = 10^{-3} > 2 c$ can be chosen. In experiments in \cref{sec:t_exp:anisotropy} we will see $\beta / p$ is always smaller than $1$ and $\alpha / p$ can be less than $0.05$ when weight decay is strong and dimension $p$ is large enough. Under these conditions, it can be verified that LHS of \cref{eq:hard_condition} is larger than RHS by at least $0.061$. So the applicability of the theorem depends on how good the bound is. To empirically verify the applicability of \cref{theorem:spectral_of_accumulated}, one needs to compute anisotropy $\ex{\sqrt{p \trace{\left(T^{p} - I\right)^\transpose\left(T^{p} - I\right)}}}$ and $\alpha$ from $x^p$'s marginal distribution, i.e., by mixing hidden features or back-propagated gradients, which is conducted in \cref{sec:t_exp:anisotropy}.
+
+In contrast with conventional asymptotic results with $p \to \infty$ and $p / b T \to c$ in RMT, our theorem gives bounds for non-limiting scenarios. One of its benefits in the context of machine learning is that one often is more interested in training behaviors when the total number $b T$ of training samples increases as the training proceeds while $p$ is held still. 
+Nevertheless, the co-increasing scenarios are also of interest, especially in the era of large models \citep{scaling_law}.
+In our result, the spectral concentration is measured by the expected fraction between eigenvalues and the expected eigenvalue, but with an extra shadowing parameter $v$ that may shadow small eigenvalues and decreasing $v$ to suppress the disturbance loosens the bound. Fortunately, most $v$ as dominators show up together with $c$ as numerators, the ratio between hidden dimension and number of training samples used which is often extremely small. If $\frac{\alpha}{p}$ is also small and decreases as $p$ is enlarged, as we will show in the experiments, then the bound will be controlled.
+
+It is frustrating to see that the bound diverges as the training step increases due to factor $\frac{1}{c} = \frac{b T}{p}$. However, we consider weight decay as an alleviation to this issue. Weight decay effectively introduces a sliding window which reduces the effective $T$, because vectors out of the window are exponentially decayed and they have little contribution to the sample covariance matrix. For example, let $w$ be the parameter of weight decay, then each column in $\Eta^{1: T}$ or $X^{1:T}$ becomes $\left(\sqrt{1 - \eta_{\mathrm{lr}} w}\right)^{T - t} \eta_{t, l}$ or $\left(\sqrt{1 - \eta_{\mathrm{lr}} w}\right)^{T - t} u_{t, l}$, where $\eta_{\mathrm{lr}}$ is learning rate. Setting $r = 1 - \eta_{\mathrm{lr}} w$, if we consider the tail whose weights' sum is smaller than a threshold $\tau$ as those out of the window, then the window size $k$ needs to satisfy $\sum_{i={k+1}}^{\infty} r^i = r^{k+1} / (1 - r) \le \tau$, where $r$ is used to obtain tighter bounds instead of $\sqrt{r} = \sqrt{1 - \eta_{\mathrm{lr}} w}$ by arguments in \cref{appendix:effective_window_size}. One sufficient condition for this is $k \ge \frac{\ln \tau (1 - r)}{\ln r} - 1$. When $\tau=10^{-3}, \eta=10^{-3}, w = 10^{-1}$, the effective window size is about $161,172$. When $w$ increases to $0.3$, the effective window size becomes $50,057$. As a result, $\frac{1}{c}$ is upperbounded by a constant as the training proceeds if weight decay presents.
+
+There are still gaps between our results and the spectral distribution of $\kkT$ during stochastic training. For example, spectral concentration of $\Eta \Eta^\transpose$ and $X X^\transpose$ hints similar phenomena in their interlaced product $\left(K^{l, T} - K^{l, 0}\right) \left(K^{l, T} - K^{l, 0}\right)^\transpose$, which, however, is not yet formally proved. Moreover, applying \cref{theorem:spectral_of_accumulated} assumes SGD instead of adaptive optimizers is used due to \cref{eq:update_and_large_matrices}. Filling these gaps is left for future works because we have established spectral concentration's empirical supports in \cref{sec:t_exp:spectral_concentration}.

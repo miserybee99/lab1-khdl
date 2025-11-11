@@ -1,0 +1,77 @@
+\section{Introduction}
+\label{sec:introduction}
+
+Gossiping has shown to be a promising paradigm for a variety of Peer-to-Peer (P2P) applications in large-scale decentralized systems, most notably for information dissemination~\cite{LightweightEpidemicDissemination,LightweightProbabilisticBroadcast}~,
+data replication~\cite{EpidemicDatabaseMaintenance}, data aggregation, overlay construction~\cite{voulgaris.jnsm.2005,EpidemicRoutingTableManagement,Vicinity}, fault detection~\cite{vanrenesse.middleware.1998}, and decentralized clustering.
+This has been emphatically stressed in recent years through the advent of blockchain systems, most of which rely on gossiping for efficiently and reliably disseminating blocks to thousands of nodes spread around the globe~\cite{Gossipsub,perigee,Cougar}.
+
+
+A fundamental operation underlying gossiping protocols is the ability of nodes to pick gossiping partners at random, an operation known as \emph{peer sampling}.
+
+Picking gossiping partners at random is essential to the operation of most gossiping protocols.
+For instance, dissemination protocols need news to spread to all nodes with equal probability.
+Aggregation protocols need all participants' data to be equally represented in the computed aggregate, and all nodes to equally contribute to its calculation.
+Clustering algorithms need a uniform sampling of nodes in order to match them in optimally formed clusters.
+Fault detection algorithms require that nodes be monitored by an unbiased selection of other nodes to properly detect faulty behavior.
+Finally, by contacting nodes with uniform probability, load is more evenly shared among them.
+
+Equally importantly, random connections also play a crucial role for the robustness of the overlay network.
+A set of nodes form an \emph{overlay network} by establishing logical links with each other.
+When these links are selected uniformly at random, the emerging overlays resemble random graphs.
+Random graphs are known for their remarkable robustness, in the sense that they remain connected in a single component even when the majority of nodes are removed.
+To this end, creating an overlay network with links between nodes set at random helps nodes stay connected in a robust, single-component overlay that remains connected even in the face of high node churn or catastrophic failures \cite{voulgaris.jnsm.2005}.
+
+As simple as it may sound, random peer sampling is in fact far from trivial, in particular when massive-scale, dynamic, decentralized scenarios are at stake, where nodes are not in a position to maintain a complete and up-to-date view of the entire network.
+
+Early efforts to discover random nodes in a network resorted to methods based on random walks.
+Such methods have not only been employed in early P2P systems, such as Gnutella~\cite{Gnutella}, but also in early blockchains, most notably in Bitcoin~\cite{Bitcoin}.
+Random walks, however, suffer from a number of issues.
+First, they have shown to favor the discovery of high-degree nodes, resulting in overlays with highly imbalanced node degrees (hubs vs poorly connected nodes), if used to discover neighbors for newly joined nodes.
+Second, sampling peers through random walks is an inherently reactive procedure, failing to follow the continuously changing dynamic membership in a real-world network.
+Third, they could easily be exploited by malicious nodes.
+For instance, a relatively small number of instrumented Bitcoin clients could collude to keep random walks that reach any one of them confined within their community, gradually directing most of Bitcoin traffic through them.
+This would put them in a position to filter out transactions or blocks that are against their interests, or to cause wreak havoc by blocking traffic altogether.
+
+
+
+An explicit family of peer-sampling protocols has emerged to tackle these specific issues, namely, random peer sampling and robust overlay maintenance.
+Protocols of the peer-sampling family follow a simple operational pattern, outlined below.
+Each node maintains links to a small and fixed number (e.g., 20 to 50) of neighbors, referred to as the node's \emph{view} of the network.
+Each node periodically initiates a push-pull exchange with one of its neighbors, and the two nodes send each other their current views or parts of them.
+Upon receiving the counterparty's view, a node updates its own by combining the newly received neighbors with the ones it already had, keeping no more than the fixed number of neighbors its view is configured to hold.
+This way, each node's view is periodically being refreshed, effectively providing the node with a continuous stream of random neighbors from the entire set of alive nodes.
+
+
+
+Different policies on how to mix a received view with the local one, which neighbor to gossip with, which neighbors to trade, etc., lead to different instances of the peer-sampling family, differing in how fast peers join the overlay, how fast stale links to departed peers are removed, how efficiently the overlay heals from failures, and more \cite{PeerSampling}.
+By and large, however, all peer-sampling protocols provide each node with a continuous stream of uniformly randomly selected samples of all alive peers, maintain overlays with remarkable robustness and self-healing properties, and are extremely scalable, thanks to the seamless cooperation of all participating nodes.
+
+
+
+Unfortunately, it is exactly this reliance of peer-sampling protocols on the cooperation of participating nodes that renders them highly vulnerable to malicious behavior.
+Peer-sampling protocols can become easy targets for malicious participants that deviate from the protocols' prescribed operation to promote biased outcomes.
+Similarly to the case of exploiting random walks outlined earlier, a small group of malicious peers could easily take over all links of the network, namely by consistently presenting to legitimate peers views with links exclusively to members of their group.
+Legitimate peers' views will gradually get contaminated by increasingly more links to malicious peers at the expense of links to legitimate ones, which would further facilitate and accelerate the attacker's job.
+
+In no time, all legitimate peers would point exclusively at malicious ones.
+This would give the attacker complete control over all traffic flowing through the network and on legitimate nodes' connectivity.
+In the extreme form of this attack, malicious peers could abandon the system in a coordinated move, letting the network segregated into a large number of single-node disconnected components.
+This has been coined as the \emph{hub attack} in~\cite{SecurePeerSamplingService}.
+
+
+In this paper, we are addressing the hub attack focusing on Cyclon~\cite{voulgaris.jnsm.2005}, a popular peer-sampling protocol.
+We propose a solution that not only detects and negates the effects of malicious behavior in a timely fashion, but also provides indisputable proof of protocol misconduct, allowing the network to blacklist and remove cheating nodes.
+
+
+
+% In this attack, malicious nodes claim an increasingly high share of network links, to the point that for most legitimate node pairs all communication paths go through malicious nodes.
+
+The rest of the paper is organized as follows.
+\secref{sec:background} provides the necessary background, describing our system model, the legacy Cyclon protocol, and the attack model.
+\secref{sec:challenges} lays out the challenges we are addressing.
+\secref{sec:protocol} presents and advocates our protocol's design, explaining its operation and supporting the design decisions taken.
+In \secref{sec:protocol-integration} we tackle the problems that arise from merging our protocol with Cyclon.
+\secref{sec:evaluation} evaluates our protocol.
+Finally, \secref{sec:related-work} surveys related work, and \secref{sec:conclusions} concludes.
+
+

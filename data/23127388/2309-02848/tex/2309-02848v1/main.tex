@@ -1,0 +1,141 @@
+\pdfoutput=1 
+\documentclass{article}
+\PassOptionsToPackage{numbers, compress}{natbib}
+
+
+% if you need to pass options to natbib, use, e.g.:
+%     \PassOptionsToPackage{numbers, compress}{natbib}
+% before loading neurips_2023
+
+
+% ready for submission
+\usepackage[preprint]{neurips_2023}
+
+
+% to compile a preprint version, e.g., for submission to arXiv, add add the
+% [preprint] option:
+%     \usepackage[preprint]{neurips_2023}
+
+
+% to compile a camera-ready version, add the [final] option, e.g.:
+%     \usepackage[final]{neurips_2023}
+
+
+% to avoid loading the natbib package, add option nonatbib:
+%    \usepackage[nonatbib]{neurips_2023}
+
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{xcolor}         % colors
+\usepackage{makecell}
+\usepackage{footnote}
+\usepackage{multirow}
+\usepackage{tablefootnote}
+\usepackage{enumitem} 
+
+\usepackage{soul} 
+\usepackage[misc]{ifsym}
+\newcommand{\figref}[1]{Fig.~\ref{#1}}
+\newcommand{\eqnref}[1]{Eq.~(\ref{#1})}
+\newcommand{\defref}[1]{Definition.~\ref{#1}}
+\newcommand{\secref}[1]{Sec.~\ref{#1}}
+\newcommand{\tableref}[1]{Table~\ref{#1}} 
+\newcommand{\algref}[1]{Algorithm~\ref{#1}}
+\usepackage{graphicx}  %Required
+
+\newcommand{\QZ}[1]{\textcolor{blue}{#1}}
+\newcommand{\hxw}[1]{\textbf{\color{red}[** #1 ** --hxw]}}
+\newcommand{\zzs}[1]{\textbf{\color{blue}[** #1 ** --zzs]}}
+\newcommand{\hkq}[1]{\textbf{\color{green}[** #1 ** --hkq]}}
+
+\newcommand{\rebuttal}[1]{\textbf{\color{red}[** #1 ** --rebuttal]}}
+
+\makeatletter
+\newif\if@restonecol
+\makeatother
+\let\algorithm\relax
+\let\endalgorithm\relax
+ 
+%引入伪代码模块需要的包，第三代
+\usepackage[linesnumbered,ruled,vlined]{algorithm2e}%[ruled,vlined]{
+ 
+%\usepackage[ruled]{algorithm2e} %带竖线
+%\usepackage[ruled,vlined]{algorithm2e} %带竖线和折线
+%\usepackage[linesnumbered,boxed]{algorithm2e} %方框格式
+%\usepackage[lined,algonl,boxed]{algorithm2e} %可以显示EndIf等
+
+
+\title{Prompt-based Node Feature Extractor for Few-shot Learning on Text-Attributed Graphs}
+
+
+% The \author macro works with any number of authors. There are two commands
+% used to separate the names and addresses of multiple authors: \And and \AND.
+%
+% Using \And between authors leaves it to LaTeX to determine where to break the
+% lines. Using \AND forces a line break at that point. So, if LaTeX puts 3 of 4
+% authors names on the first line, and the last on the second line, try using
+% \AND instead of \And before the third author name.
+
+
+\author{%
+Xuanwen Huang$^{\dagger}$, Kaiqiao Han$^{\dagger}$, Dezheng Bao$^{\dagger}$, Quanjin Tao, Zhisheng Zhang$^{\dagger}$,\\
+\textbf{Yang Yang$^{\dagger}$, Qi Zhu$^{\S}$}\\
+$^{\dagger}$Zhejiang University\\$^{\S}$ University of Illinois Urbana-Champaign\\  
+\texttt{\{xwhuang, kaiqiaohan, baodezheng, taoquanjin,\}@zju.edu.cn} \\
+\texttt{\{zhangzhsh6, yangya\}@zju.edu.cn} \\
+\texttt{qiz3@illinois.edu}\\
+}
+
+\usepackage{caption}
+\begin{document}
+
+
+\maketitle
+
+
+
+% Step 0: filling-mask, update GNN adator, replace linear layer
+% Step 1: task-specific prompt + Graph Adaptor(+PLM freeze) + GNN
+
+
+% baseline, prompt as input on for some baselines
+% baseline, compared your interpretable representations vs. CLS emebdding or mean pooling embeddings and [MASK] embedding
+
+\begin{abstract}
+Text-attributed Graphs (TAGs) are commonly found in the real world, such as social networks and citation networks, and consist of nodes represented by textual descriptions. 
+Currently, mainstream machine learning methods on TAGs involve a two-stage modeling approach: (1) unsupervised node feature extraction with pre-trained language models (PLMs); and (2) supervised learning using Graph Neural Networks (GNNs). 
+However, we observe that these representations, which have undergone large-scale pre-training, do not significantly improve performance with a limited amount of training samples. 
+The main issue is that existing methods have not effectively integrated information from the graph and downstream tasks simultaneously. 
+%to generate interpretable representations directly related to the graph and downstream tasks.
+In this paper, we propose a novel framework called G-Prompt, which combines a graph adapter and task-specific prompts to extract node features. 
+%The graph adapter operates on the last linear transformation layer of PLM, which predicts the ID of the masked token in the filling-mask task. 
+First, G-Prompt introduces a learnable GNN layer (\emph{i.e.,} adaptor) at the end of PLMs, which is fine-tuned to better capture the masked tokens considering graph neighborhood information.
+%can assist the language model in perceiving neighboring node information and better predicting masked tokens. The graph adapter is trained to utilize the fill-mask task native to the PLMs. 
+After the adapter is trained, G-Prompt incorporates task-specific prompts to obtain \emph{interpretable} node representations for the downstream task.
+%based on the language model's fill-mask framework, combined with 
+%the graph adapter to generate interpretable task-related representations that perceive graph information. 
+Our experiment results demonstrate that our proposed method outperforms current state-of-the-art (SOTA) methods on few-shot node classification. More importantly, in zero-shot settings, the G-Prompt embeddings can not only provide better task interpretability than vanilla PLMs
+but also achieve comparable performance with fully-supervised baselines.
+
+
+\end{abstract}
+
+\input{intro}
+\input{background}
+\input{method}
+\input{exp}
+\input{related}
+\input{conclusion}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\bibliographystyle{plain}
+\bibliography{main}
+\appendix
+\input{appendix}
+\end{document}

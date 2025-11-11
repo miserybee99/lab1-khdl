@@ -1,0 +1,88 @@
+%!TEX root = ../main.tex
+
+\section{Introduction}
+Smart contracts are an essential part of the ecosystem in many modern blockchain platforms.
+%
+Smart contracts allow developers to implement decentralized applications (DApps) that encode business logic on the blockchain, thereby facilitating a number of use cases.
+For instance, smart contracts enable the creation of non-fungible token (NFT) marketplaces.
+Artists use NFT marketplaces to auction their creations.
+Furthermore, established companies and sport franchises, like Nike~\cite{nike-nft}, Budweiser~\cite{budweiser-nft}, Lacoste~\cite{lacoste-nft}, and the NBA~\cite{nba-nft} use these marketplaces to sell NFT collections to fans and investors all over the world. 
+ 
+The Solana blockchain~\cite{solana} has become a key platform in the DApps and NFT space, because of its high performance and low transaction fees.
+In comparison to the more established smart contract platform Ethereum~\cite{ethereum}, Solana can execute 100--1000 times more transactions per second~\cite{Rouhani2017-bg,Lee_undated-wi} while charging a fraction of a USD cent as a fee~\cite{solana,Lee_undated-wi}.
+%
+As a result, the number of all transactions in the Solana network significantly exceeds the number of all transactions made in Ethereum by a factor of 85\footnote{On April 12, 2023, Ethereum processed \num{1933} million (\url{https://etherscan.io}) transactions, while Solana already reached \num{164839} million transactions (\url{https://solscan.io}).}.
+
+From a smart contract perspective, the Solana platform achieves a high transaction rate because its execution layer decouples program logic from state, i.e., smart contracts cannot store any dynamic state.
+This enables Solana to execute transactions operating on different data in parallel. 
+However, this also introduces new attack patterns that are specific to Solana.
+In fact, attacks against Solana smart contracts already caused multi-million Dollar losses~\cite{White2022-mango,White2022-solend}---the popular Wormhole attack induced losses of up to 320 million USD~\cite{Goodin2022-wormhole}.
+
+Smart contract security research ranges across different disciplines: from formal verification~\cite{Schneidewind2020-mj} and static analysis~\cite{Torres2018-je, Mossberg2019-xp} to dynamic analysis~\cite{Ding2021-qg}, with a high focus on the Ethereum platform.
+However, Solana suffers from different vulnerabilities than Ethereum, and the aforementioned techniques are not applicable to Solana due to its unique features:
+In comparison to Ethereum, the Solana blockchain is stateless and smart contracts have no direct association with the state.
+The stateless nature of Solana's execution environment requires stricter handling of user input.
+However, vulnerabilities often come from developers not checking security-critical properties in smart contracts, like missing transaction \emph{signer checks}.
+Unlike Ethereum smart contracts, which implicitly trust their state if it is not compromised.
+Moreover, the stateless approach of Solana and the impact on its security model is largely unexplored.
+
+Research on Solana security and tooling is limited: At the time of writing, VRust~\cite{Cui2022-nm} is the only existing static analysis approach that covers Solana smart contracts.
+VRust incorporates detection patterns for common vulnerabilities in Solana smart contracts and was able to detect 12 vulnerabilities in popular open-source smart contracts~\cite{Cui2022-nm}.
+However, VRust suffers from several limitations:
+\begin{inparaenum}[1)]
+  \item it strictly requires source code to conduct analyses,
+  \item it suffers from a high number of false alarms, and
+  \item it does not provide an analyst with enough data to (re-)construct exploit transactions.
+\end{inparaenum}
+%
+%
+In contrast, fuzzing is a technique that does not suffer from any of these limitations~\cite{Rawat2017-lj,Aschermann2019-ha,aflpp,libafl}.
+%
+The fuzzing input given to the analysis target can also usually be crafted into exploit transactions.
+%
+Smart contract fuzzing is a valuable technique that has been extensively researched with promising results.~\cite{sfuzz, echidna, rodler2023efcf}.
+
+\paragraph{Contributions}
+In this work, we propose a solution to detect bugs in Solana called \tool: the \emph{first} binary-only coverage-guided fuzzer for Solana smart contracts.
+We developed a set of bug detection oracles to facilitate the detection of Solana-specific smart contract bugs, namely 
+\begin{inparaenum}[1)]
+  \item missing signer checks, that is, the smart contract performing critical operations without checking for signatures,
+  \item missing owner checks, which allow a smart contract to use untrusted data,
+  \item arbitrary cross program invocation, i.e., a smart contract calls \emph{any} other smart contract,
+  \item missing key checks, which, similar to the missing owner check, enables a smart contract to use spoofed accounts as system variables, and
+  \item integer bugs.
+\end{inparaenum}
+In addition, we also design a generic oracle for \tool to detect vulnerabilities based on lamport gains.
+Lamports are the smallest denomination of Solana's native currency SOL, and 1 SOL corresponds to \num{1000000000} (one billion) lamports.
+We use this oracle to detect arbitrary leaking funds and lamport-theft.
+%
+
+Our extensive evaluation of \tool consists of several experiments.
+%
+In our first experiment, we test \tool with a set of vulnerable smart contracts provided by the community~\cite{Neodyme2021-vw}.
+We demonstrate that our approach is capable of quickly detecting Solana-specific vulnerabilities.
+Compared to VRust, \tool does not report any false alarm for the dataset provided in~\cite{Neodyme2021-vw}. In addition, \tool is also able to precisely trace back the vulnerability classes.
+
+Next, we perform a large-scale bug-finding evaluation on all Solana smart contracts present on the mainnet on March 27, 2023, which amounts to a total of \noc smart contracts.
+At the time of writing, this is the largest analyzed dataset of Solana smart contracts.
+\tool reports 92 bugs in these smart contracts.
+We analyzed 16 reports in-depth and confirmed that only 2 were false alarms, thus demonstrating the high accuracy of \tool in detecting bugs.
+\tool is the only analysis tool available that is able to analyze these contracts on the mainnet. 
+%
+
+Third, our performance evaluation on 16 smart contracts from well-known bug bounty programs demonstrates that \tool is able to analyze complex smart contracts.
+Here, \tool's generated transactions are able to consistently find new code paths in the programs. 
+In this experiment, \tool reports a true bug and only has a single false alarm, i.e., a single wrongly reported vulnerability.
+We summarize our contributions as follows:
+
+\begin{itemize}
+  \item We present the \emph{first} fuzzing architecture for Solana smart contracts.
+  We conceptualize \tool (\Cref{sec:design}) around the original Solana runtime to \tool faithfully model runtime specifics, such as smart contract interaction.
+  Moreover, this design guarantees reproducibility and validity of transactions that \tool generates:
+  Every transaction that generates a vulnerability report can be replayed, e.g., on a test network.
+  \item We design and implement new bug oracles to detect Solana-specific vulnerabilities (\Cref{sub:sol-vulnerabilities}).
+  Due to our design choices, \tool detects impactful bugs in smart contracts regardless of source code availability.
+  \item Our extensive evaluation on \noc smart contracts shows that \tool's bug oracles find bugs with a high precision and recall.
+  This is the largest evaluation of the security landscape on the Solana mainnet.
+  \item \tool detects the infamous Wormhole bug.
+\end{itemize}

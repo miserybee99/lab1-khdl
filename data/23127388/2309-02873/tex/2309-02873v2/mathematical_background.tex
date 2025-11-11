@@ -1,0 +1,332 @@
+\section{Mathematical background} \label{section:mathematics}
+In this section, we will provide the necessary mathematical background and equations.
+First, we will provide the background on KKL observers \citep{cdc-2019}.
+Then, we will demonstrate in which cases the hybrid GRU could behave like an observer as described in the method and experimental section. 
+We will also demonstrate, in which cases the properties are not fulfilled and the GRU is not able to act as an observer. 
+
+\subsection{KKL observer} \label{section:background}
+In this section, we add the necessary background on observer design.
+In particular, we define backward distinguishability mathematically and list the full set of assumptions.
+Analoguous to the background section, we consider a system with dynamics $f_u:\mathbb{R}^{d_u} \rightarrow \mathbb{R}^{d_u}$,
+states $u$ and the observation model $h:\mathbb{R}^{d_u} \rightarrow \mathbb{R}^{d_s}$ with measurements $\hat s$.
+
+\paragraph{Backward distinguishability: }
+Consider a system with invertable dynamics $f_u$ and observation function $h$.  
+Let $\mathcal{O}$ be an open bounded set containing $\mathcal{U}$.
+Then, the system is denoted backward $\mathcal{O}$-distinguishable on $\mathcal{U}$ if
+for any trajectories $u^a$ and $u^b$ with $(u^a_0, u^b_0) \in \mathcal{U}\times\mathcal{U}$ and $u^a_0 \neq u^b_0$,
+there exists $T > 0$ such that $h(f_u^{-T}(u^a_0)) \neq h(f_u^{-T}(u^b_0))$ and
+$(f_u^{-n}(u^b_0), f^{-n}(u^b_0)) \in \mathcal{O}\times\mathcal{O}$ for $n=0, \dots, T$.
+A system is called backward distinguishable if there is such an $\mathcal O$.
+
+
+\paragraph{Assumption 1: }
+The dynamics function $f_u$ is invertible and $f_u^{-1}$ and $h$ are of class $C^1$ and globally Lipschitz.  
+\paragraph{Assumption 2: }
+The system with dynamics $f_u$ and observation function $h$ is backward-distinguishable.
+
+Based on the assumptions the following theorem holds (cf. \citep{cdc-2019}).
+\begin{theorem}[KKL-observer]\label{Thm1}
+	Suppose assumptions 1 and 2 hold.
+	Define $d_z = d_y(d_u + 1)$. 
+	Let $c=\sup\{|(f^{-1})^{\prime}(u)| \mid u \in \mathcal{U}\}$ and $\mathcal{D}$ be the open disc in $\mathbb C$ of
+	radius $\min\{1,1/c\}$. Then, there exists a set $S$ of zero measure in $\mathbb{C}^{d_z}$ such that for any
+	diagonalizable matrix $D \in \mathbb R^{d_z \times d_z}$ with eigenvalues $(\lambda_1,\dots,\lambda_{d_z})$ in
+	$\mathcal{D}^{d_z}\setminus S$ and any $F \in \mathbb{R}^{d_z \times d_s}$ such that $(D,F)$ is a controllable pair and 
+	$\max(|\lambda_i|)<1,$
+	there exists a continuous injective mapping $T:\mathbb R^{d_u} \rightarrow \mathbb{R}^{d_z}$ that satisfies the
+	following equation on $\mathcal U$
+	\begin{equation}
+	\begin{aligned}
+	T(f_u(u))=DT(u)+Fh(u),
+	\end{aligned}
+	\end{equation}
+	and its continuous pseudo-inverse $T^{\star}:\mathbb C^{d_z} \rightarrow \mathbb{R}^{d_u}$ such that any trajectory of $z_{n+1}=Dz_n+F \hat s_n$ satisfies
+	\begin{equation} \label{eq:observation}
+	\lim_{n \rightarrow \infty} |u_n-T^{\star}(z_n)|=0.
+	\end{equation}
+	Thus, $T^{\star}(z)$ is an observer for $u$. 
+\end{theorem}
+
+ 
+\subsection{GRU architecture}
+In this section, we will present the central results for GRUs that serve as a backbone and a baseline for our architecture. 
+We will closely follow the notations and results in \citet{BONASSI2021105049}.
+We will first recap the GRU dynamics and the warmup phase. 
+The transition function $x_{n+1}=f(x_n, \tilde y_n, i_n)$ of a GRU is given as 
+\begin{equation}\label{eq:GRUequation} 
+\begin{aligned}
+x_{n+1} &=z_n \circ x_n+(1-z_n) \circ \phi(\tilde W_r i_n+ W_r \tilde y_n+U_r h_n \circ x_n+b_r) \\
+z_n &=\sigma(\tilde W_z i_n+W_z \tilde y_n+U_zx_n+b_z) \\
+h_n& = \sigma(\tilde W_f i_n+W_f \tilde y_n+U_fx_n+b_f), 
+\end{aligned}
+\end{equation}
+where $x_n \in \mathbb{R}^{d_x}$ is the state vector and $i_n \in \mathbb{R}^{d_s}$ is the control input.
+In our case, the control input is given by the simulator $\hat s$. 
+For the reconstructed observations $y \in \mathbb{R}^{d_y}$ it holds that 
+\begin{equation}\label{eq:obs}
+y_n=g(x_n)=U_ox_n
+\end{equation}
+with trainable matrix $U_0$. 
+In the following, we specify the input $\tilde y_n \in \mathbb{R}^{d_y}$.  
+
+\paragraph{GRU warmup phase}
+A GRU ~\eqref{eq:GRUequation} is trained by feeding the measurements $\hat y_n \in \mathbb{R}^{d_y}$ as input on a small warmup phase of length $R$. 
+After the warmup phase, the reconstructed observations are provided as inputs. 
+This yields
+\begin{equation}\label{eq:warmup}
+\tilde y_n = 
+\begin{cases}
+\hat y_n & \textrm{ for } n \leq R, \\
+y_n=U_o x_n & \textrm{ for } n > R. 
+\end{cases}
+\end{equation}
+
+
+We will first demonstrate, under which conditions the system we consider could act as an observer.
+Further, we will demonstrate conditions, under which it can not act as an observer. 
+For both cases, we will derive some special cases. 
+We will show, how a GRU could reproduce a partially OVS system and how it can reproduce a fully OVS system.
+We will further demonstrate, how the GRU could ignore the simulator. 
+
+In the following, we will focus on transitions after the warmup phase, thus $y_n = U_o x_n$.
+Analogous to \citet{BONASSI2021105049} consider the following assumption.
+
+\paragraph{Assumption 1: }
+The initial state of the GRU network \eqref{eq:GRUequation} belongs to an arbitrary large but bounded set 
+$\check{\mathcal X} \supseteq \mathcal X$, defined as 
+\begin{equation}
+\check{\mathcal X} = \{x \in \mathbb R^{d_n}: \Vert x \Vert_{\infty} \leq \check \lambda\},
+\end{equation} 
+with $\lambda \geq 1$. 
+
+The central property of an observer is the independence of the initial conditions.
+For the GRU this is the case, if the system forms a contraction.
+Thus, we will show under which conditions the GRU is a contraction.  
+The following results are based on \citet{BONASSI2021105049} adapted to our setting. 
+\begin{lemma}[GRU properties]\label{lem:GRUproperties}
+	Consider the GRU \eqref{eq:GRUequation}, two different initial values $x_a$ and $x_b$ after the warmup phase and identical control inputs $i$. 
+	If 
+	\begin{equation}
+	\begin{aligned}
+    \check \sigma_z & + (1-\check \sigma_z)\left(\Vert U_r \Vert_{\infty} (\frac{1}{4} \check \lambda \Vert U_f \Vert_{\infty}+\check \sigma_f)+\Vert W_r \Vert_{\infty}\Vert U_o \Vert_{\infty} 
+    +\frac{1}{4} \check \lambda \Vert U_r \Vert_{\infty}\Vert W_f \Vert_{\infty}\Vert U_o \Vert_{\infty}\right)\\
+    & +\frac{1}{4}(\check \lambda + \check \phi_r)(\Vert U_z \Vert_{\infty}+\Vert W_z \Vert_{\infty}\Vert U_o \Vert_{\infty})<1
+  \end{aligned}
+  \end{equation}
+	with 
+	\begin{equation}
+	\begin{aligned}
+	\check{\sigma}_z &=\sigma(\Vert W_z \ \check \lambda U_z \ b_z \Vert_{\infty}) \\
+	\check{\sigma}_f & = \sigma(\Vert W_f \ \check \lambda U_f \ b_f \Vert_{\infty}) \\
+	\check{\phi}_r &= \phi(\Vert W_r \ \check \lambda U_r \ b_r) \Vert_{\infty}),
+	\end{aligned}
+	\end{equation}
+	then it holds that 
+	\begin{equation}
+	\Vert f(x_a, y_a, i)-f(x_b, y_b, i) \Vert \leq  C \Vert x_a-x_b \Vert,
+	\end{equation}	
+	where $C \in (0,1).$ 
+\end{lemma} 
+\begin{proof}
+	Consider
+	\begin{equation}
+	\Delta x^+ = f(x_a, i, y_a)-f(x_b, i, y_b)
+	\end{equation}
+	and 
+	\begin{equation}
+	\Delta x = x_a-x_b.
+	\end{equation}
+	The proof of Theorem 2 in \citet{BONASSI2021105049} yields for the jth component of $\Delta x^+$
+	\begin{equation}
+	\begin{aligned}
+	|\Delta x_j^+| & \leq \alpha_{\Delta_x} \Vert \Delta x \Vert_{\infty} + \alpha_{\Delta_u} \Vert U_o \Delta_x \Vert_{\infty} \\
+	& \leq \alpha_{\Delta_x} \Vert \Delta x \Vert_{\infty} + \alpha_{\Delta_u}  \Vert U_o \Vert_{\infty} \Vert \Delta x \Vert_{\infty}
+	\end{aligned}
+	\end{equation}
+	with 
+	\begin{equation}
+	\begin{aligned}
+	   \alpha_{\Delta_x} & = z_{aj}+\frac{1}{4}(\check \lambda + \check \phi_r)\Vert U_z \Vert_{\infty}+(1-z_{aj})
+	   \Vert U_r \Vert_{\infty}(\frac{1}{4} \check \lambda \Vert U_f \Vert_{\infty}+\check \sigma_f), \\
+	   \alpha_{\Delta_u} & = \frac{1}{4}(\check \lambda + \check \phi_r) \Vert W_z \Vert_{\infty}+(1-z_{aj})(\Vert W_r \Vert_{\infty}+\frac{1}{4} \check \lambda \Vert U_r \Vert_{\infty}\Vert W_f \Vert_{\infty}).
+	\end{aligned}
+	\end{equation}
+Here $z_{aj}$ repectively $z_{bj}$ denote the latent state corresponding to $x_{aj}$ and $x_{bj}$.
+It holds that 
+\begin{equation}
+\begin{aligned}
+&\alpha_{\Delta_x}+\Vert U_o \Vert \alpha_{\Delta_u} \\
+= & z_{aj}\left(1-\Vert U_r \Vert_{\infty}(\frac{1}{4}\check \lambda \Vert U_f \Vert_{\infty}+\check \sigma_f)-\Vert U_o \Vert_{\infty}(\Vert W_r \Vert_{\infty}+\frac{1}{4} \check \lambda \Vert U_r \Vert_{\infty} \Vert W_f \Vert_{\infty}) \right) \\
+& +\frac{1}{4}(\check \lambda + \check \phi_r)\Vert U_z \Vert_{\infty}+\Vert U_r \Vert_{\infty}(\frac{1}{4} \check \lambda \Vert U_f \Vert_{\infty}+\check \sigma_f) \\
+&+\Vert U_o \Vert_{\infty} \frac{1}{4}(\check \lambda + \check \phi_r) \Vert W_z \Vert_{\infty} + \Vert U_o \Vert_{\infty} (\Vert W_r \Vert_{\infty}+\frac{1}{4} \check \lambda \Vert U_r \Vert_{\infty}\Vert W_f \Vert_{\infty}).
+\end{aligned}
+\end{equation}
+\end{proof}
+
+Since $z_{aj} \in [1-\check \sigma_z, \check \sigma_z]$ this yields
+\begin{equation}
+\begin{aligned}
+&\alpha_{\Delta_x}+\Vert U_o \Vert \alpha_{\Delta_u} \\
+\leq &\check \sigma_z+\Vert U_r \Vert_{\infty}(\frac{1}{4} \check \lambda \Vert U_f \Vert_{\infty}+\check \sigma_f)(1-\check \sigma_z) +\Vert U_o \Vert_{\infty}(\Vert W_r \Vert_{\infty}+\frac{1}{4} \check \lambda \Vert U_r \Vert_{\infty} \Vert W_f \Vert_{\infty})(1-\check \sigma_z) \\
+&+\Vert U_o \Vert_{\infty} \frac{1}{4}(\check \lambda + \check \phi_r) \Vert W_z \Vert_{\infty} \\
+& \leq \check \sigma_z+(1-\sigma_z)\left(\Vert U_r \Vert_{\infty}(\frac{1}{4} \check \lambda \Vert U_f \Vert_{\infty}+\check \sigma_f)+\Vert U_o \Vert_{\infty}(\Vert W_r \Vert_{\infty}+\frac{1}{4} \check \lambda \Vert U_r \Vert_{\infty} \Vert W_f \Vert_{\infty}) \right) \\
+&+\frac{1}{4}(\check \lambda + \check \phi_r)(\Vert U_z \Vert_{\infty}+\Vert W_z \Vert_{\infty} \Vert U_o \Vert_{\infty}).
+\end{aligned}
+\end{equation}
+
+\subsection{GRU as an observer}
+Lemma \ref{lem:GRUproperties} demonstrates that the GRU is a contraction under some conditions.
+From there, it is easy to see that the GRU forgets its initial values. 
+Note that we consider the rollouts after the warmup phase, where the GRU receives output feedback. 
+This is done since we are interested in the long-term behavior of the system. 
+During the warmup phase, the GRU receives the measumements as an input.
+In this case, the setting reduces to the setting presented in \citet{BONASSI2021105049}.
+This leads to weaker requirements for the system to be a contraction. 
+
+\begin{theorem}[Observer GRU] \label{observer_GRU}
+Consider a GRU \eqref{eq:GRUequation} and assume that the requirements in Lemma \ref{lem:GRUproperties} hold. 
+Then, the GRU forgets is initial conditions.
+Further, consider two rollouts $x$ and $\tilde x$ with initial values $x_a$ and $x_b$. 
+Then it holds that 
+\begin{equation}
+\Vert \tilde x_n -x_n \Vert \rightarrow 0, n \rightarrow \infty. 
+\end{equation}
+\end{theorem}
+	
+\begin{proof}
+Holds due to the contraction property.  
+\end{proof}	
+
+Theorem \ref{observer_GRU} shows that under certain conditions, the GRU dynamics forgets its initial conditions.
+Intuitively, if the dynamics fit the data, it will behave as an observer via the simulator.
+However, the GRU is not restricted to this properties.  
+Further, there is no guarantee that the dynamics and observations can indeed be represented with GRU dynamics fulfilling the required properties.
+In contrast, the existence is guaranteed for the KKL observer under mild assumptions. 
+By design, the KKL also forgets its initial conditions. 
+This can be seen by considering the transformation $T$ with Lipschitz constant $L$. It holds that 
+\begin{equation}
+\Vert T(Dz_n+B\hat s_n)-T(D\tilde z_n+B\hat s_n) \Vert \leq L \Vert D^n (z_0-\tilde z_0) \Vert \leq L |\lambda|^n\Vert z_0-\tilde z_0\Vert,
+\end{equation}
+where $\lambda$ denotes the maximum eigenvalue of $D$.
+
+In the following, we will derive specific GRU architectures for special cases.
+Theorem \ref{observer_GRU} provides some requirements, under which the GRU reconstructs the full latent state via the simulator. 
+However, this is usually not the case that we consider in practice.
+As derived in the main paper, we typically consider a partially OVS system with states $u$ that can be reconstructed via the simulator and states $v$ that can not. 
+Therefore, we will demonstrate conditions under which a GRU can represent such a partially OVS system.
+Intuitively, the GRU matrices are chosen, such that one part of the states is only influenced by the simulator and itself. 
+After that we will derive the criteria, under which the GRU could act as an observer for the first part of the states.  
+ 
+
+
+\begin{lemma}[Partially OVS Representation] \label{lem:GRUSplit}
+Consider the split of $x$ in $u$ and $v$ with $u \in \mathbb{R}^{d_u}, v \in \mathbb{R}^{d_x}$ and $d_x = d_u+d_v$. 
+Further, consider GRU dynamics $f$ with matrices 
+\begin{equation}
+\begin{aligned}
+W_r&=(0, W_r^v), \textrm{ with } W_r^v \in \mathbb{R}^{d_v \times d_y}, U_r = \begin{pmatrix}
+U_r^u & 0 \\
+U_r^{v,l} &  U_r^{v,r}
+\end{pmatrix}, \\
+W_z&=(0, W_z^v), \textrm{ with } W_z^v \in \mathbb{R}^{d_v \times d_y}, U_z= \begin{pmatrix}
+U_z^u & 0 \\
+U_z^{v,l} &  U_z^{v,r}
+\end{pmatrix}, \\
+W_f&=(0, W_f^v), \textrm{ with } W_f^v \in \mathbb{R}^{d_v \times d_y}, U_f= \begin{pmatrix}
+U_f^u & 0 \\
+U_f^{v,l} &  U_f^{v,r}.
+\end{pmatrix}
+\end{aligned}
+\end{equation} 	
+Then, the GRU dynamics $f$ with observation function $U_o$ can be split into $f_u$, $f_v$  
+and observation functions $g$ and $r$, where 
+\begin{equation}\label{eq:partially_obs}
+\begin{aligned}
+u_{n+1}&=f_u(u_n, i_n) \\
+v_{n+1}&=f_v(u_n, v_n, \tilde y_n, i_n) \\ 
+y_n & = g(u_n)+r(v_n). \\
+\end{aligned}
+\end{equation}
+\end{lemma}
+ \begin{proof}
+ The matrices are constructed, such that $u$ is only influenced by $u$ and $i$ due to the choice of $W_r, W_z, W_u, U_r, U_z$ and $U_f$. The activation functions and Hadamard product are applied component-wise.  
+ Note, that $f_u$ can be represented as GRU again and is thus a sub-GRU. 
+ \end{proof}
+\begin{lemma}[Partially OVS GRU]\label{lem:PartiallyOVSGRU}
+	Consider the GRU \eqref{eq:GRUequation}, two rollouts $x$ and $\tilde x$ with initial values $x_a$ and $x_b$ and identical control inputs $i$. 
+	If the partially OVS conditions from Lemma \ref{lem:GRUSplit} hold and further 
+	\begin{equation}
+	\Vert U_r^u \Vert_{\infty}\left(\frac{1}{4} \check \lambda \Vert U_f^u \Vert_{\infty} + \check \sigma_f\right)<1-\frac{1}{4} \frac{\check \lambda + \check \phi_r}{1-\check \sigma_z}
+	\Vert U_z^u \Vert_{\infty}, \end{equation}
+	with 
+	\begin{equation}
+	\begin{aligned}
+	\check{\sigma}_z &=\sigma(\Vert \tilde W_z^u \ \check \lambda U_z^u \ b_z^u \Vert_{\infty}) \\
+	\check{\sigma}_f & = \sigma(\Vert \tilde W_f^u \ \check \lambda U_f^u \ b_f^u \Vert_{\infty}) \\
+	\check{\phi}_r &= \phi(\Vert \tilde W_r^u \ \check \lambda U_r^u \ b_r^u) \Vert_{\infty}),
+	\end{aligned}
+	\end{equation}
+	where the superscript $u$ denotes the submatrices that affect $u$ 
+	then it holds that 
+	\begin{equation}
+\Vert u_n-\tilde u_n \Vert \rightarrow 0
+	\end{equation}	
+\end{lemma} 
+\begin{proof}
+Since the matrices are constructed such that $u$ forms an independent system that is not influenced by $y$ and the other part of the latent states $v$, the proof of Theorem 2 in \citet{BONASSI2021105049} can be applied. In particular consider $\Delta u^+ = f_u(u_a,i_0)-f_u(u_b,i_0)$ and $\Delta u = u_a-u_b$. 
+Then it holds that
+\begin{equation}
+\Vert \Delta u^+ \Vert_{\infty} \leq (1-\delta)\Vert \Delta u \Vert_{\infty},
+\end{equation}
+with $\delta \in (0,1)$. 
+Thus, the system is a contraction and it holds that 
+\begin{equation}
+\Vert u_n-\tilde u_n \Vert \rightarrow 0.
+\end{equation}
+\end{proof}
+
+The results show that the GRU architectur can represent a split in $u$ and $v$, where the transitions of $u$ form a sub-GRU.
+Thus, under some requirements, the sub-GRU is a contraction for $u$ and thus, $u$ forgets its initial conditions. 
+This means that if we can reproduce the original OVS system with this architecture, then the sub-GRU is able to learn a system, where $u$ can be reconstructed via the simulator. 
+We expect that it in this cases it can also balance the small model mismatch, continuously correcting the latent states $u$ similar to the KKL-RNN.
+However, as before, there is no guarantee that a required system exists for all data.
+Further, the required properties are not enforced in the GRU architecture by design. 
+Also, the desired split is not enforced in cotrast to our KKL-RNN architecture. 
+We will show later that this could lead to a model that ignores the simulator. 
+For completeness, we will first show how to obtain the fully OVS case. 
+ 
+\paragraph{Fully OVS case: }
+The fully OVS case is obtained by ignoring the data input, thus $W_r=0$, $W_z=0$, and $W_f=0$.
+In this case, the system reduced to a system with control input $i$ and without output feedback. 
+Thus, if the conditions from \citet{BONASSI2021105049} hold, the GRU is a contraction and can behave as an observer. 
+Again, this requires that the original system can be represented with such a GRU architecture.
+This includes that the original system is OVS. 
+
+\paragraph{Ignoring the simulator: }
+In any case, it is also possible to construct a dynamical system that is able to predict the data $y$ without considering the simulator inputs $\hat s$. 
+Intuitively, this holds since the data are observable via the data itself.
+Thus, latent dynamics can be constructed explaining the data solely via the data.
+This can be easily seen by considering $\tilde W_r=0$, $\tilde W_z=0$, and $\tilde W_f=0$, thus ignoring the simulator input.
+By ignoring the simulator it is visible easily that the acthitecture can not inform the latent states via the simulator.
+However, this is also possible in other scenarios if the system violates the observer properties and allows errors to accumulate. 
+
+\subsection{Summary and interpreting the results}
+In the experiments, we have seen that the hybrid GRU acts similarly to our KKL-RNN in some cases.
+Indeed, under certain conditions the GRU dynamics are a contraction and thus, the GRU forgets its initial condition.
+The GRU architecture further allows to split the internal latent states into an OVS and non-OVS part, where the OVS part is solely addressed by the simulator and not by output feedback. 
+Thus, if the dynamics additionally match the data, the GRU could act similar as an observer. 
+In this cases, the setting allows to inform the OVS latent states via the simulator as before and we expect it to balance small modeling mismatchtes, thus correcting and stabilizing the predictions similar to our KKL-RNN. 
+However, there is no formal proof that such a GRU exists for all system. 
+Further, the necessary properties for a contraction are not fulfilled by design. 
+We further showed that it is also possible to ignore the simulator inputs. 
+In the experiments we observed, that the KKL-RNN was especially beneficial in case the simulator is only partially informative, e.g. in the partially OVS case. 
+It can be interpreted that it is easier for the GRU to act as an observer if the simulator data are easy to process and no split in OVS and non-OVS has to be learned.
+To interpret the results further, consider a fully OVS system. 
+The hybrid GRU constantly receives the simulator input.
+In contrast, the data are only provided during a warmup phase and are further noisy.
+Thus, it might be easier to inform the latent states via the simulator than via the data.
+The partially OVS system on the other hand requires learning the correct split, making the learning-task harder again.  
+Additionally, if the system can not easily detect the states that are OVS via the simulator, this could also cause problems.
+Later we will demonstrate experimentally that also GRUs specifically trained on the partially OVS systems are not able to learn the correct split. 
+  

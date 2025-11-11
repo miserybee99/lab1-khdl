@@ -1,0 +1,93 @@
+The goal of the robot is to follow a local reference path $\Path_{ref} \subset \mathbb{R}^3$ that is assumed to be known.
+%
+However, unforeseen events, detected by the robot's sensors, can make this path impassable.
+%
+The aim of our path planning framework is to find the optimal path $\Path^* \subset \mathbb{R}^3$ that is the closest to the reference path $\Path_{ref}$, while maintaining a reasonable level of risk along the path.
+%
+Namely, a path $\Path$ is accepted only if the risk undertaken by the robot along the path is below a user-defined risk threshold $r_{threshold}$, consistent with the preferences of the user and the robot abilities.
+%
+The optimal path $\Path^*$ also minimizes the traversal time of the robot.
+%
+
+To address the problem, we rely on a \ac{NMPC} approach, where we use the Ackermann steering model as the prediction model.
+Using a small sample time $\Delta t$, the kinematic equations can be discretized into
+\begin{equation}
+	\begin{aligned}
+		\begin{bmatrix}
+			x_{k+1} \\y_{k+1} \\ \theta_{k+1}
+		\end{bmatrix}
+		=
+        \begin{bmatrix}
+            x_{k}\\
+			y_{k}\\
+			\theta_k
+        \end{bmatrix}
+        + \Delta t
+		\begin{bmatrix}
+			v_{k} \cos{\theta_{k}}\\
+			v_{k} \sin{\theta_{k}}\\
+			v_{k} \tan{\delta_{k}}/L
+		\end{bmatrix}
+        ,
+	\end{aligned}
+	\label{eq:discrete_model}
+\end{equation}
+where $k$ represent the discrete time, $L$ is the length of the wheelbase of the robot, $(x_{k}, y_{k})$  and $\theta_k$ are respectively the centre position of the rear axle and the yaw angle of the robot in the absolute frame.
+Finally, $v_k$ is the linear velocity of the robot, and $\delta_k$ the steering angle of the robot.
+The compact form of \autoref{eq:discrete_model} is written as $\textbf{x}_{k+1} = f_d(\textbf{x}_k, \textbf{u}_k)$, where $\textbf{x}_{k+1} = [x_{k+1}, y_{k+1}, \theta_{k+1}]^\intercal$ is the predicted state vector, $\textbf{x}_k = [x_k, y_k, \theta_k]^\intercal$ is the state vector, and $\textbf{u}_k = [v_k, \delta_k]^\intercal$ is the control vector.
+%
+The reference trajectory associated with the path $\Path_{ref}$ is defined as a set of desired states $[\textbf{x}^{r}_{0}, \cdots, \textbf{x}^{r}_{N_{p}}]^\intercal$, where $\textbf{x}^{r}_{k}$ is the desired state at time $k$.%
+
+According to our objective and constraints, we want to minimize the errors between the predicted and the reference paths over a finite prediction horizon of length $N_{p}$ while considering kinematic, control, and risk constraints.
+%
+We also want to minimize the traversal time and penalize the error in the final state.
+The penalization of this latter error is used to force the robot to approach the farthest reference goal $\textbf{x}^{r}_{N_{p}}$ located in the perceived and therefore secure navigable area.
+%
+%
+As a result, the risk-aware navigation based on \ac{NMPC} consists in computing a trajectory $[\textbf{x}_{0}, \cdots, \textbf{x}_{N_{p}}]^\intercal$ by the following quadratic constraint optimization:
+\begin{equation}
+    \begin{aligned} 
+        \min_{} \quad &Z = Z_{1} + Z_{2} + Z_{3}\\
+         \textrm{s.
+t.
+} \quad & \textbf{x}_{k+1} = f_d(\textbf{x}_k, \textbf{u}_k)\\
+           &\textbf{u}_{\rm min} \le \textbf{u}_k \le \textbf{u}_{\rm max}\\
+           &\mathbb{E}[\textit{r}(X)] \leq r_{threshold}
+    \end{aligned}
+ \label{eq:prob_control}
+ \end{equation}
+where $Z$ is the cost function of the optimization problem, defined as a combination of three penalty terms described below, and $(\textbf{u}_{min}, \textbf{u}_{max})$ are respectively the lower and upper bounds of the control vector.
+
+The first penalty term is used to prevent the robot from deviating too far from the reference path $\Path_{ref}$:
+%
+\begin{equation}
+    \label{eq:penalty_track}
+    Z_{1} = \sum_{k=0}^{N_{p}-1} (\textbf{x}_k-\textbf{x}_k^r)^\intercal \textbf{Q} (\textbf{x}_k-\textbf{x}_k^r),
+\end{equation}
+where $\textbf{Q} \in \mathbb{R}^{3\times3}$ is the weight matrix used to penalize the state component parts.
+The second penalty term ensures that the robot approaches to the farthest desired position:
+\begin{equation}
+    \label{eq:penalty_goal}
+    Z_{2} = (\textbf{x}_{N_{p}}-\textbf{x}_{N_{p}}^r)^\intercal \textbf{Q}_{N} (\textbf{x}_{N_{p}}-\textbf{x}_{N_{p}}^r),
+\end{equation}
+where $\textbf{x}_{N_{p}}$ is the last predicted state, and $\textbf{Q}_{N} \in \mathbb{R}^{3\times3}$ is the weight matrix used to penalize the final state component parts.
+%
+The last penalty term is used to prioritize a minimum traversal time:
+\begin{equation}
+    \label{eq:penalty_time}
+    Z_{3} = \sum_{k=0}^{N_{p}-1} \text{w}_{v}(v_k - v_{max})^2,
+\end{equation}
+where $v_{max}$ is the maximum velocity the robot can reach and $\text{w}_{v} \in \mathbb{R}$ is the weighting coefficient that penalizes low velocities.
+The final constraint $\mathbb{E}[\textit{r}(X)] \leq r_{threshold}$ forces the robot to find a trajectory that is safe to traverse.
+%
+%
+%
+%
+%
+%
+Therefore, any trajectory that exceeds the risk threshold $r_{threshold}$ will be rejected.
+%
+Note that we do not add the risk to the cost function, as we would lose its physical meaning.
+The risk is here defined as a hard constraint to ensure that it is never exceeded.
+Finally, the optimal path $\Path^*$ is the one that minimizes the cost function in respects to the risk and the control constraints.
+%

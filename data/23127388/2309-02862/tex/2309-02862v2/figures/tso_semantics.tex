@@ -1,0 +1,38 @@
+\begin{figure}
+\centering
+\begin{equation*}
+\begin{array}{lc}
+
+\inference{read-own-write}
+	{\state \to[\rd\of\xd] \state' \qquad \statemap\of\pid = \state \qquad \buffermap\of\pid|_{\set\xvar \times \valset} = \tuple\xd \cdot \word}
+	{\tuple{ \statemap, \buffermap, \memorymap} \to[\rd\of\xd_\pid] \tuple{ \statemap[\pid \leftarrow \state'], \buffermap, \memorymap}}
+\bigskip\\
+\inference{read-from-memory}
+	{\state \to[\rd\of\xd] \state' \qquad \statemap\of\pid = \state \qquad \buffermap\of\pid|_{\set\xvar \times \valset} = \varepsilon \qquad \memorymap\of\xvar = \dval}
+	{\tuple{ \statemap, \buffermap, \memorymap} \to[\rd\of\xd_\pid] \tuple{ \statemap[\pid \leftarrow \state'], \buffermap, \memorymap}}
+\bigskip\\
+\inference{write}
+	{\state \to[\wr\of\xd] \state' \qquad \statemap\of\pid = \state}
+	{\tuple{ \statemap, \buffermap, \memorymap} \to[\wr\of\xd_\pid] \tuple{ \statemap[\pid \leftarrow \state'], \buffermap[\pid \leftarrow \tuple\xd \cdot \buffermap\of\pid], \memorymap}}
+\bigskip\\
+\inference{arw}
+	{\state \to[\arw\of\xdd] \state' \qquad \statemap\of\pid = \state \qquad \buffermap\of\pid = \varepsilon \qquad \memorymap\of\xvar = \dval}
+	{\tuple{ \statemap, \buffermap, \memorymap} \to[\arw\of\xdd_\pid] \tuple{ \statemap[\pid \leftarrow \state'], \buffermap, \memorymap[\xvar \leftarrow \dval']}}
+\bigskip\\
+\inference{skip}
+	{\state \to[\nop] \state' \qquad \statemap\of\pid = \state}
+	{\tuple{ \statemap, \buffermap, \memorymap} \to[\nop_\pid] \tuple{ \statemap[\pid \leftarrow \state'], \buffermap, \memorymap}}
+\bigskip\\
+\inference{memory-fence}
+	{\state \to[\mf] \state' \qquad \statemap\of\pid = \state \qquad \buffermap\of\pid = \varepsilon}
+	{\tuple{ \statemap, \buffermap, \memorymap} \to[\mf_\pid] \tuple{ \statemap[\pid \leftarrow \state'], \buffermap, \memorymap}}
+\bigskip\\
+\inference{update}
+	{\buffermap\of\pid = \word \cdot \tuple\xd}
+	{\tuple{ \statemap, \buffermap, \memorymap} \to[\up_\pid] \tuple{ \statemap, \buffermap[\pid \leftarrow \word], \memorymap[\xvar \leftarrow \dval]}}
+
+\end{array}
+\end{equation*}
+\caption{TSO semantics}
+\label{fig:tso-semantics}
+\end{figure}

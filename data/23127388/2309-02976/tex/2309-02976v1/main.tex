@@ -1,0 +1,260 @@
+\documentclass[journal,hidelinks]{IEEEtran}
+\IEEEoverridecommandlockouts
+\input{header}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts} 
+\usepackage{algpseudocode}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{multicol}
+
+
+\newcommand{\supercite}[1]{\textsuperscript{\cite{#1}}}
+    
+\usepackage{hyperref}
+
+\usepackage{capt-of,etoolbox}
+
+\makeatletter
+\apptocmd\@maketitle{{\myfigure{}\vspace{-20pt}}}{}{}
+\makeatother
+
+
+\begin{document}
+\newcommand\myfigure{%
+\centering     
+\setcounter{figure}{0} %
+        \includegraphics[height=0.2\textheight]{figs/environments/H0918.png}
+        \includegraphics[height=0.2\textheight]{figs/environments/H1622.png}
+        \includegraphics[height=0.2\textheight]{figs/environments/H2190.png}
+        \includegraphics[height=0.2\textheight]{figs/environments/myoleg.png}
+        \includegraphics[height=0.2\textheight]{figs/environments/obstacle_crop.png}\\
+\captionof{figure}{{\bf{We achieve robust and energy-efficient natural walking with RL on a series of human models}} Left to right: \planarmodel, \threedmodel, \complexmodel, \myoleg and an uneven terrain environment. Videos: \href{https://sites.google.com/view/naturalwalkingrl}{\color{blue}https://sites.google.com/view/naturalwalkingrl}}
+\label{fig:models}
+}
+\title{Natural and Robust Walking using Reinforcement Learning without Demonstrations in High-Dimensional Musculoskeletal Models}
+\author{Pierre Schumacher$^{1,2}$, Thomas Geijtenbeek$^{3}$, Vittorio Caggiano$^{4}$, Vikash Kumar$^{4}$, Syn Schmitt$^{5}$,\\ Georg Martius$^{1,6}$, Daniel F. B. Haeufle$^{2,7}$
+\thanks{$^{1}$Max-Planck Institute for Intelligent Systems, Tübingen, Germany}
+\thanks{$^{2}$Hertie Institute for Clinical Brain Research and Center for Integrative Neuroscience, Tübingen, Germany}
+\thanks{$^{3}$Goatstream, The Netherlands}
+\thanks{$^{4}$Meta AI, New York, USA}
+\thanks{$^{5}$Institute for Modelling and Simulation of Biomechanical Systems, University of Stuttgart, Germany}
+\thanks{$^{6}$Department of Computer Science, University of Tübingen, Germany}
+\thanks{$^{7}$Institute of Computer Engineering, Heidelberg University, Germany}
+}
+\markboth{Preprint}{Schumacher \MakeLowercase{\textit{(et al.)}:Title}}
+\maketitle
+
+\begin{abstract}
+
+
+
+Humans excel at robust bipedal walking in complex natural environments. In each step, they adequately tune the interaction of biomechanical muscle dynamics and neuronal signals to be robust against uncertainties in ground conditions.
+However, it is still not fully understood how the nervous system resolves the musculoskeletal redundancy to solve the multi-objective control problem considering stability, robustness, and energy efficiency.
+In computer simulations, energy minimization has been shown to be a successful optimization target, reproducing natural walking with trajectory optimization or reflex-based control methods. However, these methods focus on particular motions at a time and the resulting controllers are limited when compensating for perturbations. %
+In robotics, reinforcement learning~(RL) methods recently achieved highly stable (and efficient) locomotion on quadruped systems, but the generation of human-like walking with bipedal biomechanical models has required extensive use of expert data sets. This strong reliance on demonstrations often results in brittle policies and limits the application to new behaviors, especially considering the potential variety of movements for high-dimensional musculoskeletal models in 3D. Achieving natural locomotion with RL without sacrificing its incredible robustness might pave the way for a novel approach to studying human walking in complex natural environments.
+\end{abstract}
+\begin{IEEEkeywords}
+biomechanics, motor control, reinforcement learning, human walking
+\end{IEEEkeywords}
+\section{Introduction}
+The aim of this study is to demonstrate that RL methods can generate robust controllers for musculoskeletal models. The novelty of our work is that we do not try to achieve human-like behavior with RL by relying on kinematic data, but only on biologically plausible objectives in combination with realistic biomechanical constraints embedded into simulation engines. These evolutionary priors have the potential to be general enough to allow for the reproduction of natural gait, similar to the achievements of reflex control policies, but with the potential for generating diverse and robust behaviors under many different conditions.%
+
+We specifically propose a reward function restricted to metrics that are considered plausible objectives for biological organisms, while using experimental human data only to modify the relative importance of the different metrics, similar to \cite{inversecostfunctiontuning2011, amp2021, costfunctionvaries2023}. This goes beyond previous works applying RL to biomechanical models which either study low-dimensional systems~\cite{wengnatwalking2021}, make use of expert data\cite{gaitnet2022} during training or learn unrealistic movements~\cite{accelerated2022, schumacher2023deprl}. We propose a reward function based only on walking speed, joint pain, and muscle effort, achieving periodic gaits that resemble human walking kinematics and ground reaction forces~(GRF) closer than comparable RL approaches \cite{Wang2012, learn2run2018, songDeepReinforcementLearning2020a, SARBerg2023}. Furthermore, the learning approach generated walking in 4 different models and 2 simulation engines of differing biomechanical complexity and accuracy with an identical training protocol and without changing the reward function.
+
+
+The simpler 2D and 3D models are comparable in complexity and almost reach the naturalism of existing optimal control- and reflex-based frameworks \cite{geyer2010,Song2013,Geijtenbeek2013}. While their 80 or 90 muscle counterparts are substantially more challenging to control, our approach still achieved gaits with kinematics and GRFs similar to experimental human data, albeit with more artifacts, potentially related to biomechanical modeling accuracy. Achieving gaits in these complex models is a step towards applications in rehabilitation, neuroscience, and computer graphics requiring high-dimensional models in complex environments. Striking is the robustness of the learned controllers exhibiting diverse stabilization strategies when faced with dynamic perturbations to an extent unseen in previous reflex-based controllers \cite{geyer2010,Song2017a, Haeufle2018a, Ramadan2022a, Schreff2022a}. As the used reward terms are considered plausible objectives for biological organisms, the general approach may also be applicable to different movements. Therefore, we believe that this approach is a useful starting point for the community showing that RL \textbf{is} a viable candidate to investigate the highly robust nature of complex human movements.\looseness-1
+
+
+\section{Results}
+
+Our framework is built upon the recently published DEP-RL~\cite{schumacher2023deprl} approach to learning feedback controllers for musculoskeletal systems. DEP-RL has been shown to achieve robust locomotion in several tasks, including running with a high-dimensional~(120 muscles) bipedal ostrich model, by proposing a novel exploration scheme for overactuated systems. The learned behaviors, however, still exhibited unnatural artifacts, such as large co-contraction levels and excessive bending of several joints. 
+
+Here, we extend that work by introducing an adaptive reward function that accounts for biologically plausible incentives. These incentives result in gaits that resembling human walking much closer. Furthermore, the reward function is general enough to generate gaits across several models with up to 90 muscles in two and three dimensions and in simulators of differing biomechanical modeling accuracy \textbf{without} changes in the weighting of the incentives in the reward function. Only the network size was decreased for the low-dimensional models to benefit from the computational speed up.
+
+\subsection{Reward function}
+Building on previous work on gait optimization~\cite{Geijtenbeek2013}, we found that a natural gait can be achieved with RL by using objectives that incentivize:
+\begin{enumerate}
+    \item learning to maintain a given speed without falling down,
+    \item minimizing effort, and
+    \item minimizing pain.
+\end{enumerate}
+Thus, our reward function contains three main terms:
+\begin{equation}
+    r = r_{\mathrm{vel}} - \cost_{\mathrm{effort}} - \cost_{\mathrm{pain}}.
+\end{equation}
+The first term specifies the external task the agent should solve. As we want the agent to move at a walking pace while keeping its balance, we chose the following objective:
+\begin{equation}
+r_{\mathrm{vel}} =\begin{cases}
+      \exp{\left[- (v - v_{\mathrm{target}})^{2}\right]}\quad\mathrm{if}\, v < v_{\mathrm{target}}\\
+     1\quad\mathrm{otherwise},
+     \end{cases}
+\end{equation}
+where $v$ is the center-of-mass velocity and the target velocity $v_{\mathrm{target}}$ is chosen to be $1.2$\,\nicefrac{m}{s}, which is close to the average energetically optimal human walking speed~\cite{efficientspeed2007}.
+The velocity reward is constant above the target velocity to improve the optimization of the auxiliary cost terms, inspired by a recent study on reward shaping in robotics%
+~\cite{rudin2022skills}. 
+
+Important for achieving natural human walking is the use of minimal muscle effort, as the literature suggests that energy efficiency is a key component of human locomotion\cite{dajiroenergyefficient2015, raffaltenergyefficient2017}: 
+\begin{equation}
+   \cost_{\mathrm{effort}} = \alpha({t})\, a^{3} + \weight_{1} \, \smooth + \weight_{2}\,\numbermus
+\end{equation}
+where the first term penalizes muscle activity $a$\cite{ackermann2010},  the second term incentivizes smoothness of muscle excitations $u$, and the third term \numbermus incentivizes a small number of active muscles (penalizing activity exceeding a certain value). 
+
+From a technical standpoint, it proved challenging to effectively minimize muscle activity. Using a strong cost scale that leads to energy-efficient walking later in training, causes a performance collapse when enabled from the start. We, therefore, chose an approach rooted in constrained optimization\cite{zahavy2023discovering}. We propose an adaptation mechanism for the weighting parameter $\alpha({t})$, increasing the weight only when the agent performs well in the main task ($r_{\mathrm{vel}}$) and decreasing it when this constraint is violated. Concretely, we measure the performance by the task return. The details are provided in \algoref{alg:effort}, we marked the constrained optimization in blue.
+
+This adaptive learning mechanism can be applied to each model and removes the need for hand-tuning of schedules. A change in reward function over time could, however, destabilize learning, as previously collected environment transitions are not reflective of the current effort cost anymore\cite{2021pebble}. We, therefore, monitor the performance of the policy in the current environment, while the effort cost is only applied the moment when data is sampled from the replay buffer. This relabeling of previously collected data ensures that our off-policy algorithm can make efficient use of the full replay buffer.
+
+\begin{algorithm}
+\caption{Effort weight adaptation.}
+\label{alg:effort}
+\begin{algorithmic}
+\Require{threshold $\theta$, smoothing $\beta$, change in adaptation rate $\Delta\alpha$, decay term $\lambda\in[0,1]$}
+\State $r_{\mathrm{mean}} \gets 0$,  $\alpha_{t} \gets 0$, $\mathrm{s}_{\mathrm{mean}} \gets 0$
+
+\While{True}
+\State $r \gets \mathrm{train\_episode}()$ \Comment{return from episode}
+\State $r_{\mathrm{mean}} \gets \beta\,r_{\mathrm{mean}} + (1-\beta)\,r $
+\If{$r_{\mathrm{mean}} > \theta$ \textbf{and} $\mathrm{s}_{\mathrm{mean}} < 0.5$}
+\State $\Delta\alpha \gets \lambda \cdot \Delta\alpha$ \Comment{performance newly high}
+\State  \Comment{slow down adaptation}
+ \ElsIf{$r_{\mathrm{mean}} > \theta$ \textbf{and} $\mathrm{s}_{\mathrm{mean}} > 0.5$}
+   \State {\color{blue}$\alpha_{t+1} \gets \alpha_{t} + \Delta\alpha$} \Comment{performance high for long}
+\Else
+\State {\color{blue}$\alpha_{t+1} \gets \alpha_{t} - \Delta\alpha$} \Comment{performance too low}
+\EndIf
+\State $c_{\mathrm{target}} \gets \begin{cases}1 & \textbf{if } r_{\mathrm{mean}} > \theta \\ 
+0 & \textbf{otherwise}
+\end{cases}$
+
+\State $c_{\mathrm{mean}} \gets \beta c_{\mathrm{mean}} + (1-\beta)\, c_{\mathrm{target}}$
+\EndWhile
+\end{algorithmic}
+
+\end{algorithm}
+
+The third term $\cost_{\mathrm{pain}}$ is necessary to prevent unnatural optima. One striking example is the over-use of mechanical forces of the joint limits (\eg massive knee over-extension) to keep a straight leg while minimizing muscle activity. As this is clearly unnatural behavior, we include objectives that account for the notion of pain:
+\begin{equation}
+    \cost_{\mathrm{pain}} = \weight_{3}\, \sum_{i} \limittorque + \weight_{4}\, \sum_{j}\fgrf, 
+\end{equation}
+where $\limittorque$ is the torque with which the joint angle limit of joint $i$ is violated (joint-limit pain) and \fgrf is the vertical ground reaction force~(GRF) for foot $j$ (joint-loading pain). We only penalize GRFs if they exceed $1.2$ times the model's body weight~\cite{grfwalking1989, Geijtenbeek2019}, such that all pain cost terms vanish close to the natural gait and do not further bias the solution. 
+
+We tuned the cost term weights $\omega_{i}$ for $i\in\{1,...,4\}$ by first separating the kinematic data into gait cycles for each leg, starting and ending when the respective foot touches the ground. The resulting data is then averaged over all gait cycles recorded from both legs. The average trajectory is finally compared to its equivalent obtained from experimental human data. The experimental match, defined as the fraction of the gait cycle for which the average simulated trajectory overlaps within the standard deviation of experimental data, serves as an optimization metric for our cost terms. We note that the coefficients are identical across all joints and muscles, and stress that no human data was used \textbf{during} the learning process, but only to find weighting coefficients. This procedure is similar to \cite{inversecostfunctiontuning2011}, with the difference that we search for values that work across a range of models, instead of optimally for one model.
+
+Finally, we initialize the models with a randomized initial state that starts with one elevated leg, while we also clip all muscle excitations to lie between $0$ and $0.5$ to further reduce muscle effort and mitigate asymmetries caused by the initial state distribution.
+
+
+\subsection{Models}
+With the reward function and the RL approach described above, we are able to learn robust control policies for several models of human walking, with varying complexity, and across two different simulation engines with different levels of biomechanical accuracy  (see \figref{fig:models}):
+\begin{table}
+\caption{All used models. Trunk means that the trunk and the pelvis of the model can move separately. Toes means that the toes and the rest of the foot can move separately. The designation 3D marks models that can walk in full 3D, as opposed to planar movements.}
+\centering
+\begin{tabular}{@{}c@{\ }ccccccc@{}}
+ Model & \# DOFs  & \# muscles & 3D & trunk & toes &engine\\
+ \toprule
+ H0918 &  9  & 18 & \xmark & \xmark & \xmark &\hyfydy \\
+ 
+ H1622  & 16  & 22  &\cmark&\xmark & \xmark &\hyfydy \\
+ H2190  & 21  & 90  & \cmark & \cmark & \xmark &\hyfydy \\
+ MyoLeg  & 20 & 80 & \cmark & \xmark & \cmark & \mujoco\\
+\bottomrule
+\end{tabular}
+\label{tab:models}
+\end{table}
+\myparagraph{H0918} A planar \hyfydy model with 9 degrees-of-freedom (DOFs) and 18 muscles, based on \cite{Delp1990}.
+\myparagraph{H1622} A 3D \hyfydy model with 16 DOFs and 22 muscles, based on \cite{Delp1990}.
+\myparagraph{H2190} A 3D \hyfydy model with 21 DOFs and 90 muscles, and articulation between the otherwise rigid pelvis and torso, based on \cite{Delp1990, Rajagopal2016, Christophy2012}.
+\myparagraph{MyoLeg} A 3D \mujoco model with 20 DOFs and 80 muscles, based on \cite{Rajagopal2016}. As for the \planarmodel and \threedmodel models, the pelvis and torso are one rigid body part, while each foot contains articulated toes (all five toes are joined into one body segment). See \tabref{tab:models} for a summary of the models.
+
+\subsection{Simulation engine}
+The simulation engines used for each model are indicated in the description and are either: \textit{a)} \hyfydy~\cite{Geijtenbeek2021}, which was used via the SCONE Python API~\cite{Geijtenbeek2019}, or \textit{b)} \mujoco, which was used via the MyoSuite~\cite{MyoSuite2022} environment. We chose these two engines, to highlight the versatility of our approach but also to bridge two communities: biomechanics and RL. 
+
+\hyfydy is an engine built for biomechanical accuracy. It is closely related to the well-established OpenSim~\cite{Seth2018} framework, matching its level of detail in muscle and deformation-based contact-force models while providing increased computational performance. \mujoco is a fast simulation framework widely used in the robotics and RL community. It also offers a simplified muscle model with rigid tendons and resolves contact forces using the convex Gauss Principle. The MyoSuite~\cite{MyoSuite2022} builds on this framework, allowing for the development of high-dimensional muscle-control models which have recently gained a lot of interest from the RL community\cite{caggianoMyoDexGeneralizablePrior2023, SARBerg2023, chiappa2023latent}. Both engines achieve the required computational speed to train control policies for these high-dimensional models in under a day. See \suppref{supp:sim} for more technical details.
+
+\begin{figure*}
+    \centering
+      \textcolor{ourred2}{\rule[2.5pt]{15pt}{1.5pt}} RL \textcolor{ourgray2}{\rule[2.5pt]{15pt}{1.5pt}} human-data\\
+      \includegraphics[width=1.0\textwidth]{figs/kinematics/kinematics_allmodels.pdf}\\
+    \caption{\textbf{Gait kinematics for RL agents for all models} Shown are the hip, knee, ankle and GRF values averaged over 5 rollouts of 10 s walking on flat ground. We excluded rollouts that did not achieve the whole episode length to clearly highlight the achieved kinematics. While there are slight discrepancies between experimental data (grey) and the RL behaviors (red), especially for the high-dimensional models, the proposed reward function provides a strong starting point for researchers aiming to create robust and natural controllers for high-dimensional musculoskeletal systems. Also, see the videos on the website.}
+    \label{fig:rl_allmodels}
+\end{figure*}
+\subsection{Learned behaviors}
+We first show that with our framework, we can train agents across 4 different models to produce walking gaits with the same training approach and reward function. In \Figref{fig:rl_allmodels} we compare the resulting gait kinematics against experimental data, included in the SCONE software~\cite{Geijtenbeek2019, Bovi2011}. Kinematics are shown for 5 rollouts of the most human-like policy checkpoint that was achieved over the entire training run over 10 random seeds, averaged over all gait cycles of both legs in a 10 s walk\footnote{For videos, see: \url{https://sites.google.com/view/naturalwalkingrl}}.\looseness-1
+
+The results for the planar \planarmodel and the 3D \threedmodel model look very similar to the experimental data, even though the ankle kinematics differ slightly. While the agents achieve the most human-like gaits here, the models are also of limited complexity and applicability, compared to the high-dimensional systems, \complexmodel and \myoleg. As seen in \tabref{tab:results} and \figref{fig:rl_allmodels}, our approach still achieves periodic gaits resembling human kinematics with the difficult-to-control 80 and 90 muscle models, even though they contain more artifacts. The \complexmodel-agent exhibits less knee flexion and the \myoleg-agent lacks the double-peaked GRF structure; it also exhibits differences in the hip kinematics. Overall, the behavior of the \complexmodel model appears more natural than the one produced with the \myoleg model, see also the discussion in \secref{sec:discussion} and the supplementary videos.\looseness-1
+
+Nevertheless, \tabref{tab:results} shows that RL gaits not only approximate human walking but are also robust and energy-efficient across all models, without changes in the reward function and only minimal changes in the hyperparameters of the RL method. We provide the training curves and additional metrics for 10 random seeds in \suppref{supp:training}.
+
+In order to probe the robustness of our controllers, we perform roll-outs on uneven terrain, which was \textbf{not} seen during training. The entire training procedure was performed with flat ground. The generated terrain contains 10 tiles of 1~m length with random slopes of $\pm 5^{\circ}$ and is fixed for all evaluations. The behavior of the planar \planarmodel-model is compared against a popular reflex-based controller as an illustrative example, adapted from~\cite{geyer2010, Geijtenbeek2019} and included with the SCONE software. We were only able to use this simple reflex-based controller with the \planarmodel model, as it did not produce stable gaits with the other models. We train 5 reflex-based controllers with different initializations until convergence, while we use the most natural RL policy for each model and perform 20 roll-outs with randomized initial states to test the robustness. We chose this approach as reflex-based controllers are sensitive to the initial simulation state; different roll-outs would be almost identical if we would have to use similar starting states.
+
+While both approaches adequately match human kinematics with low energy consumption in the planar case, the reflex-based controller produces more natural gaits. However, when exposed to uneven terrain, the RL agent achieves an average distance of 10.42~m, which shows that it is much more robust than the reflex controller with an average distance of 2.46~m, see \tabref{tab:results}. Both controllers also induce similar average muscle activities over the gait cycle, with the RL agent inducing less smooth activity, shown in \figref{fig:activity}. 
+
+With the same framework, we were also able to train agents to learn maximum speed running, by simply using the achieved velocity as the velocity reward in our reward function. Additionally, the action clipping and effort costs were omitted, as energy consumption is less critical for short maximum performance tasks. See \suppref{supp:running} for these results.
+
+As a showcase of the extreme robustness of the RL agents, we generated a difficult drawbridge-terrain task with moveable environment elements that present dynamic perturbations, see \figref{fig:running_obstacle}. We test the robustness of \threedmodel and \complexmodel RL controllers in this scenario, even though they were only ever trained on \textbf{flat} ground, and observe remarkable stability across the task. We report the data in \tabref{tab:running} and in the videos. 
+
+Note that we tried several alternatives to our approach which yielded worse results. We performed experiments with different reward terms such as a constant instead of an adaptive effort term, with metabolic energy costs~\cite{Wang2012} or with a cost of transport\cite{cot_function,Mastrogeorgiou2023:energylegged} reward. Even though these terms sometimes lead to small muscle activity during execution, the kinematics were further away from human data. We conjecture that energy minimization is not enough of an incentive for human-like gait if the learning algorithm is as flexible as an RL agent. See also \figref{fig:ablations} for ablations of our reward function.
+
+Larger effort term exponents, penalization of contacts between limbs or angle-based joint limit violation costs did not lead to better behavior. The prescription of hip movement at a certain frequency~(step clock), keeping certain joint angles in pre-specified positions or minimizing torso rotation helped to achieve stable gaits, but prevented effort minimization and did not lead to natural kinematics.
+
+\begin{table}
+\caption{The table shows the average cubic muscle activity~(effort), the percentage match with human experimental data~(exp. match), and the average distance walked on the rough terrain. Note that the exp. match metric measures the percentage of the gait cycle during which the trajectory perfectly lies inside the standard deviation of the experimental data. Even relatively natural gaits can still achieve a low metric if the angles are slightly shifted.}
+\centering
+\begin{tabular}{@{}c@{\ }ccccc@{}}
+ \toprule
+ controller & system & avg. effort & \multicolumn{1}{p{2em}}{experimental match} & \multicolumn{1}{p{4em}}{avg. distance~[m]}\\
+ \midrule
+ reflex & H0918  & 0.041 $\pm 3\times 10^{-3}$ & $0.68 \pm 0.08$ & \hspace{4pt}$2.46 \pm 0.98$\\
+ RL &  H0918  & 0.013 $\pm 3\times 10^{-4}$ & $0.67 \pm 0.03$  &  $10.42 \pm 0.94$\\
+ \midrule
+ RL  & H1622  & 0.015 $\pm 2\times 10^{-3}$ & $0.73 \pm 0.01$& \hspace{8.1pt}$5.6 \pm 0.99$\\
+ RL  & H2190  & 0.017 $\pm 1\times 10^{-5}$ & $0.50 \pm 0.01$ & $10.59 \pm 2.51$\\
+ RL  & MyoLeg & 0.013 $\pm 2\times 10^{-4}$ & $0.43 \pm 0.05$ & \hspace{6pt}n.a.\\
+\bottomrule
+\end{tabular}
+\label{tab:results}
+\end{table}
+\begin{figure}
+    \centering
+   \hspace{0.35cm} \textcolor{ourred2}{\rule[2.5pt]{15pt}{1.5pt}} RL \textcolor{ourblue2}{\rule[2.5pt]{15pt}{1.5pt}} reflex-based\\
+    \includegraphics[width=0.48\textwidth]{figs/kinematics/activity_gait_plot.pdf}\\[-.5em]
+    \caption{\textbf{Muscle activation for RL agent and reflex-based controller.} We compare muscle activities for two controller types for natural walking with the \planarmodel model. The activity for the RL agent has been clipped to $0.5$. We use 5 roll-outs of the most natural RL policy and 5 reflex-based controllers that were optimized until convergence. The initial state for the RL agent is randomized, which would cause collapse with the reflex controllers, as they are sensitive to the initial state.}
+    \label{fig:activity}
+\end{figure}
+
+\section{Discussion}
+\label{sec:discussion}
+As the human biomechanical system is highly redundant, there are many possible solutions to walking at a defined speed. There exists strong evidence that natural human walking is in part driven by energy-efficiency\cite{selinger2015}. Optimal control approaches have shown that natural walking kinematics can be achieved if energy optimality is considered in the cost function.\footnote{Some also suggest that muscle fatigue could be the driving factor to explain the experimentally observed kinematic patterns \cite{Ackermann2010a}.} 
+
+However, in most RL approaches, energy consumption is either ignored, or only static action regularization is used, which affects learning but does not yield truly efficient behavior. By introducing a single reward term schedule that adapts the weighting of the energy term in the reward function depending on the current performance, we achieved energy-efficient gaits with more natural kinematics also in RL. Moreover, the adaptation algorithm (Alg. 1) and all other reward terms and their weighting coefficients are general enough to work---without any changes---across 2D and 3D models with different numbers of muscles and even different levels of biomechanical modeling accuracy. 
+
+This is a significant step towards finding a general reward function and framework to generate natural and robust movements with RL in muscle-driven systems. Other RL frameworks that do achieve natural muscle utilization either consider low-dimensional systems~\cite{learn2run2018} or strongly rely on motion capture data~\cite{scalable2019} to render the learning problem feasible. Our approach works \textbf{without} the use of motion capture data during training and with few and very general reward terms and therefore may generalize better to other movements.
+
+In our opinion, the only comparable work is by Weng et al.~\cite{wengnatwalking2021}. They achieved human-level kinematics on a planar human model with 18 muscles, by crafting a multi-stage learning curriculum affecting the weighting of seven reward terms. As this learning curriculum contains model-specific reward terms and adaptation procedures, we speculate that it would have to be hand-tuned for different models. 
+
+While our approach achieved higher robustness than reflex-based controllers and kinematics closer to natural walking than previous demonstration-free RL approaches, several discrepancies to natural walking remain, see~\figref{fig:rl_allmodels} and supplementary videos. The low-dimensional models (\planarmodel and \threedmodel) in general do not present proper ankle rolling, while the high-dimensional models (\complexmodel and \myoleg) exhibit less passive leg-swing in the swing phase of the gait. 
+
+The behavior of the \myoleg model deviates stronger from human data than the \complexmodel, although they are similar in terms of complexity. This is most prominent in the ankle kinematics and the lack of double-peak structure in the GRFs in the \myoleg model. We also observed a tendency for unnatural lateral torso oscillations with the \myoleg model, see~\figref{fig:oscillation_walk} and the videos.
+\begin{figure}
+    \centering
+    \includegraphics[width=0.48\textwidth]{figs/kinematics/torso_oscillation_walk.pdf}\\
+    \caption{\textbf{Torso oscillations during walking.} We show the torso angle with the vertical axis for 5 rollouts of 10~s for the \complexmodel- and the \myoleg-models. The \myoleg presents stronger lateral oscillations. The dashed line shows a straight torso posture.}
+    \label{fig:oscillation_walk}
+\end{figure}
+
+These differences in behaviors could be related to the model parametrization, as the \myoleg uses a different muscle geometry from \complexmodel and includes mesh-based contact dynamics, which might increase learning difficulty. Alternatively, the more elaborate biomechanical features in \hyfydy, such as elastic tendons~\cite{tendoncatapult2005}, non-linear foot-ground contact mechanics~\cite{reviewcontact2022}, variable pennation angles~\cite{pennationangle2016} or error-controlled integration, could account for the increased realism of the behaviors with the \hyfydy models. See \suppref{supp:sim} for more details on the simulation engines. 
+
+Research on the contribution of biomechanical structures to the emergence of natural movement \cite{Gerritsen1998a, Haeufle2010a, John2013a, Wochner2023a} suggest that, in addition to the learning method and reward function, the biomechanical structures and modeling choices may play a crucial role in the accurate reproduction of human gait. This seems a plausible explanation for the increased realism in the \hyfydy models, as previous observations in predictive simulations suggest that e.g. an elastic tendon is beneficial for natural gait \cite{geyer2010, Wang2012, Geijtenbeek2013}.  We regard this as one interesting area of future research, which could help us better understand the fundamentals of the interaction between biomechanics and neuronal control in human locomotion.
+
+In conclusion, we achieved highly robust walking approaching human-like kinematics and ground reaction forces. While a better degree of accuracy was achieved in simpler models, we provide first promising results for difficult-to-control 80 and 90 muscle models which are of high interest for applications in rehabilitation,
+neuroscience, and computer graphics. Learning with the proposed reward function and RL framework allows for these results across several models of differing complexity and biomechanical modeling accuracy with only minimal changes in the hyperparameters of the method. We hope that this inspires researchers from both the biomechanics and the RL community to further improve on our approach and to develop tools to unravel the fundamentals of the generation of complex, robust, and energy-efficient human movement.
+
+
+
+\section*{Acknowledgment}
+Pierre Schumacher was supported by the International Max Planck Research School for Intelligent Systems (IMPRS-IS). This work was supported by the Cyber Valley Research Fund (CyVy-RF-2020-11 to DH and GM).
+
+\bibliographystyle{IEEEtran}
+\bibliography{IEEEabrv,references}
+\input{suppl_content.tex}
+\end{document}

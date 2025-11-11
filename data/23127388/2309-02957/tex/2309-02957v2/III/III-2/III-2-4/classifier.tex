@@ -1,0 +1,37 @@
+We used machine learning to test the ability of BI to detect foreground residuals that may be present when the assumed foreground model is different from that describing the actual sky emission. That might occur, for example, if one assumes a \textbf{d1s1} model when the sky is described by a \textbf{d6s1} model. Therefore, we explore the possibility of classifying between ``contaminated'' and ``not contaminated'' cases that both end up producing the same average reconstructed $r$ for an imager (described by the case in which we do not split the physical band in sub-bands).
+
+This ability is a key issue when an experiment detects a tensor-to-scalar ratio that is significantly different from zero. In this case, there is only one realization (i.e., the actual measurement) to understand whether there are unknown systematic effects biasing the value beyond the uncertainty set by the noise plus the known systematic effects.
+
+We carried out this test by performing a machine learning classification based on a simple gradient-boosted decision tree (a \texttt{GradientBoostingClassifier} from the \texttt{scikit-learn} Python library\footnote{\protect\url{https://scikit-learn.org/}}) according to these steps:  
+
+\begin{enumerate}
+    \item Produce 500 sky realizations with $r=0.006$\footnote{The value of $r=0.006$ was chosen so that the average reconstructed $r$ matched the bias that would be obtained from a map with CMB with $r=0$ and \textbf{d6s1} foregrounds removed assuming a \textbf{d1s1} model with a single reconstructed sub-band(see Fig.~\ref{fig:r_vs_nsub})} in which the sky is generated with \textbf{d1s1} and fitted with the same model (we call this dataset \textbf{d1-d1}). This dataset is labeled as ``clean''; 
+    \item Produce 500 simulations with $r=0$, in which the sky is generated with \textbf{d6s1} ($\ell_\mathrm{corr}=10$) and fitted with \textbf{d1s1} (we call this dataset \textbf{d6-d1}). This dataset is labelled as ``contaminated''; 
+    \item \label{item:train_set} For each simulation, and for each value of $n_\mathrm{sub}$, calculate a normalized reconstructed $r$ and its uncertainty normalized by what is found with $n_\mathrm{sub}=1$, expressed by 
+    the following two quantities: $\rho(n_\mathrm{sub}) = r(n_\mathrm{sub}) / r(n_\mathrm{sub}=1)$ and $\sigma_\rho(n_\mathrm{sub}) = \sigma(r(n_\mathrm{sub})) / r(n_\mathrm{sub}=1)$  (``training'' dataset), both with ``clean'' or ``contaminated'' label, depending on the model used as an input. These quantities are those that discriminate whether we have foreground residuals or not. If $\rho \neq 1$, it means that the detection depends on the number of sub-bands and, therefore, is likely to be affected by foreground residuals;
+    \item Train the network with 250 \textbf{(d1s1, $r=0.006$)} and 250 \textbf{(d6s1, $r=0$)} randomly selected realizations from the training dataset (using 100 cross-validation subsets); 
+    \item \label{item:predict_set} Calculate $\rho(n_\mathrm{sub})$ and $\sigma_\rho(n_\mathrm{sub})$ for the remaining 250 \textbf{(d1s1, $r=0.006$)} and 250 \textbf{(d6s1, $r=0$)} simulations (``test'' dataset);
+    \item Feed the trained network with the values calculated in step \ref{item:predict_set} to test its ability to classify the simulations as ``clean'' (constant $\rho(n_\mathrm{sub})$) or ``contaminated'' (variable $\rho(n_\mathrm{sub})$\textbf{)}.
+\end{enumerate}
+
+The result of this procedure is the so-called ``confusion matrix'', i.e., a matrix that compares the results from the classification predicted by the algorithm with the true one as shown in Fig.~\ref{fig:ML}. The performance of our classifier is as follows (we adopted the convention ``clean=negative'' and ``contaminated=positive''):
+\begin{itemize}
+    \item True negative rate very close to 1, indicating that the realizations with no dust residuals (dataset {\bf d1-d1} with $r=0$ and $r=0.006$) displayed a constant ratio $\rho(n_\mathrm{sub})$ and were correctly classified as ``clean'';
+    \item True positive rate very close to 1, indicating that the realizations with dust residuals (dataset {\bf d6-d1} with $r=0$), displayed a variable ratio $\rho(n_\mathrm{sub})$ and were correctly classified as ``contaminated'';
+    \item Low false negative rate of $2.9\%\pm 1.6\%$, indicating a very low percentage of realizations with dust residuals that were wrongly classified as ``clean''. This is a very important figure of merit that we want to minimize;
+    \item Low false positive of $1.2\% \pm 0.3\%$, indicating a very low percentage of realizations without dust residuals that were wrongly classified as ``contaminated''.
+\end{itemize}
+
+Such high classification performance demonstrates that BI, with its capability to measure $r$ in several sub-bands, is a promising solution to identify residuals in the clean CMB maps arising from LOS frequency decorrelation in the dust emission. In such a case, a classical imager lacks the frequency resolution to identify this contamination, leading to a systematic uncertainty in the reconstructed $r$ that is well above the target sensitivity of \mbox{CMB-S4}.
+
+\begin{figure}
+    \centering
+    \resizebox{\hsize}{!}
+    {\includegraphics{figure/confusion_matrix.png}}
+    \caption{Confusion matrix representing our ability to classify between our simulated data sets with dust frequency decorrelation (contaminated) or without (clean) using the measurements of $r$ as a function of $n_{sub}$. We observe that the fraction of false negatives (``contaminated'' data set incorrectly classified as ``clean'') is close to zero.}
+    \label{fig:ML}
+\end{figure}
+
+
+
+% \JCH{Went up to here}

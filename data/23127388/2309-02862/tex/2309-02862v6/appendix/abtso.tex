@@ -1,0 +1,158 @@
+\section{Undecidability of the AB-TSO game}
+\label{apx:abtso}
+
+In this final section we prove undecidability of the AB-TSO game, which is the TSO game where the players share control over buffer updates in the way that both of them are allowed to update exactly after their own move.
+The construction will be very similar to the one for the B-TSO game.
+In particular, $\process^1$ is exactly the same and is sketched in \autoref{fig:b-reduction-1}.
+The construction for $\process^2$ on the other hand is different and shown in \autoref{fig:ab-reduction-2}.
+Note that this process is deadlock-free by design.
+As previously, the set of final states is defined as $\stateset_F^\program := \set{\state_F}$.
+Note that $\state_L$ in $\process^2$ is immediately losing for player B, since the final state $\state_F$ is not reachable from there.
+
+\input{figures/ab_reduction_2}
+
+\begin{thm}
+\label{thm:equivalence-abtso-pcs}
+    Consider the AB-TSO game.
+    The set of final states $\channelstateset_F$ of $\channelsystem$ is reachable from $\channelstate_0 \in \channelstateset$ if and only if player B wins the game $\game^\TSO(\program,\stateset_F^\program)$ starting from the configuration $\conf_0 := \tuple{ \tuple{\channelstate_0, \state_1}, \tuple{\varepsilon, \varepsilon}, \set{ \xwr \mapsto \bot, \xrd \mapsto \bot, \yvar \mapsto 0} }_B \in \confset_B$.
+\end{thm}
+
+\subsection{From $\channelsystem$-Reachability to a Winning Strategy in AB-TSO}
+
+Proceeding as in the case of the B-TSO games, suppose $\channelstateset_F$ is reachable from $\channelstate_0$.
+Given a run $\conf_0^\channelsystem, \dots, \conf_n^\channelsystem$ in the PCS, recall the definitions of $\conf_k^\channelsystem$ in \autoref{apx:atso} and of $\conf_k$ in \autoref{apx:btso}.
+
+We describe a strategy for player B that forces the play into visiting all configurations $\conf_1, \dots, \conf_n$.
+Since $\conf_n \in \confset_F$, this means that the strategy is winning.
+To achieve this, we show by induction over k that starting from $\conf_0$, Player B can force a play that visits either $\conf_k$ or $\confset_F$.
+For $k = 0$, this is true since $\conf_0$ is the initial configuration.
+Let the induction hypothesis be that the claim holds true for some arbitrary but fixed $0 \leq k < n$.
+For the induction step, we can assume that the game is in configuration $\conf_k$.
+
+In the following, we assume that player A avoids immediate defeats.
+This does not lose generality, since otherwise the game would be in $\confset_F$ and the induction would still hold.
+
+If $\channeloperation_{k+1} = \nop$, then player B first takes the transition $\channelstate_k \to[\nop] \hstate$ in $\process^1$.
+For player A, there are only two enabled transitions.
+After $\state_1 \to[\nop] \state_2$, player B could move to $\state_F$ and win.
+Thus, player A has to follow up with the transition $\hstate \to[\nop] \channelstate_{k+1}$ instead.
+Suppose she also updates one or more messages after her move.
+Then, player B could take $\state_1 \to[\rd(\xwr, \channelmessage')] \state_F$ for some message $\channelmessage'$ and win.
+So, we continue assuming that player A does not update anything to the memory.
+As there is no change in the states of $\process^2$, the buffers or the memory, we can conclude that the current configuration of the game is $\conf_{k+1}$.
+
+Next, consider the case where $\channeloperation_{k+1} = !\channelmessage$, which is similar to the previous one.
+Player B takes $\channelstate_k \to[\wr(\xwr,\channelmessage)] \hstate$ and the only option for player A is $\hstate \to[\wr(\yvar,1)] \channelstate_{k+1}$.
+As above, we argue that she does not perform any buffer updates.
+The buffer of $\process^1$ has now two additional pending write operations, which correspond to the channel message $\channelmessage$, i.e. the last letter of $\word_{k+1}$.
+Thus, the game is in configuration $\conf_{k+1}$.
+
+The last case is where $\channeloperation_{k+1} = ?\channelmessage$, which is more complicated.
+Player B starts by taking the transition $\state_1 \to[\nop] \state_2$ in $\process^2$ and then updates the message $\tuple{\xwr, \channelmessage}$ to the memory.
+Now, player A is forced to leave $\state_2$, since otherwise player B could move to $\state_F$ in her next turn.
+The only enabled transition from there is $\state_2 \to[\rd(\xwr, \channelmessage)] \state_3$.
+Again, we see that she cannot update any messages without losing in the very next turn.
+Player B responds with $\state_3 \to[\wr(\xrd, \channelmessage)] \state_4$, which she immediately updates to the memory.
+As before, player A must leave this state, the only option for this is to follow $\state_4 \to[\wr(\xwr, \bot)] \state_5$.
+She does so without buffer updates.
+Now, player B takes the transition $\channelstate_k \to[\rd(\xrd, \channelmessage)] \hstate$ in $\process^1$.
+She also empties the buffer of $\process^2$.
+Player A has to continue in $\process^2$, since all outgoing transitions in $\process^1$ are disabled.
+The only option is to go to $\state_6$, as usual without performing any updates.
+Next, player B can perform $\state_6 \to[\mf] \state_7$, since she emptied the buffer one turn earlier.
+Player A continues to $\state_8$.
+If she does not perform any updates, or updates more than one message, i.e. at least one $\tuple{\yvar, 1}$ and one $\tuple{\xwr, \channelmessage}$ buffer message (for some channel message $\channelmessage$), then player B can immediately win in her next turn.
+So, we proceed assuming that player A updates exactly one message $\tuple{\yvar, 1}$.
+Then, player B takes the transition $\state_8 \to[\wr(\yvar,0)] \state_9$ and immediately updates this message to the memory.
+This leaves player A with the only possibility of moving to $\state_{10}$.
+As usual, she cannot update any buffer message without losing.
+Player B continues with $\state_{10} \to[\mf] \state_{11}$.
+Player A has to perform $\state_{11} \to[\wr(\xrd,\bot)] \state_{12}$ and may update this message, but nothing else.
+Next, player B moves to $\state_1$ and empties the buffer of $\process^2$.
+Since player A cannot move to $\state_2$ without losing, she takes the transition $\hstate \to[\rd(\xrd, \bot)] \channelstate_{k+1}$.
+This is enabled since the buffer of $\process^2$ was last emptied.
+
+To summarise the changes:
+$\process^1$ transitioned from $\channelstate_k$ to $\channelstate_{k+1}$, while $\process^2$ is back in state $\state_1$.
+The buffer of $\process^1$ has updated its two oldest messages, which correspond to the last letter in $\word_k$, and the buffer of $\process^2$ has been emptied.
+All variables have their default values.
+
+We conclude that the game is in configuration $\conf_{k+1}$, which completes the proof by induction.
+In summary, starting from $\conf_0$, the game either reaches the configuration $\conf_n \in \confset_F$, or another configuration in $\confset_F$.
+In the latter case, player B already won, but in the former case, she takes the transition $\channelstate_n \to[\wr(\xwr, \top)] \hstate_F$, updates this message, and finally reaches $\state_1 \to[\rd(\xwr, \top)] \state_F \in \stateset_F^\program$ in her next turn.
+
+\subsection{From a Winning Strategy in AB-TSO to $\channelsystem$-Reachability}
+
+For the other direction, suppose that player B has a winning strategy.
+Consider a strategy of player A that avoids reaching $\state_F \in \stateset^2 \cap \stateset_F^\program$ whenever possible.
+Furthermore, to support our argumentation we can assume arbitrary behaviour of player A, since the strategy of player B must be winning in any case.
+
+Let $\channelstate_0, \dots, \channelstate_n$ be the sequence of channel states that are visited by $\process^1$ during the run induced by these two strategies.
+Since player B uses a winning strategy, this sequence is finite.
+We will show by induction that for each $k = 0, \dots, n$, the run contains the game configuration $\conf_k = \tuple{ \statemap_k, \buffermap_k, \memorymap_k }_B \in \confset_B$, where:
+\begin{enumerate}
+    \item\ $\statemap_k := \tuple{ \channelstate_k, \state_1 }$
+    \item\ $\buffermap_k := \tuple{ \tuple{\tuple{\yvar,1}, \tuple{\xwr,\word_k[1]}, \dots, \tuple{\yvar,1}, \tuple{\xwr,\word_k[\sizeof{\word_k}]}}, \varepsilon }$, where $\word_k \in \channelmessageset\kstar$
+    \item\ $\memorymap_k := \set{ \xwr \mapsto \bot, \xrd \mapsto \bot, \yvar \mapsto 0 }$
+    \item\ If $k > 0$, there is a label $\channeloperation_k$ such that $\tuple{ \channelstate_{k-1}, \word_{k-1} } \to[\channeloperation_k] \tuple{ \channelstate_k, \word_k }$.
+\end{enumerate}
+The induction base case clearly holds true, since $\conf_0$ is the initial configuration of the game.
+So, suppose that the claim holds for some arbitrary but fixed $0 \leq k < n$.
+By the induction hypothesis, we can assume that the game is in configuration $\conf_k$.
+Consider the different moves player B can make.
+
+First, she may take a transition $\channelstate_k \to[\nop] \hstate$.
+She surely does not update any buffer messages during that move, since this would enable player A to take $\state_1 \to[\rd(\xwr, \channelmessage)] \state_L$ and win.
+So, we assume that player A moves along $\hstate \to[\nop] \channelstate'$.
+By the construction of $\process^1$, the path $\channelstate_k \to[\nop] \hstate \to[\nop] \channelstate'$ implies the existence of a transition $\channelstate_k \to[\nop] \channelstate'$.
+We define $\channelstate_{k+1} := \channelstate'$ and $\word_{k+1} := \word_k$ and conclude that the game is now in configuration $\conf_{k+1}$.
+
+Another option for player A is to take the transition $\channelstate_k \to[\wr(\xwr, \channelmessage)] \hstate$.
+The argumentation continues exactly as in the previous paragraph, the only difference is that $\channelstate_k \to[!\channelmessage] \channelstate'$ and $\word_{k+1} := \channelmessage \bullet \word_k$.
+
+Since all other transitions in $\process^1$ are disabled, the last possibility for player B to move is in $\process^2$.
+She moves from $\state_1$ to $\state_2$.
+We can assume that she updates exactly one message from the buffer of $\process^1$, since otherwise player A could win in her next turn.
+Instead, player A has to follow $\state_2 \to[\rd(\xwr, \channelmessage)] \state_\channelmessage$.
+In the following, we assume that player A performs no buffer updates unless stated otherwise.
+Player B takes the transition $\state_\channelmessage \to[\wr(\xrd, \channelmessage)] \state_4$.
+She might immediately update this message, but nothing else, following the same argumentation as previously.
+Player A continues with $\state_4 \to[\wr(\xwr, \bot)] \state_5$, we can assume that she also empties the buffer of $\process^2$.
+Moving to $\state_6$ is losing for player B, thus we can safely say that she performs $\channelstate_k \to[\rd(\xrd, \channelmessage)] \hstate$ instead, which is the only enabled transition in $\process^1$.
+Player A then has to proceed in $\process^2$ and the play continues there until reaching $\state_{11}$.
+
+We note the following observations, based on the fact that player A cannot force a win.
+First, in $\state_7$, the variable $\yvar$ apparently has value $0$, otherwise player A would win.
+This means that up to this point, no message from the buffer of $\process^1$ has been updated (other than the single $\tuple{\xwr, \channelmessage}$ from before).
+Second, after moving to $\state_8$, player A performs such a buffer update to prevent player B from immediately winning.
+Third, in $\state_{11}$, the value of $\xwr$ in the memory must be $\bot$, since otherwise player A could win with $\state_{11} \to[\rd(\xwr, \channelmessage)] \state_L$ for some channel message $\channelmessage$.
+This shows that since the transition $\state_6 \to[\mf] \state_7$, no further $\tuple{\xwr, \channelmessage'}$-message has been updated.
+In summary, we conclude that during the whole process, exactly the two messages $\tuple{\xwr, \channelmessage}$ and $\tuple{\yvar, 1}$ have been updated to the memory.
+
+We continue with the execution from $\state_{11}$.
+Player A performs $\state_{11} \to[\wr(\xrd, \bot)] \state_{12}$ and immediately updates this message to the memory.
+Player B either takes either $\hstate \to[\rd(\xrd, \bot)] \channelstate'$ in $\process^1$ or $\state_{11} \to[\nop] \state_1$ in $\process^2$.
+We assume that player A takes the other one, respectively.
+
+We define $\channelstate_{k+1} := \channelstate'$ and $\word_{k+1}$ by $\word_{k+1} \bullet \channelmessage := \word_k$.
+The path $\channelstate_k \to[\rd(\xrd, \channelmessage)] \hstate \to[\rd(\xrd, \bot)] \channelstate_{k+1}$ implies that $\tuple{\channelstate_k, \word_k} \to[?\channelmessage] \tuple{\channelstate_{k+1}, \word_{k+1}}$.
+Furthermore, the observations above imply that the game is in configuration $\conf_{k+1}$ as defined in the beginning.
+
+Now, we investigate how the run can continue after $\conf_n$.
+Player B cannot start to simulate a skip or send operation, since we can assume that player A will move to $\channelstate'$, which contradicts the initial assumption that $\channelstate_n$ is the last channel state visited in this run.
+The same holds true for a receive operation:
+Following the argumentation from above, we have already seen that player A can either force a win, or lead the game into completing the simulation of the receive operation.
+The only possibility left is that $\channelstate_n$ is a final channel state and player B takes the transition $\channelstate_n \to[\wr(\xwr, \top)] \hstate_F$.
+
+In summary, we constructed a path through $\channelsystem$ from $\tuple{\channelstate_0, \varepsilon}$ to $\tuple{\channelstate_n, \word_n}$, where $\channelstate_n \in \channelstateset_F$.
+This shows that the set of final states of $\channelsystem$ is reachable.
+
+\subsection{Undecidability}
+
+\begin{thm}
+\label{thm:abtso}
+    The safety problem for the AB-TSO game is undecidable.
+\end{thm}
+\begin{proof}
+    This follows directly from \autoref{thm:equivalence-abtso-pcs} and the undecidability of the state reachability problem for perfect channel systems \cite{DBLP:journals/jacm/BrandZ83}.
+\end{proof}

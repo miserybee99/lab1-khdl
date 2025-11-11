@@ -1,0 +1,63 @@
+\section{Preliminaries}
+
+\subsection{Transition Systems}
+A \emph{(labelled) transition system} is a triple $\tuple{ \confset, \lblset, \to }$, where $\confset$ is a set of \emph{configurations}, $\lblset$ is a set of \emph{labels}, and $\to \subseteq \confset \times \lblset \times \confset$ is a \emph{transition relation}.
+We usually write $\conf_1 \to[\lbl] \conf_2$ if $\tuple{ \conf_1, \lbl, \conf_2} \in \to$.
+Furthermore, we write $\conf_1 \to \conf_2$ if there exists some $\lbl$ such that $\conf_1 \to[\lbl] \conf_2$.
+A \emph{run} $\pi$ of $\TS$ is a sequence of transitions $\conf_0 \to[\lbl_1] \conf_1 \to[\lbl_2] \conf_2 \dots \to[\lbl_n] \conf_n$.
+It is also written as $\conf_0 \to[\pi] \conf_n$.
+A configuration $\conf'$ is \emph{reachable} from a configuration $\conf$, if there exists a run from $\conf$ to $\conf'$.
+
+For a configuration $\conf$, we define $\pre\of\conf := \set{ \conf' \mid \conf' \to \conf }$ and $\post\of\conf := \set{ \conf' \mid \conf \to \conf' }$.
+We extend these notions to sets of configurations $\confset'$ with $\pre(\confset') := \bigcup_{\conf \in \confset'} \pre\of\conf$ and $\post(\confset') := \bigcup_{\conf \in \confset'} \post\of\conf$.
+
+An \emph{unlabelled transition system} is a transition system without labels.
+Formally, it is defined as a TS with a singleton label set.
+In this case, we omit the labels.
+
+\subsection{Alternating Turing Machines}
+\label{sec:atm}
+Let $\atm = \tuple{\alphabet, \stateset, \state_0, \state_F, \stateset_\exists, \stateset_\forall, \transition}$ be an alternating Turing Machine, where $\alphabet$ is a finite alphabet, $\stateset$ is a finite set of states partitioned into existential states $\stateset_\exists$ and universal states $\stateset_\forall$, $\state_0 \in \stateset$ is the \emph{initial state}, $\state_F \in \stateset_\forall$ is the \emph{accepting state}, and $\transition \subseteq \stateset \times \alphabet \times \stateset \times \alphabet \times \set{\atmL, \atmR}$ is a transition relation.
+The alphabet contains the blank symbol \blank.
+Let $\tuple{\state, \letter, \state', \letter', \atmD} \in \transition$ be a transition.
+If machine $\atm$ is in state $\state$ and its head reads letter $\letter \in \alphabet$, then it replaces the contents of the current cell with the letter $\letter'$, moves the head in direction $\atmD$ ($\atmD=\atmL$ for left and $\atmD=\atmR$ for right) and changes control to state $\state'$.
+We assume that $\state_F$ has no outgoing transitions.
+
+A configuration of $\atm$ is a triple $\conf = \tuple{ \state, \pos, \tape}$, where $\state \in \stateset$, $\pos \in \Int$ and $\tape \in \alphabet^\Int$.
+It represents the situation where $\atm$ is in state $\state$, the tape contains the (in both directions infinite) word $\tape$ and the head is at the $\pos$-th position of the tape.
+A \emph{successor} of $\conf$ is a configuration $\conf'$ that can be obtained from $\conf$ by executing a transition as described above.
+
+Let $\confset_0 := \set{ \tuple{ \state_F, \pos, \tape} \mid \pos \in \Int, \tape \in \alphabet^\Int }$ and for all $k > 0$:
+$$
+\confset_k := \set{ \conf = \tuple{ \state, \pos, \tape} \mid
+(\state \in \stateset_\exists \land \post(\conf) \cap \confset_{k-1} \neq \emptyset) \lor
+(\state \in \stateset_\forall \land \post(\conf) \subseteq \confset_{k-1}) }
+$$
+We call $\confset_\infty := \bigcup_{k=0}^\infty \confset_k$ the set of \emph{accepting configurations} of $\atm$.
+Intuitively, a configuration $\conf = \tuple{ \state, \pos, \tape}$ is accepting if and only if $\state \in \stateset_\forall$ and all successors of $\conf$ are accepting or $\state \in \stateset_\exists$ and at least one successor of $\conf$ is accepting.
+
+We say that $\atm$ accepts a word $\word \in \alphabet^n$, if $\tuple{\state_0, 1, \tape\of\word}$ is an accepting configuration, where $\tape\of\word$ contains $\word$ on positions $1$ through $n$ and the blank $\blank$ on all other positions.
+The \textbf{word acceptance problem} of ATM is, given an alternating Turing machine $\atm$ and a word $\word \in \alphabet^n$, to decide whether $\atm$ accepts $\word$.
+The word acceptance problem for ATMs that only use space polynomial in the length of the input word is \exptime-complete \cite{DBLP:conf/focs/ChandraS76,DBLP:journals/jacm/ChandraKS81}.
+
+\subsection{Perfect Channel Systems}
+Given a finite set of messages $\channelmessageset$, define the set of channel operations $\channeloperationset := \set{ !\channelmessage, ?\channelmessage \mid \channelmessage \in \channelmessageset} \cup \set\nop$.
+A \emph{perfect channel system} (PCS) is a triple $\channelsystem = \tuple{ \channelstateset, \channelmessageset, \transition }$, where $\channelstateset$ is a finite set of states, $\channelmessageset$ is the set of messages, and $\transition \subseteq \channelstateset \times \channeloperationset \times \channelstateset$ is a transition relation.
+We write $\channelstate_1 \to[\channeloperation] \channelstate_2$ if $\tuple{ \channelstate_1, \channeloperation, \channelstate_2 } \in \transition$.
+
+Intuitively, a PCS models a finite state automaton that is augmented by a \emph{perfect} (i.e. non-lossy) FIFO buffer, called \emph{channel}.
+During a \emph{send operation} $!\channelmessage$, the channel system appends $\channelmessage$ to the tail of the channel.
+A transition $?\channelmessage$ is called \emph{receive operation}.
+It is only enabled if the channel is not empty and $\channelmessage$ is its oldest message.
+When the channel system performs this operation, it removes $\channelmessage$ from the head of the channel.
+Lastly, a $\nop$ operation just changes the state, but does not modify the buffer.
+
+The formal semantics of $\channelsystem$ are defined by a transition system $\TS_\channelsystem = \tuple{ \confset_\channelsystem, \lblset_\channelsystem, \to_\channelsystem }$, where $\confset_\channelsystem := \channelstateset \times \channelmessageset\kstar$, $\lblset_\channelsystem := \channeloperationset$ and the transition relation $\to_\channelsystem$ is the smallest relation given by:
+\begin{itemize}
+	\item If $\channelstate_1 \to[!\channelmessage] \channelstate_2$ and $\word \in \channelmessageset\kstar$, then $\tuple{ \channelstate_1, \word } \to[!\channelmessage]_\channelsystem \tuple{ \channelstate_2, \channelmessage \cdot \word }$.
+	\item If $\channelstate_1 \to[?\channelmessage] \channelstate_2$ and $\word \in \channelmessageset\kstar$, then $\tuple{ \channelstate_1, \word \cdot \channelmessage } \to[?\channelmessage]_\channelsystem \tuple{ \channelstate_2, \word }$.
+	\item If $\channelstate_1 \to[\nop] \channelstate_2$ and $\word \in \channelmessageset\kstar$, then $\tuple{ \channelstate_1, \word } \to[\nop]_\channelsystem \tuple{ \channelstate_2, \word }$.
+\end{itemize}
+A state $\channelstate_F \in \channelstateset$ is \emph{reachable} from a configuration $\conf_0 \in \confset_\channelsystem$, if there exists a configuration $\conf_F = \tuple{ \channelstate_F, \word_F }$ such that $\conf_F$ is reachable from $\conf_0$ in $\TS_\channelsystem$.
+The \textbf{state reachability problem} of PCS is, given a perfect channel system $\channelsystem$, an initial configuration $\conf_0 \in \confset_\channelsystem$ and a final state $\channelstate_F \in \channelstateset$, to decide whether $\channelstate_F$ is reachable from $\conf_0$ in $\TS_\channelsystem$.
+It is undecidable \cite{DBLP:journals/jacm/BrandZ83}.

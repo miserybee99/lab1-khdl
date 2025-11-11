@@ -1,0 +1,81 @@
+\begin{figure*}[!htbp]
+      \centering
+      \includegraphics[width=\linewidth, ]{media/simu.pdf}
+      \caption{Example of an environment where an unexpected obstacle (speed bump) occurred on the reference path (dashed green).
+      We investigated three risk thresholds, \SI{0}{\J} (left), \SI{3}{\J} (middle) and \SI{40}{\J} (right).
+      For each threshold, the path taken by the robot is in blue.
+      Its velocity and risk are depicted in purple and red.
+      Events:
+      (\textbf{1}): Speed bump came into the robot's perception field.
+      (\textbf{2}): Robot started to climb the speed bump.
+      (\textbf{3}): Robot reached the speed bump top.
+      (\textbf{4}): Robot started to get down.
+      (\textbf{5}): Robot reached the asphalt.
+      The gray shaded areas show the duration when the robot traversed the speed bump.
+  }
+      \label{fig:simu}
+      \vskip-.5em
+\end{figure*}
+To show the applicability of this framework, we ran three scenarios in the environment depicted in \autoref{fig:intro}, in which three different risk thresholds were considered.
+%
+We used real data for the perception part and simulated the path planning with a simulation model of the robot seen in \autoref{fig:intro}.
+The simulations were performed on a computer equipped with an 11th Gen Intel Core i7-11850H processor and an NVIDIA GeForce RTX 3080 graphics card.
+%
+In all scenarios, the robot starts in front of the speed bump with zero steering angle and zero speed.
+%
+The Lambda-Field construction involves setting the difference in elevation threshold $H_\text{safe}$ to \SI{5}{\cm} and the $e$ value to $\SI{1}{\cm\squared}$.
+%
+Each Lambda-Field grid map consist of $200\times200$ cells, where each cell has a size of $10\times\SI{10}{\cm}$, resulting in a map of $20\times\SI{20}{\m}$.
+%
+The simulated robot has a wheel radius $R$ of \SI{25}{\cm} and a mass $m$ of $\SI{50}{\kg}$. The stiffness $k_r$ of each robot wheel is set to \SI{150000}{\N/\m}.
+The maximum velocity $v_\text{max}$ of the robot is set to \SI{1.5}{\m/\s}, while the steering angle range $(\delta_{\text{min}},\delta_\text{max})$ is set to $\pm\SI{11}{\degree}$.
+The sampling time $\Delta t$ is set to \SI{100}{\ms}.
+The weight matrix $\textbf{Q}$ is a diagonal matrix of elements $[0.05, 0.05, 0.05]$.
+The weight matrix $\textbf{Q}_N$ is a diagonal matrix of elements $[1, 1, 1]$.
+Therefore, if an unexpected obstacle prevents the robot from tracking the reference path, but the reference goal can be reached by a path deviating from the reference path, then the path planner will be able to choose this path.
+Finally, the weight coefficient $\text{w}_{v}$ is equal to $0.1$.
+
+We show the results in \autoref{fig:simu}, where each column corresponds to the result of a scenario.
+The first row in \autoref{fig:simu} shows the path of the robot as well as the reference path, which is a straight line passing through the speed bump.
+The second row in \autoref{fig:simu} shows the velocity profile and the risk during the traversal.
+The graphs are labeled with numbers corresponding to different times of interests:
+    $t_1$: the speed bump is detected;
+    $t_2$: the robot ascend the speed bump;
+    $t_3$: the robot reaches the top speed bump;
+    $t_4$: the robot descends the speed bump; and
+    $t_5$: the robot comes back to the road.
+
+In the first scenario, the risk threshold is set to zero, meaning that the robot is not allowed to take any risk.
+As long as the robot does not see the speed bump, the reference path is tracked.
+At time $t_1$, the robot can no longer track the reference path, as crossing the speed bump is risky.
+The path planning formulation leads the robot to go around the speed bump.
+One can note that throughout the traversal, the robot maximizes its velocity without ever crossing a potential risky cell, as no risk is allowed.
+%
+This scenario shows that setting the risk to zero is the same as assessing the risk of collision and imposing that the robot goes around the obstacles.
+
+However, in some cases, avoiding may not be possible (for example, the left lane is forbidden due to traffic rules or occupied by another vehicle) and if no risk is allowed the robot would then stop in front of the speed bump.
+With our approach, it is possible to reach the goal by managing the risk threshold in accordance with the capability of the robot.
+In the scenario shown in the second column in \autoref{fig:simu}, we set the risk threshold $r_{threshold}$ to \SI{3}{\J}, meaning in our case that \SI{6}{\mm} compression of the wheel is the maximum allowed.
+One can see that the robot passes through the speed bump, but at a low speed.
+The robot slows down at time $t_1$, as the speed bump is detected by the robot.
+%
+Then, from time $t_2$ to time $t_5$, our path planner regulates the speed of the robot to stay below the risk threshold.
+The path planner maintains an adequate speed to cross the speed bump safely, finding a balance between minimizing the traversal time and the risks taken by the robot.
+%
+From time $t_3$ to $t_4$, the robot is on the speed bump.
+Before leaving it, the robot again detects hazardous events on the reference path, leading the robot to slow down.
+At time $t_4$, the robot starts to descend the speed bump at a reasonable speed to manage the risk that has appeared on the path.
+%
+Finally, at time $t_5$, the robot leaves the obstacle, accelerating again.
+This scenario shows that the robot can handle a consistent amount of risk in complicated situations.
+
+In the last scenario, we increase the risk threshold to \SI{40}{\J}, meaning that we accept a \SI{23}{\mm} maximum tire's compression.
+Intuitively, the robot goes faster than in the previous scenario.
+At time $t_1$, the speed bump is detected. 
+The planner stabilizes the velocity of the robot to traverse the speed bump, while not expecting a risk exceeding \SI{40}{\J}.
+%
+Until it reaches its target, the robot tracks the reference path at its greatest allowable velocity.
+As such, our framework is able to produce meaningful paths by considering the potential hazards associated with navigating through 3D obstacles.
+%
+%
+

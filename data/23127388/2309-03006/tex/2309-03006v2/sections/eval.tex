@@ -1,0 +1,232 @@
+\section{Evaluation}
+
+In this section, we evaluate multiple aspects of \tool on several datasets of Solana programs.
+We start by demonstrating the soundness and completeness precision of \tool with the \emph{Neodyme Breakpoint Workshop} dataset~\cite{Neodyme2021-vw} in~\Cref{sec:eval_valid}.
+This dataset is a collection of prevalent Solana program vulnerabilities and is used in previous work~\cite{Cui2022-nm}.
+Furthermore, we compare \tool with VRust~\cite{Cui2022-nm}, which is currently the only other approach addressing Solana program security.
+Second, we test \tool's vulnerability discovery effectiveness on real-world programs directly taken from the Solana mainnet blockchain. We present our findings and discuss newly discovered bugs in~\Cref{sec:eval_bugs}.
+Lastly, in~\Cref{sec:eval_perf}, we demonstrate \tool's performance with bug bounty programs~\cite{immunefi}.
+We focus on \tool's test case throughput and achieved code coverage.
+
+\paragraph{Experimental Setup} 
+We ran our evaluation on an AMD EPYC 7302P CPU with 16 cores clocked at \SI{3}{GHz} with \SI{256}{GB} RAM.
+The experiments are executed in parallel, keeping all physical CPU cores fully occupied.
+Each fuzzing experiment uses a single core and uses the same initial seed for all fuzzing runs.
+
+\subsection{Bug Detection Capabilities}
+\label{sec:eval_valid}
+
+To validate our design, we test \tool with the Neodyme Breakpoint Workshop dataset~\cite{Neodyme2021-vw}.
+The dataset contains common Solana vulnerabilities (cf.~\cref{sub:sol-vulnerabilities}).
+This dataset is organized into 5 different levels, where each level consists of a Solana program with a specific vulnerability. 
+For this experiment, we fuzz each program with a timeout of 10 minutes.
+Our results are depicted in~\Cref{tbl:validity}:
+\tool is able to find all the bugs in this dataset within less than 5 seconds.
+\tool does \emph{not report any false alarms}, and is able to precisely detect each vulnerability.
+
+We do not include the \emph{Level}~\emph{3} program, because the program has an \emph{account confusion vulnerability}.
+Detecting account confusions requires knowledge of the underlying data layout that represents the expected data structure in memory.
+This information requires access to the source code of the program.
+However, \tool's goal is to detect bugs in Solana programs, without relying on source code, and thus we skip this program.
+
+\paragraph{Comparison with VRust}
+In contrast to VRust~\cite{Cui2022-nm}, \tool reliably detects bugs in smart contracts, without source code.
+Thus, a full comparison of every metric (e.g., performance) with VRust is impossible.
+While VRust is able to detect the same bugs as \tool, it reports false alarms regarding the integer bug in the \emph{Level}~\emph{2} program.
+Meanwhile, \tool does not report a single false alarm in this dataset.
+In addition, VRust only indicates a missing key check in the \emph{Level}~\emph{0} program and \emph{Level}~\emph{1} program.
+\tool, on the other hand, can trace the vulnerability to a missing owner check in the \emph{Level}~\emph{0} program and a missing signer check in the \emph{Level}~\emph{1} program, resulting in \tool being more precise compared to VRust.
+
+\input{tables/tbl-validity-eval}
+
+\paragraph{The Infamous Wormhole Bug}
+In February 2022, wrapped Ether (wETH) with a value of 323 million USD has been stolen from the Wormhole program, which implements a bridge between Ethereum and Solana.
+%
+The underlying bug is a missing key check in a Solana program.
+\tool implements a bug detection oracle that detects this bug.
+Furthermore, \tool works on a binary-only level and does not need to understand a program's semantics to detect vulnerabilities.
+However, by design, the original Wormhole program and the underlying bug requires this level of context information.
+The context is provided by off-chain guardians that check and verify each transaction.
+However, we challenged \tool to detect this bug \emph{without} any context information.
+Therefore, we created an emulation of this program which shares the same vulnerability as the Wormhole bug.
+Here, \tool was able to detect the bug in less than 40 seconds.
+
+\subsection{Discovering New Bugs}
+\label{sec:eval_bugs}
+To evaluate \tool's effectiveness in discovering unknown vulnerabilities, we assembled a dataset of \noc real-world programs deployed on the Solana mainnet on March 27, 2023.
+We take the following steps to ensure that we have the most current and complete collection of Solana programs:
+First, we query an RPC node of the Solana network for all programs that belong to the most recent loader program\footnote{At the time of writing, this is \emph{BPFLoaderUpgradeab1e11111111111111111111111}.}.
+Second, we use the Solana toolchain to dump each of the programs into an ELF file.
+VRust~\cite{Cui2022-nm} is not able to analyze any of these programs, which emphasizes the gap that \tool fills. 
+Given the large data set of contracts, we set the timeout to 5 minutes.
+In total, \tool reports \num{92} potential security vulnerabilities in \num{52} out of the \noc programs, including \num{30} \emph{missing signer checks}, \num{12} \emph{arbitrary CPIs}, and \num{30} \emph{integer bugs}.
+Moreover, \num{20} reports indicate potential vulnerabilities to lamports theft without possessing the vulnerabilities listed before.
+
+\begin{table}[t]
+  \centering
+  \begin{tabular}{@{}c|c@{}}
+    \toprule
+    Abbreviation & Full Program ID \\
+    \midrule
+    \texttt{3nJ2...5erP} & \texttt{3nJ2MWbnS3bW8rnWhejAgnLQTyiqoA5fMq5Z7jRv5erP} \\
+    \texttt{3od3...jnsW} & \texttt{3od3X7QN84FTonkyXbQiT1ydxcT9P1jBcA9mbgD3jnsW} \\
+    \texttt{3Vtj...4q8v} & \texttt{3VtjHnDuDD1QreJiYNziDsdkeALMT6b2F9j3AXdL4q8v} \\
+    \texttt{3w57...obPW} & \texttt{3w57iMhv5Zk5VDuTe5dspm2FzE9zQhscCb9CZpAKobPW} \\
+    \texttt{4hPk...JP5N} & \texttt{4hPkNV2WsgPW1wHHcQebvV7GLyLgdDDLEx3Pu6LzJP5N} \\
+    \texttt{4M2f...jStx} & \texttt{4M2fancicHbUtMLcMNmbi97YngFoqBcnFk5D31JjjStx} \\
+    \texttt{6Lan...szqi} & \texttt{6LanqAFCbucXWSG35ssij4kFDTWJ25BY7d6hbR2szqi} \\
+    \texttt{7FWE...9p7p} & \texttt{7FWEcVG1YRW7evGR3bXgu47ge8m6Je7BQuvTzMbn9p7p} \\
+    \texttt{9a5d...jZP9} & \texttt{9a5dihgNgBhWnjmRDJ8rUy4ihetvgMmjaPk7NGdsjZP9} \\
+    \texttt{9tSW...11yy} & \texttt{9tSWsKwtDL6YseLuh1haGFJk312uu9HGyrnVa5XH11yy} \\
+    \texttt{GQ6q...1u6K} & \texttt{GQ6qchUsofiK7rzeFg5jbvpHcJ7pNnfL4yfwaYrB1u6K} \\
+    \texttt{9WoL...849B} & \texttt{9WoLnfjLKk1EBtkABhe3vcA8CLogsbs3XBoddn8h849B} \\
+    \texttt{H5rp...nPSG} & \texttt{H5rpfCD6hLFCPCfxxqjGg94Gqoigqfk7afhqGLu1nPSG} \\
+    \bottomrule
+  \end{tabular}
+  \caption{Program IDs and abbreviations from~\Cref{tbl:eval_bugs}.}%
+  \label{tbl:full-addresses}
+\end{table}
+
+Confirming vulnerabilities is challenging due to the absence of source code. Hence, we opted for the following approach. We first generate instructions based on the payload information contained in the vulnerability report generated by \tool.
+Next, we analyze the program logs as well as the disassembled eBPF bytecode executed at the runtime of the instructions.
+Afterward, we craft transactions and observe if the transactions create an erroneous state in the blockchain. Note that this is a tedious validation process, but a common issue when developing smart contract fuzzers~\cite{echidna,sfuzz,rodler2023efcf}.
+
+At the time of writing, we are able to validate the existence of 14 exploitable bugs, and 2 non-exploitable bugs.
+Accordingly, \tool currently has a false alarm rate of \SI{12.5}\%.
+\cref{tbl:eval_bugs} shows the 16 discovered bugs and public key abbreviations of the vulnerable programs.
+For the sake of reproducibility, we list the full public keys in~\Cref{tbl:eval_bugs}.
+%
+In the following, we present five interesting vulnerabilities detected by our approach.
+To minimize potential damage, we ensured that none of these programs are actively managing valuable assets and that no token accounts exist to which the programs are assigned as authority.
+
+\paragraph{Responsible Disclosure and Ethical Concerns}
+Since we conduct this experiment on all Solana programs present on the Solana blockchain, this includes many programs of unknown origin, i.e., the authors are anonymous.
+We tried our best to reach out to the program authors of this experiment.
+Due to the lack of contact information, we could not disclose our findings directly to the authors of vulnerable Solana programs.
+Hence, we decided to disclose \emph{all} of our findings to the Solana foundation\footnote{\url{https://solana.org/}} and offered collaboration to fix the vulnerabilities.
+
+\input{tables/tbl-bugs-eval}
+
+\finding{Integer bugs in 3Vtj...4q8v} This program contains an \emph{integer bug} that an attacker can use to steal lamports from a program-controlled account. 
+The vulnerable instruction requires four accounts, and subtracts one SOL from the fourth account while adding it to the first account.
+However, when reducing and crediting, the program does not check whether an overflow or underflow of lamports has occurred. 
+Given that the first account owns too much SOL and the fourth account owns too little, an attacker could exploit the integer bug to add lamports to the fourth account and subtract lamports from the first account.
+
+\finding{Arbitrary CPI in 3w57...obPW}
+\tool found an \emph{arbitrary CPI} vulnerability.
+We confirmed the bug by sending a malicious instruction.
+The instruction accepts five accounts, where the last account signs the transaction.
+The program then invokes the first account supplied without checking the account.
+
+\finding{Arbitrary CPI in 9WoL...849B}
+\tool detected an \emph{arbitrary CPI} vulnerability which grants additional privileges to the invoked program by signing a PDA in the CPI instruction.
+The program \texttt{9WoL...849B} manages accounts whose public key follows a PDA seed structure consisting of one seed corresponding to a passable public key (e.g., a wallet account). 
+Similarly to \texttt{3w57...obPW}, we have also created an instruction for \texttt{9WoL...849B} to confirm the bug:
+The instruction expects \emph{13} accounts, where account \emph{13} is the program an attacker can invoke arbitrarily, and accounts \emph{3}, \emph{8}, and \emph{11} are accounts that have the same public key matching the PDA seed structure of \texttt{9WoL...849B}, i.e., a PDA associated to \texttt{9WoL...849B}.
+The instruction results in \texttt{9WoL...849B} invoking the arbitrary invocable program and signing the PDA in the CPI instruction.
+This leads to the invoked program having additional privileges than originally included in the transaction. 
+Since the program states in the program log that it generates an instruction for calling the function \emph{borrow\_obligation\_liquidity} of the Serum Swap program before performing CPI, we assume that it is supposed to manage accounts of the Serum Swap program as an authority.
+
+\finding{Multiple Vulnerabilities in 4M2f...jStx} 
+Here, \tool discovered both a \emph{missing signer check} and an \emph{integer bug} in this program. 
+The program expects an instruction containing four accounts and allows playing a gambling game in which a user can win or lose. 
+The number of lamports of the second account multiplied by an odd of \emph{1.9934} determines the total payout of the game. 
+In case the user wins the game, the program credits the payout to the first account and subtracts
+\begin{inparaenum}[1)]
+    \item from the fourth account the lamports worth \emph{0,9334} multiplied by the lamports of the second account, and 
+    \item from the second account, its total lamport balance.
+\end{inparaenum}
+When crediting and subtracting the lamports, the program does not check whether overflows or underflows have occurred.
+Hence, an attacker can exploit the integer bug to credit the fourth account with lamports instead of subtracting lamports in the case that the user won the game. 
+%
+In addition, the program does not check which account signed the transaction. 
+Thus, an attacker can submit arbitrary program-controlled accounts and start gambling without the program ever checking whether the attacker is authorized to gamble with the submitted accounts. 
+We note that the programs \texttt{6Lan...szqi} and \texttt{9tSW...11yy} also allow gambling similar to \texttt{4M2f...jStx}, and also do not verify that gambling with the submitted accounts is authorized. 
+
+\finding{Integer Bug in 9a5d...jZP9}
+Besides suffering from an integer bug, this program also enables an attacker to transfer lamports from a program-controlled account to an arbitrary, attacker-controlled account. 
+The program expects two accounts and subtracts all lamports of the first account and credits them to the second account without checking for overflow or underflow of lamports. 
+Thus, the integer bug is not exploitable, as only the lamports field of the second account can overflow but not of the first account. 
+However, the program allows passing an arbitrary program-controlled account as a first account, transferring its lamports to the second account. 
+In general, such a behavior is undesirable, as it allows an attacker to drain funds of all accounts belonging to this program.
+This is a clear indication of an access control bug:
+the intended program behavior would surely only allow an \emph{authorized} account to transfer lamports from program-controlled accounts to carefully selected accounts.  
+To address this bug, the program must verify that the authorized account is included in the instruction and that it signed the transaction to prevent exploitation. 
+
+\subsection{Performance Analysis}
+\label{sec:eval_perf}
+
+Given that \tool is the first fuzzer for Solana programs, there exists no qualitative baseline or dataset to measure common fuzzing metrics like coverage and execution speed.
+Thus, we also aim at establishing a baseline allowing the community to compare future fuzzers with \tool.
+
+We assembled a dataset from the Immunefi bug bounty list~\cite{immunefi}. 
+This dataset includes a diverse set of Solana programs used in production and offers a higher grade of code quality and complexity, compared to the average mainnet programs. 
+Hence, we assess the execution speed and code coverage of \tool based on this dataset.
+For this experiment, we use a representative timeout of 24 hours and collect metrics on execution speed and code coverage.
+
+\paragraph{Binary-only Approach Baseline}
+Unlike the experiments in \Cref{sec:eval_bugs}, source code for the bug-bounty dataset is available.
+The performance and coverage of \tool could potentially be optimized by analyzing the source code to extract context information about authority or configuration accounts, solving assertions, and uncovering new code paths. 
+However, we refrain from doing so because (1)~we aim to provide representative measurements and (2) for the large majority of Solana programs no source code is available. 
+
+\paragraph{Challenge: Measuring Code Complexity of Solana programs}
+There is currently no tool support to measure the complexity of Solana smart contracts.
+Previous work, like VRust~\cite{Cui2022-nm}, relied on lines of code (LOC) to estimate the complexity of a program. However, this metric is insufficient since it includes unreachable code.
+Furthermore, \tool's coverage works on traversed edges in a program's control flow graph (CFG) and is therefore incomparable to LOC.
+To tackle this challenge, we developed a static analysis approach which measures the complexity based on traversing the eBPF code and counting every control flow instruction that eBPF supports.
+We use this number to over-approximate the number of edges in the CFG.
+
+Note that this ensures that we include every eBPF \texttt{JMP},
+\texttt{CALL}, and \texttt{RET} instruction.
+This includes any edges that are by design not reachable, since these may represent dead code or Solana-specific error handling routines.
+For example, one routine is the handling of an incorrect serialized program id at the program input, which is never executed due to the valid instructions generated by the transaction generator.
+
+We argue that this is sufficient to estimate the complexity of Solana programs because it provides a better insight into the complexity of a program than LOC.
+We analyze the target contracts with our CFG-based approach, and compare the results with the covered code paths by \tool.
+
+
+\input{tables/tbl-perf-eval}
+
+\paragraph{Coverage}
+\Cref{tbl:performance} shows the results of this experiment.
+First, we observe that the estimated complexity of the dataset varies widely, ranging from \num{4438} edges in the control flow graph to \num{67552}.
+This confirms that the size and complexity of the programs in the dataset is diverse.
+The number of covered edges by \tool ranges from \num{1299} to \num{3171}.
+This provides two important insights: First, \tool is able to consistently generate meaningful transactions to uncover new program paths.
+Second, the binary-only analysis approach leads to a number of programs, where the number of covered edges does not increase over time.
+By further investigation, we learned that certain barriers or assertions prevent \tool from reaching deeper nested code.
+Hence, there is room for optimization for future work. For example, extending \tool with symbolic execution~\cite{fuzz-symex, Mossberg2019-xp}, using Redqueen~\cite{aflpp, Aschermann2019-ha}, or, as mentioned before, incorporating the available source code (\Cref{sec:eval_bugs}), to overcome these roadblocks.
+
+\paragraph{On Fuzzing Throughput}
+Another interesting insight is that \tool is capable to generate on average more than 1569 transactions per second for every Solana program.
+Furthermore, \tool has an average of over \num{1000} transactions per second for 13 out of 16 programs. 
+However, even in these three outliers, \tool is able to generate at minimum \num{274} transactions per second.
+We understand that \tool regularly extracts new runtime semantics for these programs, causing the blockchain emulator to initiate updating the \ledgersnap as well as deriving new PDAs.
+We measured that initializing the snapshot takes about \num{60}ms, which results in fewer transactions per second being generated from the input bytes.
+
+\paragraph{Vulnerability Reports}
+\tool reported 2 bugs in the bug dataset both belonging to the Jet Protocol. 
+We investigate the bugs while also consulting the source code of each program. As we will see, one of the bugs is a false positive while we believe the other one is a true positive which is currently under review by the developers.
+
+\finding{False Alarm in Jet Fixed Term}
+\tool reports a missing signer check in the \texttt{Jet Fixed Term} program, which is a program for fixed-term lending and borrowing.
+The missing signer check exists in a function that cancels orders, which requires two accounts as its input.
+While the first account strictly belongs to a user of this program, the second account is a public order book containing the orders.
+By signing the transaction, a user is granted authority to remove an order from the marketplace.
+As a reminder, the oracle of \tool (c.f.~\Cref{sub:oracle}) considers transitive signer checks if accounts are linked in some way, i.e., an account $a$ may refer to another account $b$ if $a$'s data field contains the public key of $b$.
+Additionally, the public key stored in $a$ must be compared to the public key of $b$.
+However, in this particular case, the order book's account data may contain the public key of the authority account, but the public key of the authority account---which signed the transaction---is never compared to it.
+As a result, \tool reports a missing signer check for this program.
+However, we consider this a false alarm, as the bug is not exploitable, because the program checks whether the user account owns the canceled order.
+
+\finding{True Positive Bug in Jet Test Service}
+\tool reports an arbitrary cross-program invocation for the \texttt{Jet Test Service} program from the Jet Protocol.
+The arbitrary cross-program invocation exists in a function that accepts an arbitrary amount of accounts as long as a minimum of two accounts is provided:
+the first account is a potentially uninitialized account, and the second account can be any other program of the Solana blockchain.
+
+The function then checks whether the first account provided is initialized on the Solana blockchain, and if this is \emph{not} the case, the function invokes the second program using CPI.
+Since there are no restrictions on the choice of account to invoke, we consider this a true bug in the \texttt{Jet Test Service} program.
+This bug can be overcome by having the \texttt{Jet Test Service} program verify the public key of the second account before invoking the second account using CPI. 
+
+We are now in contact with the vendor to fix these issues and confirm the bugs.
+In conclusion, we can confirm the ability to fuzz complex targets with high transaction throughput and coverage.

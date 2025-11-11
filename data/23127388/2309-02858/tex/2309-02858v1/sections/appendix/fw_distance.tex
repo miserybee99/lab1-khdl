@@ -1,0 +1,20 @@
+Sometimes, using distances such as the $\ell_2$ may not capture well the shape of manifolds. To do so, we derive a metric using the all pair shortest paths. Simply put, this metric consists in considering the number of closest neighbors that separates two data samples. To compute it, we first use a sub-metric that we note $d$, say the $\ell_2$ norm. This allows us to compute all distances $d_{ij}$ between every sample $i$ and $j$. From this matrix of sub-distances, we can build a graph adjacency matrix $W$ following the rules:
+
+\begin{equation*}
+    W_{ij} = \left\{\begin{array}{cr}
+        1 & d_{ij}\leq \epsilon \\
+        0 & d_{ij}> \epsilon
+    \end{array}\right.,
+\end{equation*}
+
+where $\epsilon$ is a chosen threshold such that the graph has sparse edges. Our typical choice for $\epsilon$ is the 5\% quantile of all $d_{ij}$.
+
+We chose the graph adjacency matrix to be undirected, owing to the symmetry of $d_{ij}$ and unweighted. Indeed, solving the all-pairs shortest paths involves the Floyd-Warshall algorithm~\cite{warshall_theorem_1962,roy_transitivite_1959} which complexity $\mathcal{O}(n^3)$ is not affordable when the number of samples $n$ becomes large. An undirected and unweighted graph leverages performing $n$ times the breadth-first-search algorithm, yielding a total complexity of $\mathcal{O}(n^2+ne)$ where $e$ is the number of edges. Consequently, setting a good threshold $\epsilon$ controls the complexity of the shortest paths to finds. Our final distance between two nodes $i$ and $j$ is eventually:
+
+\begin{equation}
+    c_{ij} = \left\{\begin{array}{c r}\text{Shortest-path}^W(i,j)&\text{if it exists.}\\
+    n&\text{otherwise}
+    \end{array}\right..
+\end{equation}
+
+This metric $c$ can then be incorporated inside the Wasserstein-GEMINI.

@@ -1,0 +1,9 @@
+The Wasserstein-1 metric can be considered as an IPM defined over a set of 1-Lipschitz functions. Indeed, such writing is the dual representation of the Wasserstein-1 metric:
+
+\begin{equation*}
+    W_c(p\|q) = \sup_{f, \|f\|_L\leq 1} \E_{x\sim p}[f(x)] - \E_{z\sim q}[f(z)].
+\end{equation*}
+
+Yet, evaluating a supremum as an objective to maximise is hardly compatible with the usual backpropagation in neural networks. This definition was used in attempts to stabilise GAN training~\cite{arjovsky_wasserstein_2017} by using 1-Lipschitz neural networks~\cite{gouk_regularisation_2021}. However, the Lipschitz continuity was achieved at the time by weight clipping, whereas other methods such as spectral normalisation~\cite{miyato_spectral_2018} now allow arbitrarily large weights. The restriction of 1-Lipscthiz functions to 1-Lipschitz neural networks does not equal the true Wasserstein distance, and the term "neural net distance" is sometimes preferred~\cite{arora_generalization_2017}. Still, estimating the Wasserstein distance using a set of Lipschitz functions derived from neural networks architectures brings more difficulties to actually leverage the true distance according to the energy cost $c$ of Eq.~\ref{eq:wasserstein_definition}.
+
+Globally, we hardly experimented the generic IPM for GEMINIs. Our efforts for defining a set of 1-Lipschitz critics, one per cluster for OvA or one per pair of clusters for OvO, to perform the neural net distance~\cite{arora_generalization_2017} were not fruitful. This is mainly because such an objective requires the definition of one neural network for the posterior distribution $\pyx$ and $K$ (resp. $K(K-1)/2$) other 1-Lipschitz neural networks for the OvA (resp. OvO) critics, i.e. a large number of parameters. Moreover, this brings the problem of designing not only one but many neural networks while the design of one accurate architecture is already a sufficient problem.

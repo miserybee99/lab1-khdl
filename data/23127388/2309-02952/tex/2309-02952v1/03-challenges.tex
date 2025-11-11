@@ -1,0 +1,75 @@
+\section{Challenges}
+\label{sec:challenges}
+
+
+Despite the desirable characteristics exhibited by gossip-based peer-sampling protocols, managing a dynamic set of neighbors proves to be an easy target to adversary behavior.
+More specifically, an attacker could apply one or more of the following protocol violations to take over a Cyclon overlay:
+\newline
+
+\noindent
+\textbf{Frequency Violations:} By initiating gossip exchanges faster than the prescribed period, a node could generate descriptors to itself at a higher frequency than other nodes, effectively increasing its overall link representation in the network.
+
+Gossiping slower, on the other hand, does not pose any threat to the network, and should not be considered an attack.
+After all, it may be attributed to natural causes, such as network delays or node disconnections.
+
+\noindent
+\textbf{Partner Selection Violations:} Instead of selecting a gossiping partner as prescribed by the protocol, a node may arbitrarily select another node that better serves the attacker's strategy.
+
+\noindent
+\textbf{View Violations:} The most impactful protocol violation derives from a node's freedom to present any arbitrary set of descriptors as its view during a gossip exchange, and to arbitrarily select which descriptors to send to the other party.
+It may send fewer descriptors than supposed to, it may send descriptors that are not present in its current view, or it could even create fake node descriptors on the spot.
+
+For example, malicious nodes could selectively present descriptors of malicious nodes to their legitimate peers, rather than randomly chosen ones from their views, leading to the hub attack demonstrated in the experiments of \figref{fig:hubattack}.
+\newline
+
+The aforementioned protocol violations can be used as building blocks to orchestrate high-impact, large-scale attacks, which may disturb the canonical operation of individual nodes or even harm the integrity of the overall network.
+
+Two high-scale attacks that have been extensively studied in the literature are the Hub Attack~\cite{SecurePeerSampling} and the Eclipse Attack~\cite{TheEclipseAttack}.
+
+
+\subsection{The Hub Attack}
+\label{subsec:the-hub-attack}
+
+
+In this attack, the attacker pollutes the network with node descriptors that point at malicious nodes.
+The attacker's goal is to redirect as many links of legitimate nodes as possible to malicious nodes controlled by him.
+In a successful (for the attacker) hub attack, malicious nodes become hubs in the overlay.
+After establishing central positions, the malicious nodes can leave the overlay, splitting the overlay graph into many disjoint components.
+This attack results in a massive DoS attack that can only be reversed by reconstructing the entire network overlay from scratch.
+
+
+\subsection{The Eclipse Attack}
+\label{subsec:the-eclipse-attack}
+
+
+In this attack a malicious party targets specific nodes, trying to take control of all their overlay connections.
+By isolating the targeted node(s) from the rest of the network, the malicious party gains control over all communications of the victim(s),
+being able to delay or drop messages from and to them.
+
+Brahms~\cite{Brahms} proposes a generic solution against eclipse attacks.
+Each node applies a secret ordering on the stream of node IDs it receives through gossiping, in order to render a small part of the view immune to overprovisioning of malicious node descriptors.
+It is considered that by maintaining links to a uniformly random selection of all IDs seen so far, at least some of these links should correspond to legitimate nodes, with high probability.
+However, this is not in line with peer-sampling protocols' goal of maintaining views up to date with fresh links to alive peers.
+
+A more centralized approach would be to establish some connections to nodes that are widely trusted.
+For example, in the Cardano blockchain~\cite{cardano}, where Stake Pool Operators (SPOs) are considered trusted, and whose nodes are publicly known and registered on the blockchain itself, each network node could dedicate some of its connections to SPO nodes.
+
+Finally, in certain cases it may be possible for nodes to locally detect whether they have been eclipsed and to take corrective steps.
+For example, in the Cardano blockchain again, nodes can locally detect whether they have been eclipsed by observing the frequency and contents of received blocks.
+When a node determines it is in eclipsed state, it simply leaves the network and joins anew.
+Such a mechanism is described in~\cite{CardanoShelley}.
+However, such solutions focus on the \emph{detection} of attacks rather than on their \emph{prevention}, and are inherently application-specific, lacking generic applicability.
+
+
+\subsection{Hub Attack vs Eclipse Attack}
+\label{subsec:hub-attack-vs-eclipse-attack}
+
+
+It is important to note the orthogonality between these two attacks.
+An approach that addresses eclipse attacks does not constitute a protection against hub attacks, and vice versa.
+
+In approaches that rely on eclipse detection, malicious nodes could simply run in stealth mode, exhibiting legitimate behavior concerning their application-specific actions.
+This strategic approach persists until they have achieved the required link over-representation, at which moment they can deploy a hub attack on the network.
+But even when approaches that attempt to prevent eclipse attacks are in place, an attacker having acquired an overwhelmingly high fraction of the links could still deploy a hub attack and break the overlay into many small disjoint components, even if no single node has individually been eclipsed and fully isolated from other legitimate nodes.
+
+On the other hand, a network encompassing mechanisms shielding it from hub attacks, cannot automatically guarantee that no single node will be targeted and will become individually eclipsed, assuming that malicious nodes have the possibility to deviate from the protocol's rules.

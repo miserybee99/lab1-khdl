@@ -1,0 +1,273 @@
+\section{The Simple Case Using a Thru Standard}
+\label{sec:2}
+
+In the general case of SRM calibration, no thru standard is required. Any transmissive reciprocal device would suffice. If only the one-port error boxes are desired, any transmissive device would be acceptable. However, the derivation of the generalized SRM calibration is based on creating an artificial thru standard via mathematical reformulation and additional one-port measurements. The handling of the artificial thru standard is explained in more detail in Section~\ref{sec:3}. In this section, we assume a fully defined thru standard to derive the calibration workflow and extend it to the general case in Section~\ref{sec:3}.
+
+To start the derivation, we use the error box model of a two-port VNA, as illustrated in Fig.~\ref{fig:2.1}. This model is expressed in T-parameters as follows:
+\begin{equation}
+	\bs{M}_\mathrm{stand} = \underbrace{k_ak_b}_{k}\underbrace{\left[\begin{matrix}a_{11} & a_{12}\\[5pt]\
+			a_{21} & 1\end{matrix}\right]}_{\bs{A}}\bs{T}_\mathrm{stand} \underbrace{\left[\begin{matrix}b_{11} & b_{12}\\[5pt]
+			b_{21} & 1\end{matrix}\right]}_{\bs{B}}, 
+	\label{eq:2.1}
+\end{equation}
+where $\bs{M}_\mathrm{stand}$ and $\bs{T}_\mathrm{stand}$ represent the measured and actual T-parameters of the standard, respectively. The matrices $\bs{A}$ and $\bs{B}$ are the one-port error boxes containing the first six error terms, and $k$ is the seventh error term that describes the transmission error between the ports.
+\begin{figure}[th!]
+	\centering
+	\includegraphics[width=0.95\linewidth]{Figures/error_box_model.pdf}
+	\caption{Two-port VNA error box model. Matrices are given as T-parameters.}
+	\label{fig:2.1}
+\end{figure}
+
+For a thru standard, the measured T-parameters are provided as follows:
+\begin{equation}
+	\bs{M}_\mathrm{thru} = k\bs{A}\bs{B}.
+	\label{eq:2.2}
+\end{equation}
+
+In the next step, we will focus on measuring one-port standards. For the SRM method, we require at least three symmetric two-port standards made from one-port devices, and at least three of them should exhibit unique electrical responses. Examples of such standards include short, open, and impedance. It is not necessary to know the exact response of the standards themselves. Fig.~\ref{fig:2.2} provides an illustration of the error box for one-port measurements.
+\begin{figure}[th!]
+	\centering
+	\includegraphics[width=0.95\linewidth]{Figures/symmetric_reflect.pdf}
+	\caption{Two-port VNA error box model that illustrates the measurement of one-port standards. All matrices are provided as T-parameters. The index $i$ indicates the measured standard, where $i=1,2,\ldots, M$, with $M \geq 3$.}
+	\label{fig:2.2}
+\end{figure}
+
+The measured input reflection coefficient seen from each port is given as follows:
+\begin{equation}
+	\Gamma_a^{(i)} = \frac{a_{11}\rho^{(i)}+a_{12}}{a_{21}\rho^{(i)}+1}; \quad \Gamma_b^{(i)} = \frac{b_{11}\rho^{(i)}-b_{21}}{1-b_{12}\rho^{(i)}},
+	\label{eq:2.3}
+\end{equation}
+where $\Gamma_a^{(i)}$ and $\Gamma_b^{(i)}$ are the $i$th measured reflection coefficients from the left and right ports, respectively. The actual response of the standard, which is assumed to be unknown, is denoted by $\rho^{(i)}$.
+
+The expression for the input reflection coefficient, as given in \eqref{eq:2.3}, is in the form of a Möbius transformation (also known as a bilinear transformation) \cite{Needham2023}. One important property of the Möbius transformation is that it can be described by an equivalent $2\times2$ matrix notation. For instance, \eqref{eq:2.4} provides a general Möbius transformation with coefficients $a,b,c,d\in\mathbb{C}$, along with its corresponding $2\times 2$ matrix representation.
+\begin{equation}
+	f(z) = \frac{az+b}{cz+d} \quad \longleftrightarrow \quad[f]=\begin{bmatrix}
+		a & b\\
+		c & d
+	\end{bmatrix}
+	\label{eq:2.4}
+\end{equation}
+
+In \eqref{eq:2.4}, we use brackets $[\cdot]$ to describe matrices associated with a Möbius transformation. The transformation coefficients are only unique up to a complex scalar multiple. This property of the Möbius transform can be easily shown by multiplying the numerator and denominator with a non-zero complex scalar. In terms of matrix notation, scaling the matrix with a complex scalar still represents the same Möbius transformation. Therefore,
+\begin{equation}
+	\quad[f] \equiv \kappa[f], \quad \kappa\neq 0
+	\label{eq:2.5}
+\end{equation}
+
+The matrix representation of the Möbius transformation possesses an elegant property in its ability to describe composite Möbius transformations. In essence, when we compose one Möbius transformation with another, we obtain a new Möbius transformation with updated coefficients. This property can be expressed in matrix notation by computing the matrix product of the individual Möbius transformations. To illustrate this concept, we provide an example of the composition of two Möbius transformations $f_1(z)$ and $f_2(z)$, which are defined as follows:
+\begin{subequations}
+\begin{align}
+		f_1(z) &= \frac{a_1z+b_1}{c_1z+d_1} \quad \longleftrightarrow \quad[f_1]=\begin{bmatrix}
+		a_1 & b_1\\
+		c_1 & d_1
+	\end{bmatrix}\\[5pt]
+		f_2(z) &= \frac{a_2z+b_2}{c_2z+d_2} \quad \longleftrightarrow \quad [f_2]=\begin{bmatrix}
+			a_2 & b_2\\
+			c_2 & d_2
+		\end{bmatrix}
+\end{align}
+	\label{eq:2.6}
+\end{subequations}
+
+The composite transformation is given as follows:
+\begin{equation}
+	\begin{aligned}
+		g(z) = (f_1\circ f_2)(z) &= \frac{a_1f_2(z)+b_1}{c_1f_2(z)+d_1}\\[5pt]
+		&= \frac{(a_1a_2 + b_1c_2)z + a_1b_2 + b_1d_2}{(a_2c_1 + c_2d_1)z + b_2c_1 + d_1d_2}
+	\end{aligned}
+	\label{eq:2.7}
+\end{equation}
+
+Therefore, the corresponding matrix equivalent of the composite Möbius transformation $g(z)$ is given as follows:
+\begin{equation}
+	[g]=\begin{bmatrix}a_{1} a_{2} + b_{1} c_{2} & a_{1} b_{2} + b_{1} d_{2}\\[5pt]
+	a_{2} c_{1} + c_{2} d_{1} & b_{2} c_{1} + d_{1} d_{2}\end{bmatrix} = [f_1][f_2]
+	\label{eq:2.8}
+\end{equation}
+which is the same as multiplying the matrices $[f_1]$ and $[f_2]$.
+
+Using matrix notation for the Möbius transformation, we can describe the input reflection coefficient measured from the left port as follows:
+\begin{equation}
+	\Gamma_a^{(i)} = \frac{a_{11}\rho^{(i)}+a_{12}}{a_{21}\rho^{(i)}+1} \longleftrightarrow
+	[\Gamma_a^{(i)}]  = \underbrace{\begin{bmatrix}
+		a_{11} & a_{12}\\[5pt]
+		a_{21} & 1
+	\end{bmatrix}}_{\bs{A}}
+	\label{eq:2.9}
+\end{equation}
+
+To address the error box on the right side, we perform a similar process as before, but instead of using the measured reflection coefficient, we reformulate in terms of the reflection coefficient $\rho^{(i)}$ as a function of the measured reflection coefficient $\Gamma_b^{(i)}$, which is given as follows:
+\begin{equation}
+	\rho^{(i)} = \frac{\Gamma_b^{(i)}+b_{21}}{b_{12}\Gamma_b^{(i)}+b_{11}} \longleftrightarrow
+	[\rho^{(i)}]  = \underbrace{\begin{bmatrix}
+			1 & b_{21}\\[5pt]
+			b_{12} & b_{11}
+	\end{bmatrix}}_{\bs{P}\bs{B}\bs{P}}
+	\label{eq:2.10}
+\end{equation}
+where $\bs{P}$ is a $2\times 2$ permutation matrix defined as 
+\begin{equation}
+	\bs{P} = \bs{P}^T = \bs{P}^{-1} = \begin{bmatrix}
+		0 & 1\\
+		1 & 0
+	\end{bmatrix}.
+	\label{eq:2.11}
+\end{equation}
+
+By composing \eqref{eq:2.10} with \eqref{eq:2.9}, we obtain a new Möbius transformation that describes the input reflection coefficient from the left port using measurements of the right port. This relationship can be written as follows:
+\begin{equation}
+	\Gamma_a^{(i)} = \frac{h_{11}\Gamma_b^{(i)}+h_{12}}{h_{21}\Gamma_b^{(i)}+h_{22}} \longleftrightarrow [\Gamma_a^{(i)}]=\bs{H}=\begin{bmatrix}
+		h_{11} & h_{12}\\
+		h_{21} & h_{22}
+	\end{bmatrix}
+	\label{eq:2.12}
+\end{equation}
+
+Here, we use the variable $\bs{H}$ to describe the Möbius transformation in \eqref{eq:2.12} and differentiate it from the Möbius transformation in \eqref{eq:2.9} to avoid confusion. It is important to note that both transformations are different, as they have distinct input parameters.
+
+Due to the composite property of Möbius transformations, the coefficients of the transformation can be expressed as follows:
+\begin{equation}
+	\bs{H} = \nu\bs{A}\bs{P}\bs{B}\bs{P}, \qquad \forall\,\nu \neq 0.
+	\label{eq:2.13}
+\end{equation}
+
+It is important to note that the constant $\nu$ is included because the coefficients of a Möbius transformation can only be defined up to a non-zero complex-valued scalar constant.
+
+By solving for the coefficients $h_{ij}$, we can determine \eqref{eq:2.13}. This equation is later used for establishing the calibration procedure by combining it with the thru standard. Since the coefficients $h_{ij}$ are defined by the Möbius transformation in \eqref{eq:2.12}, which is based on the measurements of the symmetric one-port standards, we can rewrite the Möbius transformation as a linear system of equations in terms of its coefficients. Assuming that $M\geq3$ one-port standards were measured, the coefficients $h_{ij}$ can be described as follows:
+\begin{equation}
+	\underbrace{\left[\begin{matrix}
+			-\Gamma_b^{(1)} & -1 & \Gamma_b^{(1)}\Gamma_a^{(1)} & \Gamma_a^{(1)} \\
+			-\Gamma_b^{(2)} & -1 & \Gamma_b^{(2)}\Gamma_a^{(2)} & \Gamma_a^{(2)}\\
+			\vdots & \vdots & \vdots & \vdots\\
+			-\Gamma_b^{(M)} & -1 & \Gamma_b^{(M)}\Gamma_a^{(M)} & \Gamma_a^{(M)}
+		\end{matrix}\right]}_{\bs{G}}
+	\underbrace{\left[\begin{matrix}
+			h_{11}\\
+			h_{12}\\
+			h_{21}\\
+			h_{22}
+		\end{matrix}\right]}_{\bs{h}} = \bs{0}
+	\label{eq:2.14}
+\end{equation}
+
+The solution for the vector $\bs{h}$ is found in the nullspace of $\bs{G}$, as the system matrix $\bs{G}$ contains at least one nullspace due to the equality to zero in \eqref{eq:2.14}. We may have more than one nullspace, but only if $\mathrm{rank}(\bs{G}) < 3$, which can only happen if we do not use at least three unique one-port standards.
+
+While the nullspace $\bs{G}$ satisfies the solution of \eqref{eq:2.14}, we can optimally estimate the nullspace of $\bs{G}$ in the presence of disturbance by computing its singular value decomposition (SVD) and using the right singular vector that corresponds to the smallest singular value \cite{Strang1993}. As $\bs{G}$ is of dimension 4 (i.e., number of columns), it has four singular values and vectors. We decompose the matrix $\bs{G}$ using SVD as follows:
+\begin{equation}
+	\bs{G} = \sum_{i=1}^{4} s_i\bs{u}_i\bs{v}_i^{H}
+	\label{eq:2.15}
+\end{equation}
+where $s_i$ is the $i$th singular value, while $\bs{u}_i$ and $\bs{v}_i$ are the $i$th left and right singular vectors, respectively. The conventional ordering of the singular values is in decreasing order. Therefore, the smallest singular value is $s_4$. Hence, the solution for $\bs{h}$ is given by the fourth right singular vector as follows:
+\begin{equation}
+	\bs{h} = \bs{v}_4
+	\label{eq:2.16}
+\end{equation}
+
+Now that we have solved for $\bs{h}$, and hence $\bs{H}$ in \eqref{eq:2.13}, we can combine the measurements of the thru standards with the results of $\bs{H}$ to form an eigenvalue problem regarding the error box coefficients. The combined result for the left error box is defined as follows:
+\begin{equation}
+	\bs{M}_\mathrm{thru}\bs{P}\bs{H}^{-1} = \frac{k}{\nu} \bs{A}\bs{P}\bs{A}^{-1}
+	\label{eq:2.17}
+\end{equation}
+
+Although \eqref{eq:2.17} is not strictly in the canonical form for an eigenvalue decomposition, as the middle matrix is not diagonal, it can still be decomposed because the middle matrix is a constant permutation matrix. If we apply the eigendecomposition to \eqref{eq:2.17}, we obtain the following decomposition:
+\begin{equation}
+	\bs{M}_\mathrm{thru}\bs{P}\bs{H}^{-1} = \frac{k}{\nu} \bs{A}\bs{P}\bs{A}^{-1} = \bs{W}_a\bs{\Lambda}\bs{W}_a^{-1},
+	\label{eq:2.18}
+\end{equation}
+where the matrix $\bs{W}_a$ corresponds to the eigenvectors, and the matrix $\bs{\Lambda}$ corresponds to the eigenvalues. Both are calculated as follows:
+\begin{subequations}
+\begin{align}
+	\bs{W}_a &= \begin{bmatrix}
+				w_{11}^{(a)} & w_{12}^{(a)}\\[5pt]
+		w_{21}^{(a)} & w_{22}^{(a)}
+	\end{bmatrix} = \begin{bmatrix}
+	\frac{a_{11}+a_{12}}{a_{21}+1} & \frac{-a_{11}+a_{12}}{-a_{21}+1}\\[5pt]
+	1 & 1
+	\end{bmatrix}\\[5pt]
+	\bs{\Lambda} &= \begin{bmatrix}
+		\lambda_1 & 0 \\[5pt]
+		0 & \lambda_2
+	\end{bmatrix} = \begin{bmatrix}
+		\frac{k}{\nu} & 0 \\[5pt]
+		0 & -\frac{k}{\nu}
+	\end{bmatrix}
+\end{align}
+\label{eq:2.19}
+\end{subequations}
+
+Generally, the order of the eigenvectors and eigenvalues is not unique. To ensure the correct order, we need to know the value of $k/\nu$. However, this term is still unknown at this stage. After solving for the error terms using both possible solutions, the sorting is done through trial and error. For instance, once the error terms have been solved, we could use one of the one-port standards as a metric to determine the correct order.
+
+We can solve the eigenvalue problem for matrix $\bs{B}$ by reversing the multiplication order of the matrices in \eqref{eq:2.17}. This gives us the following equation:
+\begin{equation}
+	\left( \bs{P}\bs{H}^{-1}\bs{M}_\mathrm{thru}\right)^T = \frac{k}{\nu} \bs{B}^T\bs{P}\bs{B}^{-T} = \bs{W}_b\bs{\Lambda}\bs{W}_b^{-1}
+	\label{eq:2.20}
+\end{equation}
+
+Using the transpose operation is optional, but it allows us to derive the eigenvectors in a similar order as with the left error box. As a result, the eigenvectors and eigenvalues are given as follows:
+\begin{subequations}
+	\begin{align}
+		\bs{W}_b &= \begin{bmatrix}
+			w_{11}^{(b)} & w_{12}^{(b)}\\[5pt]
+			w_{21}^{(b)} & w_{22}^{(b)}
+		\end{bmatrix} = \begin{bmatrix}
+			\frac{b_{11}+b_{21}}{b_{12}+1} & \frac{-b_{11}+b_{21}}{-b_{12}+1}\\[5pt]
+			1 & 1
+		\end{bmatrix}\\[5pt]
+		\bs{\Lambda} &= \begin{bmatrix}
+			\lambda_1 & 0 \\[5pt]
+			0 & \lambda_2
+		\end{bmatrix} = \begin{bmatrix}
+			\frac{k}{\nu} & 0 \\[5pt]
+			0 & -\frac{k}{\nu}
+		\end{bmatrix}
+	\end{align}
+	\label{eq:2.21}
+\end{subequations}
+
+Finally, we need an additional equation for each port to calculate the error terms from each error box. This equation comes from the match standard, which defines the reference impedance of the calibration. In general, the match standard does not have to be the same at each port. However, since we are most likely to use an impedance standard as part of the symmetric one-port devices, it makes sense to reuse the match standards. For each port, the reflection coefficient of a match standard is given as follows:
+\begin{equation}
+	\rho_a^{(m)} = \frac{Z_a^{(m)}-Z_a^{(ref)}}{Z_a^{(m)}+Z_a^{(ref)}}; \quad \rho_b^{(m)} = \frac{Z_b^{(m)}-Z_b^{(ref)}}{Z_b^{(m)}+Z_b^{(ref)}}
+	\label{eq:2.22}
+\end{equation}
+where $Z_a^{(m)}$ and $Z_b^{(m)}$ represent the complex impedance definition of the match standard from each port. The user sets the values of $Z_a^{(ref)}$ and $Z_b^{(ref)}$ to specify the reference impedance, for example, $50\,\Omega$.
+
+By utilizing knowledge of the match standard and the equation that describes the input reflection coefficient, as given in \eqref{eq:2.3}, we can combine this result with the eigenvectors to form a linear system of equations for each port. The following is for the left port:
+\begin{equation}
+	\left[\begin{matrix}
+			-1 & -1 & w_{11}^{(a)} & w_{11}^{(a)} \\
+			1 & -1 & -w_{12}^{(a)} & w_{12}^{(a)} \\
+			-\rho_a^{(m)} & -1 & \Gamma_a^{(m)}\rho_a^{(m)} & \Gamma_a^{(m)}
+		\end{matrix}\right]
+	\left[\begin{matrix}
+			a_{11}\\
+			a_{12}\\
+			a_{21}\\
+			1
+		\end{matrix}\right] = \bs{0}
+	\label{eq:2.23}
+\end{equation}
+
+The system of equations for the right port can be obtained in a similar way, resulting in the following system of equations:
+\begin{equation}
+	\left[\begin{matrix}
+		-1 & -1 & w_{11}^{(b)} & w_{11}^{(b)} \\
+		1 & -1 & -w_{12}^{(b)} & w_{12}^{(b)} \\
+		-\rho_b^{(m)} & 1 & -\Gamma_b^{(m)}\rho_b^{(m)} & \Gamma_b^{(m)}
+	\end{matrix}\right]
+	\left[\begin{matrix}
+		b_{11}\\
+		b_{21}\\
+		b_{12}\\
+		1
+	\end{matrix}\right] = \bs{0}
+	\label{eq:2.24}
+\end{equation}
+
+The error terms are solved by finding the nullspace of the system matrix. However, since the nullspace is only unique up to a scalar factor, we normalize it by the last element to make it equal to 1. The system matrix can be extended by an arbitrary number of defined impedance standards to improve the solution. It is important to note that we obtain two systems of equations for each port since the order of the eigenvectors is unknown. As a result, we solve for both possible orderings and choose the answer that results in a calibrated measurement closest to a known estimate, like the usage of a reflect standard.
+
+An interesting observation to note is the structure of \eqref{eq:2.23} and \eqref{eq:2.24}, where the first two rows in the system matrix obtained from the eigenvectors resemble measurements of ideal short and open standards. In general, the expression of \eqref{eq:2.23} and \eqref{eq:2.24} are identical to that of a one-port SOL calibration when assuming ideal short and open standards. Thus, we were able to replicate measurements of ideal open and short standards by using symmetric undefined one-port devices and a thru standard.
+
+The final error term that needs to be solved is the transmission error term $k$. Since we are working with a thru standard, we can directly extract $k$ by multiplying the inverse of the one-port error boxes by the measurements of the thru standard. In Section~\ref{sec:3}, we introduce a different approach for computing $k$ using any transmissive reciprocal standard, as done in SOLR calibration \cite{Ferrero1992}. 
+
+
+% EOF

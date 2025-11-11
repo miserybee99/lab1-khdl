@@ -1,0 +1,752 @@
+\documentclass[aip,jcp,reprint,amsmath,amssymb]{revtex4-2}
+\bibliographystyle{apsrev4-2}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{multirow}
+\usepackage{dcolumn}
+\usepackage{hyperref}
+\usepackage{braket}
+\usepackage{mathtools}
+\usepackage[shortlabels]{enumitem}
+\usepackage[version=4]{mhchem}
+\usepackage{siunitx}
+\usepackage{ifthen}
+
+\usepackage{xspace}
+\makeatletter
+\def\eg{\textit{e.g.}\@\xspace}
+\def\ie{\textit{i.e.}\@\xspace}
+\makeatother
+\newcommand{\SPAHMinner}{SPA\textsuperscript{H}M}
+\newcommand\SPAHM[1][9]{\SPAHMinner\ifthenelse{\equal{#1}{9}}{\xspace}{(#1)}}
+\renewcommand{\vec}[1]{\mathrm{\mathbf{#1}}}
+\newcommand{\de}{\,{\mathrm{d}}}
+\newcommand{\transp}{^\intercal}
+\newcommand{\phantomtransp}{^{\vphantom{\intercal}}}
+\newcommand{\kovlp}[1]{K^\mathrm{overlap}_{#1}}
+\newcommand{\becomes}[1]{\enskip\xRightarrow{\text{#1}}\enskip}
+\newcommand{\hiddendd}[3]{\frac{#1#2}{#1#3}}
+\newcommand{\pdd}[2]{\hiddendd{\partial}{#1}{#2}}
+
+\renewcommand{\thesection}{S\arabic{section}}
+\renewcommand{\thepage}{S\arabic{page}}
+\renewcommand{\thetable}{S\arabic{table}}
+\renewcommand{\thefigure}{S\arabic{figure}}
+\renewcommand{\theequation}{S\arabic{equation}}
+\renewcommand{\bibnumfmt}[1]{$^{\rm S#1}$}
+\renewcommand{\citenumfont}[1]{{\rm S#1}}
+
+\graphicspath{{fig_si/}}
+
+\begin{document}
+
+\title{{\sc Supplementary Information}\texorpdfstring{\\}{}
+\texorpdfstring{\SPAHM[a,b]}{SPAHM(a,b)}:
+Encoding the density information from guess Hamiltonian in quantum machine learning representations}
+
+\author{Ksenia R. Briling}
+\affiliation{Laboratory for Computational Molecular Design, Institute of Chemical Sciences and Engineering,
+\'{E}cole Polytechnique F\'{e}d\'{e}rale de Lausanne, 1015 Lausanne, Switzerland}
+\author{Yannick Calvino Alonso}
+\affiliation{Laboratory for Computational Molecular Design, Institute of Chemical Sciences and Engineering,
+\'{E}cole Polytechnique F\'{e}d\'{e}rale de Lausanne, 1015 Lausanne, Switzerland}
+\author{Alberto Fabrizio}
+\affiliation{Laboratory for Computational Molecular Design, Institute of Chemical Sciences and Engineering,
+\'{E}cole Polytechnique F\'{e}d\'{e}rale de Lausanne, 1015 Lausanne, Switzerland}
+\affiliation{National Centre for Computational Design and Discovery of Novel Materials (MARVEL),
+\'{E}cole Polytechnique F\'{e}d\'{e}rale de Lausanne, 1015 Lausanne, Switzerland}
+\author{Clemence Corminboeuf}
+\email{clemence.corminboeuf@epfl.ch}
+\affiliation{Laboratory for Computational Molecular Design, Institute of Chemical Sciences and Engineering,
+\'{E}cole Polytechnique F\'{e}d\'{e}rale de Lausanne, 1015 Lausanne, Switzerland}
+\affiliation{National Centre for Computational Design and Discovery of Novel Materials (MARVEL),
+\'{E}cole Polytechnique F\'{e}d\'{e}rale de Lausanne, 1015 Lausanne, Switzerland}
+
+\date{\today}
+
+\maketitle
+\onecolumngrid
+\tableofcontents
+\clearpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Derivation of the \texorpdfstring{\SPAHM[a,b]}{SPAHM(a,b)} overlap kernels}
+\label{sec:derivation}
+\subsection{Atom density [\texorpdfstring{\SPAHM[a]}{SPAHM(a)}]}
+\label{sec:derivation-a}
+
+Let us consider two atoms, $A$ and $B$.
+Each atomic density $\rho_I(\vec r)$ is represented
+as a linear combination of atom-centered spherical Gaussian basis functions $\{\phi_{n\ell m}\}$,
+labeled with their radial channel number $n$ and angular $\ell$ and magnetic $m$ quantum numbers,
+\begin{gather}
+\rho_A(\vec r) = \sum_{n\ell m} c_{n\ell m}^A \phi_{n\ell m}(\vec r), \quad
+\rho_B(\vec r) = \sum_{n'\ell'm'} c_{n'\ell'm'}^B \phi_{n'\ell'm'}(\vec r),
+\end{gather}
+and each nucleus is virtually positioned at the origin.
+
+The overlap kernel $\kovlp{A,B}$ between atoms $A$ and $B$ is the squared overlap
+of $\rho_A$ and $\rho_B$ averaged over all possible relative orientations $\hat R$,
+\begin{equation}
+\kovlp{A,B}
+= \frac{1}{8\pi^2}\int \left|\braket{\rho_A|\hat R|\rho_B}\right|^2 \de \hat R
+= \frac{1}{8\pi^2}\int \left|k_{AB}(\hat R)\right|^2 \de \hat R.
+\end{equation}
+
+For a given orientation, the overlap $k_{AB}(\hat R)$ is
+\begin{equation}
+\begin{split}
+k_{AB}(\hat R)
+&= \braket{\rho_A|\hat R|\rho_B}
+=\int \rho_A(\vec r) \hat R\, \rho_B(\vec r) \de^3 \vec r
+\\&=\sum_{n\ell m} c_{n\ell m}^A \sum_{n'\ell'm'} c_{n'\ell'm'}^B
+\braket{\phi_{n\ell m}| \hat R\, \phi_{n'\ell'm'}}
+\\&=\sum_{n\ell m} c_{n\ell m}^A \sum_{n'\ell'm'} c_{n'\ell'm'}^B
+\Braket{\phi_{n\ell m}| \sum_{m''} \phi_{n'\ell'm''} D_{m''m'}^{\ell'}(\hat R)}
+\\&=\sum_\ell\sum_{nm} \sum_{n'm'} c_{n\ell m}^A c_{n'\ell m'}^B
+A_{nn'}^\ell D_{mm'}^{\ell}(\hat R),
+\end{split}
+\end{equation}
+where $\vec D$ are Wigner D-matrices for \emph{real} spherical harmonics\cite{VMK1988}
+and $A_{nn'}^\ell = \braket{\phi_{n\ell m} |\phi_{n'\ell m}} \ \forall m$.
+
+The kernel becomes
+\begin{equation}
+\begin{split}
+\kovlp{A,B}
+&=\frac{1}{8\pi^2} \int \Big|
+\sum_\ell\sum_{nm}\sum_{n'm'} c_{n\ell m}^A c_{n'\ell m'}^B
+A_{nn'}^\ell D^{\ell}_{mm'}(\hat R)
+\Big|^2 \de \hat R
+\\&=
+\frac{1}{8\pi^2}\sum_{\substack{{\ell_1\,n_1m_1\,n'_1m'_1}\\{\ell_2\,n_2m_2\,n'_2m'_2}}}
+c_{n_1\ell_1m_1}^A c_{n'_1\ell_1m'_1}^B
+c_{n_2\ell_2m_2}^A c_{n'_2\ell_2m'_2}^B
+A_{n_1n'_1}^{\ell_1} A_{n_2n'_2}^{\ell_2}
+\cdot\int
+D^{\ell_1}_{m_1m'_1}(\hat R)\,
+D^{\ell_2}_{m_2m'_2}(\hat R)\,\de \hat R.
+\end{split}
+\end{equation}
+Thanks to orthogonality of the real Wigner D-matrices,\cite{VMK1988} \ie,
+\begin{equation}
+\int
+D^{\ell_1}_{m_1m_1'}(\hat R)\,
+D^{\ell_2}_{m_2m_2'}(\hat R)\,
+\de \hat R
+=
+\frac{8\pi^2}{2\ell_1+1}\,\delta_{\ell_1\ell_2}\delta_{m_1m_2}\delta_{m'_1m'_2},
+\end{equation}
+the kernel is further simplified to
+\begin{equation}
+\label{eq:atom-kernel-full}
+\kovlp{A,B} =
+\sum_{\ell}  \sum_{\substack{n_1n'_1 \\ n_2n'_2 }}
+\underbrace{
+\left(\sum_m    c_{n_1\ell m}^A   c_{n_2\ell m}^A\right)
+}_{u^A_p}
+\underbrace{
+\left(\frac{A_{n_1n'_1}^{\ell} A_{n_2n'_2}^{\ell}}{2\ell+1}\right)
+}_{M_{pq}}
+\underbrace{
+\left(\sum_m c_{n'_1\ell m}^B c_{n'_2\ell m}^B\right)
+}_{u^B_q}.
+\end{equation}
+With $p=(n_1,n_2,\ell), q=(n'_1,n'_2,\ell)$ it can be rewritten as a dot product
+\begin{equation}
+\label{eq:atom-kernel-brief}
+\kovlp{A,B}
+= \sum_{pq} u_p^A M_{pq} u_q^B = \vec u_A\transp \vec M \vec u_B \phantomtransp
+= (\vec M^{1/2} \vec u_A)\transp (\vec M^{1/2} \vec u_B) = \vec v_A\transp \vec v_B\phantomtransp,
+\end{equation}
+where $\vec v_I$ is the representation of an atomic electron density $\rho_I(\vec r)$
+and is an analog of the power spectrum of atomic neighbor density.\cite{BKC2013}
+
+\clearpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Bond density [\texorpdfstring{\SPAHM[b]}{SPAHM(b)}]}
+\label{sec:derivation-b}
+
+Now let us consider two bonds, $AB$ and $XY$.
+The (L\"owdin) bond densities $\rho_{AB}(\vec r)$ and $\rho_{XY}(\vec r)$ are
+decomposed onto basis sets centered in the middle of each bond,
+\begin{equation}
+\label{eq:bond-fit}
+\rho_{AB}(\vec r) = \sum_{i} c_{i} \phi_i(\vec r), \quad
+\rho_{XY}(\vec r) = \sum_{j} c_{j} \phi_j(\vec r),
+\end{equation}
+where a function $\phi_i$ is defined by a radial channel number $n_i$ and angular $\ell_i$ and magnetic $m_i$ quantum numbers.
+Both bonds are aligned along the $z$-axis and their midpoints are put at the origin.
+
+The overlap kernel $\kovlp{AB,XY} = \mathcal I_1$ between the two bonds $AB$ and $XY$ is defined
+as a overlap integral $\mathcal I_2(\varphi)$
+squared averaged over rotations $\hat \varphi_z$ around the $z$-axis,
+\begin{equation}
+\mathcal I_1
+= \frac1{2\pi}\int_0^{2\pi} \de \varphi \left| \braket{\rho_{AB}| \hat \varphi_z| \rho_{XY}} \right|^2
+= \frac1{2\pi}\int_0^{2\pi} \de \varphi \left| \mathcal I_2(\varphi) \right|^2.
+\end{equation}
+
+With the decomposition~\eqref{eq:bond-fit}, the overlap integral $\mathcal I_2(\varphi)$
+is rewritten with overlap of the basis functions,
+\begin{equation}
+\mathcal I_2(\varphi) = \braket{ \rho_{AB} | \hat \varphi_z | \rho_{XY} }
+= \sum_{ij} c_{i} c_{j} \braket{\phi_i | \hat \varphi_z | \phi_j }
+= \sum_{ij} c_{i} c_{j} \mathcal I_3^{ij}(\varphi),
+\end{equation}
+as well as the kernel $\mathcal I_1$,
+\begin{equation}
+\mathcal I_1
+= \frac{1}{2\pi} \sum_{iji'j'} c_{i} c_{j} c_{i'} c_{j'}
+\int \mathcal I_3^{ij}(\varphi)\mathcal I_3^{i'j'}(\varphi) \de \varphi
+= \sum_{iji'j'} c_{i} c_{j} c_{i'} c_{j'} \mathcal I_6^{iji'j'}.
+\end{equation}
+
+With the rules for rotation of real spherical harmonics around the quantization axis,
+the overlap $\mathcal I_3(\varphi)$ becomes
+\begin{equation}
+\mathcal I_3^{ij}(\varphi)
+= \braket{\phi_i | \hat \varphi_z | \phi_j}
+= \braket{\phi_i | \phi_{j}     }\cos {m_j\varphi}
++ \braket{\phi_i | \phi_{\bar \jmath}}\sin {m_j\varphi}
+= S_{ij     }\cos {m_j\varphi} + S_{i\bar\jmath}\sin {m_j\varphi},
+\end{equation}
+where $\phi_{\bar \jmath}$ is the same basis function as $\phi_{j}$ but with an opposite phase
+(\ie $m_j = -m_{\bar \jmath}$).
+The integral over rotation $\mathcal I_6$ is simplified to
+\begin{equation}
+\mathcal I_6^{iji'j'} =
+\delta_{|m_j|,|m_{j'}|} (S_{ij} S_{i'j'} + S_{i\bar\jmath} S_{i'\bar\jmath'}(1-\delta_{m_j0}) ),
+\end{equation}
+and the overlap kernel $\mathcal I_1$ --- to
+\begin{equation}
+\mathcal I_1
+= \sum_{iji'j'} c_{i} c_{j} c_{i'} c_{j'}
+\delta_{|m_j|,|m_{j'}|} (S_{ij} S_{i'j'} + S_{i\bar\jmath} S_{i'\bar\jmath'}(1-\delta_{m_j0}) ).
+\end{equation}
+
+When $p$ and $q$ are centered at the same point,
+$S_{pq} = \delta_{\ell_p \ell_q} \delta_{m_p m_q} A_{n_p n_q}^{\ell_p}$.
+Thus $\mathcal I_1$ is further simplified to
+\begin{equation}
+\label{eq:bond-kernel-full}
+\mathcal I_1
+= \sum_{ii'jj'}
+\underbrace{(c_{i} c_{i'} \delta_{|m_i|,|m_{i'}|} )}_{u^{AB}_{ii'}}
+\underbrace{
+\delta_{\ell_{i}  \ell_{j}}    A_{n_{i}  n_{j}} ^{\ell_{i}}
+\delta_{\ell_{i'} \ell_{j'}}   A_{n_{i'} n_{j'}}^{\ell_{i'}}
+( \delta_{m_{i}  m_{j}}  \delta_{m_{i'} m_{j'}}
++  \delta_{m_{i} , -m_{j }} \delta_{m_{i'}, -m_{j'}} (1-\delta_{m_j0}) )}_{M_{ii',jj'}}
+\underbrace{(c_{j} c_{j'} \delta_{|m_j|,|m_{j'}|} )}_{u^{XY}_{jj'}},
+\end{equation}
+which can be rewritten as a dot product in the same spirit as the atom-density kernel,
+\begin{equation}
+\label{eq:bond-kernel-brief}
+\kovlp{AB,XY}
+= \sum_{ii'jj'} u_{ii'}^{AB} M_{ii',jj'} u_{jj'}^{XY}
+= \vec u_{AB}\transp \vec M \vec u_{XY} \phantomtransp
+= (\vec M^{1/2} \vec u_{AB})\transp (\vec M^{1/2} \vec u_{XY})
+= \vec v_{AB}\transp \vec v_{XY} \phantomtransp,
+\end{equation}
+where $\vec v_{IJ}$ is the representation of a bond density $\rho_{IJ}(\vec r)$.
+
+\clearpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Learning curves}
+\label{sec:lc}
+
+\subsection{QM7 and its derivatives}
+\label{sec:lc-qm7}
+\begin{figure}[h]
+\centering
+\includegraphics[width=1.0\linewidth]{QM7_full.pdf}
+\caption{
+Learning curves of atomic charges and spins
+for the QM7, QM7/2-RC, and QM7/2+QM7/2-RC datasets.
+}
+\label{fig:lc-qm7}
+\end{figure}
+
+\clearpage %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{APS-RC and APS}
+\label{sec:lc-azoswitch}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.45\linewidth]{azoswitch_full.pdf}
+\caption{
+Learning curves of atomic charges and spins for the APS-RC dataset.
+}
+\label{fig:lc-aps-rc}
+\end{figure}
+
+\clearpage
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.48\linewidth]{azoswitch-ex_full.pdf}
+\caption{
+Learning curves of atomic contributions
+to the hole and particle densities of the productive $\pi\to\pi^*$ state
+for the APS dataset;
+($+$) [dashed line] and ($-$) [solid line]
+indicate \SPAHM computed for radical cations and anions, respectively.
+}
+\label{fig:lc-aps-ex}
+\end{figure}
+
+\clearpage
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.38\linewidth]{azoswitch-ex_hist_full.pdf}
+\caption{
+Histograms of the full training set errors
+of atomic contributions
+to the hole and particle densities of the productive $\pi\to\pi^*$ state
+for the APS dataset;
+($+$) [dashed line] and ($-$) [solid line]
+indicate \SPAHM computed for radical cations and anions, respectively.
+}
+\label{fig:lc-aps-ex-hist}
+\end{figure}
+
+\clearpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Out-of-sample system}
+
+\subsection{APS-RC}
+\label{sec:oos-aps-rc}
+
+Analysis of an individual system clearly illustrates the relevance of our models.
+From the APS-RC dataset we selected an out-of-sample structure and
+used previously trained \SPAHM[a,b] models to predict the atomic charges of its radical cation.
+Fig.~\ref{fig:oos-aps-rc} compares the predicted and computed values
+of atomic charges for a selection of atoms included in the $\pi$-conjugated system.
+For \SPAHM[b], the predicted values accurately reproduce the computed ones within \SI{0.01}{{a.u.}},
+thus verifying its performance.
+However, by taking the changes in atomic charges for all the constituing atoms
+and summing them up (\ie $\sum_{k}(q_k^\mathrm{cation}-q_k^\mathrm{neutral})$)
+we obtain a total molecular charge $\sim 0.9$,
+approximately yielding the removed electron.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=.5\linewidth]{oos-aps-rc.pdf}
+\caption{
+Predicted by \SPAHM[a] (red) and \SPAHM[b] (blue) and computed (black) atomic charges
+for a radical cation of an out-of-sample structure on a selection of atoms (highlighted).
+}
+\label{fig:oos-aps-rc}
+\end{figure}
+
+\subsection{APS}
+\label{sec:oos-aps-ex}
+\begin{figure}[ht]
+\centering
+\includegraphics[width=.85\linewidth]{oos-aps-ex-num.pdf}
+\caption{
+Predicted by \SPAHM[a,b] atomic contributions
+to the hole and particle densities of the productive $\pi\to\pi^*$ state
+for an out-of-sample structure.
+}
+\label{fig:oos-aps-ex}
+\end{figure}
+
+\clearpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Comparison of different atom-density-based models}
+\label{sec:models}
+
+In this section we describe and compare four models
+used to post-process the guess density matrix.
+The key elements of all of them are
+density fitting\cite{BER1973,W1973,ETOHA1995} (DF),
+\ie decomposition of the electron density onto an atom-centered basis set,
+\begin{equation}
+\vec c = \vec J^{-1} \vec w,
+\quad
+w_i = \sum_{pq} D_{pq} (\chi_p \chi_ q| \phi_i),
+\end{equation}
+where
+$\vec D$ is a density matrix,
+$\{\chi_p\}$ is the atomic orbital basis,
+$\{\phi_i\}$ is the density-fitting basis,
+$J_{ij} = (\phi_i | \phi_j)$,
+and $(\cdots|\cdots)$ is a two-electron integral in chemists' notation,
+and a subsequent symmetrization described in Sec.~\ref{sec:derivation-a}.
+
+\begin{itemize}
+\item The \emph{pure} model simply consists of fitting the guess density
+      and partitioning of the resulting vector according to the nuclei centers
+      following by symmetrization,
+      \begin{equation}
+      \vec D^\mathrm{guess}
+      \becomes{DF} \vec c
+      \becomes{part.} \{\vec c_I\}
+      \becomes{sym.} \{\vec v_I\},
+      \end{equation}
+      (\ie $c_i \in \vec c_I$ if $\phi_i$ is centered on the nuclei $I$).
+
+\item The \emph{diff} model consists of the same steps except that
+      the difference between the guess density and the superposition of atomic densities (SAD) is used,
+      \begin{equation}
+      \vec D^\mathrm{guess}-\vec D^\mathrm{SAD}
+      \becomes{} \vec c
+      \becomes{} \{\vec c_I\}
+      \becomes{} \{\vec v_I\}.
+      \end{equation}
+\end{itemize}
+
+Both the \emph{short} and \emph{long} models follow the L\"owdin population analysis\cite{L1950}
+to partition the molecular density matrix into atomic contributions $\{\vec D_{(I)}\}$,
+\begin{equation}
+\vec D^\mathrm{guess}
+\becomes{}  \tilde{\vec D} = \vec S^{1/2} \vec D \vec S^{1/2}
+\becomes{}  \{\tilde{\vec D}_{(I)}\}
+\becomes{}  \{\vec D_{(I)} = \vec S^{-1/2} \tilde{\vec D}_{(I)} \vec S^{-1/2}\},
+\end{equation}
+where $\vec S$ is the atomic orbitals overlap matrix.
+The resulting atomic density matrices $\{\vec D_{(I)}\}$
+are individually subject to density fitting and symmetrization.
+
+\begin{itemize}
+\item The \emph{long} version
+      includes the coefficients related to other atom centers
+      as a long-range contribution to the atomic density:
+      \begin{equation}
+      \vec D^\mathrm{guess}
+      \becomes{L\"owdin} \vec D^\mathrm{guess}_{(I)}
+      \becomes{DF} \vec c_{(I)}
+      \becomes{part.} \{\vec c_{J(I)}\}
+      \becomes{sym.} \{\vec v_{J(I)}\}
+      \quad \forall\,I.
+      \end{equation}
+      To construct the final representation for atom $I$, the vectors $\{\vec v_{J(I)}\}$
+      are grouped according to the nuclear charge of $J$, summed up, and concatenated,
+      but it is not the only possible way to proceed.
+
+\item The \emph{short} version only retains the coefficients directly related
+      to the basis functions centered on the atom of interest,
+      \begin{equation}
+      \vec D^\mathrm{guess}
+      \becomes{} \vec D^\mathrm{guess}_I
+      \becomes{} \vec c_{(I)}
+      \becomes{part.} \vec c_{I(I)}
+      \becomes{sym.} \vec v_{I(I)}
+      \quad \forall\,I.
+      \end{equation}
+\end{itemize}
+
+The learning curves for the models are shown on Fig.~\ref{fig:atom-models}.
+Overall, the \emph{long} model shows the best overall performance
+and was selected as default to be used hereinafter.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.5\linewidth]{models.pdf}
+\caption{
+Learning curves of atomic charges and shielding constants
+for the QM7 dataset.
+The color code reflects the different models used to construct the \SPAHM[a] representation
+from the rotationally-invariant vectors.
+}
+\label{fig:atom-models}
+\end{figure}
+
+\clearpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Generalization to open-shell systems}
+\label{sec:alphabeta}
+
+We considered three ways to generalize the model to open-shell systems:
+\begin{enumerate}[1)]
+\item
+concatenation of representation vectors $\vec x$
+obtained from $\rho_\alpha$ and $\rho_\beta$ separately
+(``$\alpha\beta$'');
+\item
+representation vector obtained from
+$\rho = \rho_\alpha+\rho_\beta$,
+the total electron density as in case of closed-shell systems~(``$+$'');
+\item
+concatenation of representation vectors
+obtained from $\rho= \rho_\alpha+\rho_\beta$ and $\rho_m = \rho_\alpha-\rho_\beta$ separately
+(``$+-$'').
+\end{enumerate}
+They were tested on the QM7/2-RC dataset with the \SPAHM[b] representation.
+The results are shown on Fig.~\ref{fig:alphabeta}.
+As expected, in most cases the ``$+$'' model,
+having no information on the spin density, performed the worst,
+whereas the ``$\alpha\beta$'' model showed the best results and was chosen as the default option.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.4\linewidth]{open-shell.pdf}
+\caption{
+Learning curves of atomic charges and spins
+for the QM7/2-RC dataset and the \SPAHM[b] representation.
+The color code reflects the different models used to generalize the representation to open-shell systems.
+}
+\label{fig:alphabeta}
+\end{figure}
+
+\clearpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Basis set for the bond-density-based representation}
+
+\subsection{Optimization}
+\label{sec:basis}
+
+The decomposition of the bond density onto a midbond-centered basis set
+required optimization of a suitable basis.
+First, we followed the procedure described in Ref.~\onlinecite{FBGC2020b}
+used to optimize a basis to fit the on-top pair density.
+
+\bigskip
+
+For each bond of interest in a molecule, we search for the set of coefficients $\{ c_i \}$
+that approximates the bond density in the least-squares sense,
+\begin{equation}
+\rho_{AB}(\vec r) \approx \sum_i c_i \phi_i(\vec r),
+\qquad
+\vec c = \vec S^{-1} \vec b,
+\end{equation}
+where $\vec S$ is the overlap matrix,
+$b_i = \braket{\rho_{AB}|\phi_i}$, and
+the decomposition error is
+\begin{equation}
+\mathcal E=
+\int \Big(\rho_{AB}(\vec r) - \sum_i c_i \phi_i(\vec r) \Big)^2 \de^3 \vec r =
+\braket{\rho_{AB} | \rho_{AB}} - \vec b\transp \vec S^{-1} \vec b.
+\end{equation}
+Thus,
+to optimize the exponents, we minimize the sum of decomposition errors $\mathcal E$
+for the molecules chosen for the bond of interest.
+The exponents $\{\alpha_\mu\}$ for all the angular momenta are optimized simultaneously.
+The exponents are parameterized as $\alpha_\mu = \exp(p_\mu)$,
+and the first derivatives of the loss functions~$\mathcal E$ with respect to the exponents are computed as follows,
+\begin{equation}
+\pdd{\mathcal E}{\alpha_\mu} =
+\vec c\transp \left( \pdd{\vec S}{\alpha_\mu}\, \vec c - 2\,\pdd{\vec b}{\alpha_\mu} \right),
+\end{equation}
+with the overlap integrals and their derivatives taken numerically.
+
+All the bonds were treated separately.
+For each bond (or atom pair) presented in the QM7 and APS datasets
+we chose representative molecules containing it
+(\eg, \ce{H2} for \ce{H}--\ce{H};
+\ce{C2H2}, \ce{C2H4}, and \ce{C2H6} for \ce{C}--\ce{C};
+\ce{H2O} and \ce{H2O2} for \ce{H}--\ce{O}),
+and the sum of the molecular decomposition errors was minimized.
+The maximum angular momentum $\ell_\mathrm{max}$ and the number of functions $n_\ell$ for each $\ell$
+were gradually increased and optimized on each step,
+until addition of further radial functions or
+angular momenta did not provide any significant decrease of error.
+The optimized exponents are available separately in \texttt{Q-stack}
+(\url{https://github.com/lcmd-epfl/Q-stack}).
+
+\bigskip
+
+However, for some of the bonds the fitting errors were huge (up to 20\%)
+due to the fact that largest fraction of the bond density is still localized on participating nuclei,
+thus the fine-tuning of the fitting basis could not improve much.
+This could be solved with adding a single Gaussian centered in the midbond as a weight function.
+Our tests showed that, however the fitting error significantly decreased,
+the quality of learning was almost the same.
+
+On Fig.~\ref{fig:bond-basis} we compare the performance of \SPAHM[b] computed
+using the fully-optimized basis for each bond (``normal'')
+and using the same (\ce{C}--\ce{C}) basis for every bond (``same basis'').
+It is clear that the representation quality does not depend on the exponents of the basis
+thus their optimization can be omitted.
+(the role of angular momenta is discussed in Sec.~\ref{sec:simplebond}).
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.5\linewidth]{bond-basis.pdf}
+\caption{
+Learning curves of atomic charges and shielding constants
+for the QM7 dataset.
+The color code reflects the different basis sets used to generate the \SPAHM[b] representations:
+``normal'':        fully-optimized basis for each bond;
+``same basis'':    the same (\ce{C}--\ce{C}) basis for every bond;
+``only $\ell=0$'': optimized basis with $s$-orbitals only;
+``only $m=0$'':    optimized basis with $m\neq0$ orbitals excluded.
+}
+\label{fig:bond-basis}
+\end{figure}
+
+\clearpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Simplified models}
+\label{sec:simplebond}
+
+We also tested two approaches to simplify the bond-based representation,
+which reduce the effort for both the two-electron integral evaluation and vector symmetrization.
+
+\smallskip
+
+The first one is to use only the $s$-orbitals.
+The learning curves for the QM7 dataset
+for the representation based on the fully-optimized basis truncated to the functions with $\ell=0$
+are shown on Fig.~\ref{fig:bond-basis}.
+Its peformance is significantly deteriorated and it is clear that higher angular momenta are necessary.
+
+\smallskip
+
+Another option is to use the orbitals with $m=0$, \ie, symmetric with respect to rotation around the bond.
+Then Eq.~\ref{eq:bond-kernel-full} is simplified to
+\begin{equation}
+\kovlp{AB,XY}
+=
+\sum_{\ell \ell'}  \sum_{\substack{n_1n'_1 \\ n_2n'_2 }}
+\underbrace{c_{n_1 \ell 0} c_{ n_1' \ell' 0} }_{u^{AB}_{p}}
+\underbrace{
+A_{n_1  n_2 }^{\ell}
+A_{n_1' n_2'}^{\ell'}
+}_{M_{pq}}
+\underbrace{c_{ n_2 \ell 0} c_{n_2' \ell' 0 } }_{u^{XY}_{q}}.
+\end{equation}
+In the current implementation,
+the bond density is first projected onto the DF basis set
+and then rotated so the bond is aligned with the $z$-axis
+and the DF coefficients are transformed accordingly.
+This is why in our tests the density is fitted with the ``full'' basis set
+and only the final representation is truncated to have only products of cylindrically-symmetric orbitals.
+
+The learning curves for QM7 and for APS-RC
+comparing the truncated representation with the full one
+are shown on Fig.~\ref{fig:bond-basis} and Fig.~\ref{fig:azoswitch-m0}, respectively.
+For QM7, the truncated representation yields the same or slightly worse performance,
+whereas for a more challenging APS-RC it even improves the learning in some cases.
+
+\smallskip
+
+While functions with $\ell=0$ are not sufficient to construct a good representation,
+the representation built from $m=0$ only
+performs very well on simple organic molecules
+and at least in the case of the APS-RC dataset
+the part of the density that seems to be orthogonal to the aromatic ring
+is well enough captured by \eg $d_{z^2}$-orbital.
+This simplification of \SPAHM[b] is promising in terms of both
+performance and potential optimizations and should be studied further.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.46\linewidth]{azoswitch_m0.pdf}
+\caption{
+Learning curves of atomic charges and spins
+for the APS-RC dataset.
+The color code reflects the different basis sets used to generate the \SPAHM[b] representations:
+``normal'': fully-optimized basis for each bond;
+``only $m=0$'': optimized basis with $m\neq0$ orbitals excluded.
+Learning curves for SLATM are given for comparison.
+}
+\label{fig:azoswitch-m0}
+\end{figure}
+
+\clearpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Effect of the Hamiltonian}
+\label{sec:potentials}
+
+We compared the \SPAHM[a,b] representations built upon the density matrices obtained from
+the H\"uckel guess\cite{H1963,L2019}, the LB\cite{LB2020} guess (default),
+and a converged PBE0\cite{AB1999} computation.
+The learning curves are shown on Fig.~\ref{fig:potentials}.
+As expected, the worst approximation, the H\"uckel guess, gives the worst regression results.
+In contrast to the eigenvalue \SPAHM,\cite{FBC2022},
+the converged density makes the best representation,
+sometimes overperforming SLATM, which opens the way to improvement of \SPAHM[a,b]
+through improvement of the underlying guess Hamiltonian.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=1.0\linewidth]{potential.pdf}
+\caption{
+Learning curves of atomic charges and shielding constants
+for the QM7 dataset.
+The color code reflects the different Hamiltonians used to generate the \SPAHM[a,b] representations.
+}
+\label{fig:potentials}
+\end{figure}
+
+\clearpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Comparison with the KDFA representation}
+\label{sec:mr2021}
+
+Recently the kernel density functional approximation\cite{MR2021} (KDFA) was proposed,
+similar in construction to our \SPAHM[a] model.
+
+In KDFA, the representation vector for an atom
+is also built from the density-fitting coefficients of the functions centered on its nucleus.
+Instead of the coefficients themselves, rotationally-invariant sums $\sum_m |c_{nlm}|^2$ are used.
+This could be seen as a simplification of Eq.~\ref{eq:atom-kernel-full}
+with a combination of Kronecker deltas instead of $M_{pq}$,
+omitting the cross-products of different radial basis functions,
+\begin{equation}
+K^\mathrm{KDFA}_{A,B} =
+\sum_{\substack{\ell \\ n_1n'_1 \\ n_2n'_2 }}
+\underbrace{
+\left(\sum_m    c_{n_1\ell m}^A   c_{n_2\ell m}^A\right)
+}_{u^A_p}
+\underbrace{
+\vphantom{\Bigg|}  \delta_{n_1 n_2} \delta_{n'_1 n'_2} \delta_{n_1 n'_1}
+}_{M_{pq}}
+\underbrace{
+\left(\sum_{m} c_{n'_1\ell m}^B c_{n'_2\ell m}^B\right)
+}_{u^B_q}
+=
+\sum_{n \ell}
+\underbrace{
+\left(\sum_m | c_{n\ell m}^A |^2\right)
+}_{v^A_p}
+\underbrace{
+\left(\sum_{m} | c_{n\ell m}^B |^2\right)
+}_{v^B_q}.
+\end{equation}
+
+The learning curves comparing the performance of the KDFA representation
+with our \emph{pure} and \emph{long} models (see Sec.~\ref{sec:models})
+are shown of Fig.~\ref{fig:mr2021}.
+Overall, the performance of the KDFA representation is close to the \emph{pure} model.
+However, the \emph{long} model is consistently better,
+presumably due to inclusion of ``long-range'' contributions to the atomic density.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.5\linewidth]{MR2021.pdf}
+\caption{
+Learning curves of atomic charges and shielding constants
+for the QM7 dataset.
+The color code reflects the different representations.
+``MR2021'' stands for the KDFA\cite{MR2021} representation.
+}
+\label{fig:mr2021}
+\end{figure}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section*{References}
+
+\bibliography{spahm+.bib}
+
+\end{document}

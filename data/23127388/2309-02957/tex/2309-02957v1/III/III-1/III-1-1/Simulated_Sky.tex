@@ -1,0 +1,97 @@
+Our sky model contains the CMB plus synchrotron and dust emission foregrounds. %\ELENIA{Is it ok to use to past here?}
+
+We simulated the CMB using angular power spectra provided by the \texttt{fgbuster} package that are based on the latest Planck 2018 results\footnote{Spectra can be accessed at \protect\url{https://github.com/fgbuster/fgbuster/tree/master/fgbuster/templates}}. We used the following two FITS files: 
+\begin{enumerate}[(i)]
+\item \texttt{\small{Cls\_Planck2018\_lensed\_scalar.fits}} in which $B$-modes are considered with $r=0$ and lensing, 
+\item \texttt{\small{Cls\_Planck2018\_unlensed\_scalar\_and\_tensor\_r1.fits}} in which $B$-modes are considered with $r=1$ and no lensing. 
+\end{enumerate}
+
+
+In our simulations, we used $TT$, $EE$, and $TE$ spectra taken directly from the file (i), while the $BB$ spectrum was obtained by summing the $BB$ spectrum from the file (i) multiplied by a lensing residual of 0.1 with the $BB$ spectrum from the file (ii) multiplied by the value of $r$ (either 0 or 0.006). Note that such a simplified approach neglects the additional tensor contribution to the $TT$, $TE$, and $EE$ spectra, but is sufficient in our case, as we only perform the likelihood analysis on the $BB$ spectrum.
+
+%{\color{red} This is not full self-consistent when r /= 0, as you should also add the corresponding tensor mode contribution to TT, TE, and EE. Given that you perform the likelihood analysis only on B modes, this is not relevant, but it'd be useful to point it out.}
+
+For the foregrounds we considered the following models\footnote{See \protect\url{https://pysm3.readthedocs.io/en/latest/#models} for more details about the models.}:
+% We simulated the CMB with \texttt{camb} \citep{Lewis:1999bs} and \texttt{synfast} \citep{Gorski_2005} using the set of cosmological parameters defined in \hl{Put a table with the used parameters}. The foregrounds were simulated using the PySM package \citep{Thorne_2017}, exploring three different foreground models\footnote{See \url{https://pysm3.readthedocs.io/en/latest/#models} for more details about the models.}:
+
+
+% \begin{table}
+%     \caption{\label{tab:cosmopar}}
+%     \begin{center}
+%         \begin{tabular}{l c}
+%          \hline
+%          $H_0$ &\\
+%          $\Omega_\mathrm{b}h^2$ &\\
+%          $\Omega_\mathrm{c}h^2$ &\\
+%          $m_\nu$ &\\
+%          $\Omega_k$ &\\
+%          $\tau$ & \\
+%          $A_\mathrm{s}$ &\\
+%          $n_\mathrm{s}$ &\\
+%          
+%         \end{tabular}
+% 
+%     \end{center}
+% 
+% \end{table}
+
+
+
+\begin{enumerate}
+    \item model \textbf{d0s0}, which assumes a single modified black-body (MBB) emission for the thermal dust and a power-law emission for the synchrotron with no curvature, with constant dust spectral index across the sky, $\beta_\mathrm{d} = 1.54$, dust temperature, $T_\mathrm{d} = 20$\,K, and synchrotron spectral index, $\beta_\mathrm{s} = -3$;
+
+    %{\color{red} From pysm webpage, it's not clear to me that s1 is also based on the post-processing of Commander results? }
+    \item model \textbf{d1s1}, derived from the Planck data post-processed with the Commander code \citep{Planck_15} for the dust emission, while the synchrotron emission is taken from the Haslam data at 408 MHz in \cite{remazeilles2015improved}, \cite{Haslam82}. The thermal dust emission is modeled as a modified black body with spatially varying temperature and spectral index projected on the sky, while the synchrotron emission is modeled as a power-law with spatially varying spectral index with no curvature;
+    \item model \textbf{d6s1}. This model is derived from \textbf{d1s1} with the introduction of LOS frequency decorrelation in the dust emission following the statistical approach described in Eq.~(14) of \citet{Vansyngel_2018}. 
+ %and tune it in ranges consistent with current observations \citep{planck_2020_decorrelation,Pelgrims_2021}.
+\end{enumerate}
+
+Whereas models \textbf{d0s0} and \textbf{d1s1} are fixed realizations, the model \textbf{d6s1} results in a random realization of the SED. For each simulated frequency, the MBB emission is multiplied by a randomly sampled decorrelation factor that mimics the effect of a frequency-varying polarization angle without making any physical assumptions on the underlying Galactic magnetic field. The magnitude of the decorrelation factor is governed by the correlation length, $\ell_\mathrm{corr}$, a parameter that can be set in PySM. Figure~\ref{fig:Dust_d6_SED_dispersion} displays the dispersion of various SED realizations as a function of $\ell_\mathrm{corr}$, showing that the dispersion increases with a shorter correlation length.
+
+% An example of observations is done in figure \ref{fig:SED} where we show the twos last physical bands of CMB-S4. We show here how mainly the thermal dust is distributed along frequency. This figure show mainly how bolometric interferometry can convert raw sensitivity to spectral resolution. \\
+
+%Whereas models \textbf{d0s0} and \textbf{d1s1} are fixed realizations, model \textbf{d6s1} results in a random realization of the SED : for each simulated frequency, the MBB emission is multiplied by a randomly sampled decorrelation factor that mimics the effect of a frequency-varying polarization angle without making any physical assumption on the underlying Galactic magnetic field. The magnitude of the decorrelation factor is determined by the correlation length $\ell_\mathrm{corr}$. Figure~\ref{fig:Dust_d6_SED_dispersion} displays the dispersion of various SED realizations as a function of $\ell_\mathrm{corr}$, showing that the dispersion increases with a shorter correlation length.
+
+In our simulations, we explore the effect of dust LOS frequency decorrelation with a level of decorrelation consistent with current observations. Specifically, the range of correlation lengths used in our study is $\ell_\mathrm{corr}\geq 10$, which corresponds to a decorrelation level below $5\%$ for all the simulated frequencies. This configuration represents a conservative scenario with respect to the decorrelation level measured by Planck \citep{planck_2017_decorrelation,planck_2020_decorrelation} in the same multipole range considered in our work ($\ell \leq 300$ $-$ see Fig.~\ref{fig:Correlation_ratio_Planck_vs_pysm_models} for a comparison with Planck estimates).
+
+
+% \begin{figure*}
+%     \centering
+%     \includegraphics[scale=0.8]{figure/SED_d0.pdf}
+%     \caption{Spectral Energy Distribution for Q components with physical observed bands.}
+%     \label{fig:SED}
+% \end{figure*}
+
+% Model description
+\begin{figure}
+    \centering
+    % OLD IMAGE
+    %\includegraphics[width=9cm]{figure/Dust_frequency_decorrelation_SED_statistical_dispersion_500_realizations_v4.pdf}
+    
+    % NEW IMAGE (LOUISE"S SUGGESTION)
+    \includegraphics[width=9cm]{figure/Dust_frequency_decorrelation_SED_statistical_dispersion_500_realizations_v4_normalized.pdf}
+    \caption{Dispersion of the dust SED for different correlation lengths of the PySM \textbf{d6} model normalized by the single MBB emission (\textbf{d1} model).
+    The colored areas represent the statistical deviation from an MBB for a given correlation length, evaluated over 500 realizations.
+    }
+    \label{fig:Dust_d6_SED_dispersion}
+\end{figure}
+
+% \begin{figure}
+%     \centering
+%     \includegraphics[width=0.5\textwidth]{figure/Correlation_matrix_d6_corrl10.pdf}
+%     \caption{Correlation matrix of the \textbf{d6} model for $\ell_\mathrm{corr} = 10$, corresponding to a level of decorrelation below $5\%$ for all the simulated frequencies.}
+%     \label{fig:Dust_d6_corrl10_correlation_matrix_over_frequency}
+% \end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\textwidth]{figure/Correlation_ratio_Planck_pysm_models_500iter_no_title_v3.pdf}
+    \caption{Correlation ratio measured by Planck from the Half Mission (HM) maps at 217 GHz and 353 GHz, compared to the simulated ratio using PySM dust and CMB templates at the same frequencies. The dots in blue and orange represent the expected $R_{\ell}$ for the CMB and a single MBB dust emission, with constant (\textbf{d0}) or varying (\textbf{d1}) spectral indices pixel-by-pixel. Note that the dots are so close that they overlap in the figure. The green envelope shows the range of $R_{\ell}$ obtained from 500 realizations of dust LOS frequency decorrelation with $\ell_\mathrm{corr} = 10$. The black dots are from Fig.~2 of \citet{planck_2017_decorrelation}, the gray dots are from Fig.~B.2 of \citet{planck_2020_decorrelation}, and the red point has been obtained from the values in the middle plot of the second row in Fig.~18 of \citet{planck_2020_decorrelation}.}
+    \label{fig:Correlation_ratio_Planck_vs_pysm_models}
+\end{figure}
+
+
+    %\caption{Correlation ratio measured by Planck from the Half Mission (HM) maps at 217 GHz and 353 GHz, compared to the same ratio obtained from a simulation with the PySM CMB template plus the dust models \textbf{d0}, \textbf{d1} and various realizations of the \textbf{d6} with $\ell_\mathrm{corr} = 10$. \textbf{Note that the blue and orange dots are so close that they overlap in the figure.} Black points are from Fig.~2 of \citet{planck_2017_decorrelation}, gray points are from Fig.~B.2 of \citet{planck_2020_decorrelation}, the red point has been obtained from the values in the middle plot of the second row in Fig.~18 of \citet{planck_2020_decorrelation}.}
+    
+%The CMB part is generated from a template of the B-mode spectrum, the levels of r and lensing can be variable. The main configuration is $r=0$ and $A_L = 0.1$.
+%{\color{red} [Here I think we should be more precise: if we only show the case $r=0$ and $A_L = 0.1$, then just say it, otherwise the reader would expect to alse see results from other configurations. Unless we decide to also show results with different values of $r$ and $A_L$. In that case a table could summarize the info pretty well].}

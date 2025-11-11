@@ -1,0 +1,160 @@
+For the sake of clarity, we will use the notations $\pi_k\equiv p(y=k)$ during the demonstration.
+
+\subsection{Modelisation of the conditional distribution}
+
+We will consider two types of models. The first one is the \emph{generic} clustering model, where the cluster assignment follows a categorical distribution:
+
+\begin{equation*}
+y|\vec{x} \sim \text{Cat}(\psi_\theta(\vec{x})),
+\end{equation*}
+where $\psi_\theta : \mathcal{X} \rightarrow \Delta_{K}$ is a learnable function of parameters $\theta$ and $\Delta_{K}$ is a $K$-simplex.
+
+The second model is a Dirac distribution where the data space $\mathcal{X}$ is divided into a partition $\mathcal{X}_k,\forall k \in \{1,\cdots,K\}$:
+
+\begin{equation*}
+\pykx = \pmb{1}_{[\vec{x}\in\mathcal{X}_k]},
+\end{equation*}
+with $\pmb{1}$ the indicator function. This is simply a sub-case of the generic model.
+
+For both models, we consider that clusters are not empty and that the model is not degenerate, i.e. $\pi_k \in ]0,1[ \forall k \in \{1,K\}$.
+
+\subsection{Value of the GEMINI OvA and upper bounds}
+
+We first unfold the OvA GEMINI for the generic model and $\alpha\in \mathbb{R}\setminus\{0,1\}$:
+
+\begin{align*}
+\I^\text{ova}_{D_\alpha}(\vec{x};y) &= \E_{y\sim p(y)} \left[\E_{\vec{x} \sim \px} \left[f_\alpha\left(\frac{p(\vec{x}|y)}{\px}\right) \right] \right],\\
+&=\sum_{k=1}^K \pi_k \int_{\mathcal{X}}\px \left(\frac{\pxyk^\alpha \px^{-\alpha}}{\alpha(\alpha-1)} - \frac{\pxyk \px^{-1}}{\alpha-1}+\frac{1}{\alpha}\right)d\vec{x},\\
+&= \sum_{k=1}^K \pi_k \int_{\mathcal{X}} \left(\frac{\px\pykx^\alpha }{\pi_k^\alpha \alpha(\alpha-1)} - \frac{\pxyk}{\alpha-1} + \frac{\px}{\alpha}\right)d\vec{x}.
+\end{align*}
+
+After distributing the factor $\px$ in the integral, we can notice that the two last terms will be summed to 1, up to a factor depending on $\alpha$.
+
+\begin{align*}
+\I^\text{ova}_{D_\alpha}(\vec{x};y) &= \sum_{k=1}^K \pi_k \left(\frac{1}{\alpha}-\frac{1}{\alpha-1} + \frac{1}{\pi_k^\alpha \alpha(\alpha-1)}\mathbb{E}_{\vec{x}\sim \px}\left[\pykx^\alpha\right]\right)\\
+&= \frac{-1}{\alpha(\alpha-1)} + \frac{1}{\alpha(\alpha-1)}\sum_{k=1}^K \pi_k^{1-\alpha} \E_{\vec{x}\sim \px}\left[\pykx^\alpha\right],\\
+&= \left(\alpha(\alpha-1)\right)^\alpha \left[-1 + \sum_{k=1}^K \pi_k^{1-\alpha}\E_{\vec{x}\sim \px}\left[\pykx^\alpha\right] \right].
+\end{align*}
+
+Since we face a categorical distribution, we can affirm that $p(y|\vec{x}) \in [0,1]$. Therefore, depending on the value of $\alpha$, we have either $\pykx^\alpha \in [1, \infty[$ if $\alpha$ is negative, and $\pykx\in [0,1]$ for $\alpha$ positive. We now inspect these different cases.
+
+\subsection{Case of \texorpdfstring{$\alpha \in ]1,+\infty[$}{alpha greater than 1}}
+
+The upper bound we can get on the expectation involves the inequality $\pykx^\alpha \leq \pykx$. Owing to the linearity of the expectation, we can affirm that:
+
+\begin{align*}
+\E_{\vec{x}\sim \px} \left[\pykx^\alpha\right] &\leq \E_{\vec{x}\sim \px} [\pykx],\\
+&\leq \pi_k.
+\end{align*}
+
+This allows us to derive the following upper bound on the OvA GEMINI:
+
+\begin{align*}
+\I^\text{ova}_{D_\alpha}(\vec{x};y) &=\left(\alpha(\alpha-1)\right)^{-1} \left[ -1 + \sum_{k=1}^K \pi_k^{1-\alpha} \E_{\vec{x}\sim \px}\left[\pykx^\alpha\right]\right],\\
+&\leq \left(\alpha(\alpha-1)\right)^{-1}\left[-1+\sum_{k=1}^K\pi_k^{2-\alpha} \right],\\
+&\leq \mathcal{B}_{]1,+\infty[}(\pi_1,\cdots,\pi_K).
+\end{align*}
+
+The upper bound $\mathcal{B}_{]1,+\infty[}(\pi_1,\cdots,\pi_K)$ is a convex function that is invariant to permutations of $\pi_k$. Interestingly, this upper bound only depends on the proportions of the clusters. Its maximimum is reached when $\pi_k=K^{-1}$. However, any solution is acceptable for the special case of $\alpha=2$, i.e. the Pearson $\chi^2$-divergence. In this case, the upper bound is a constant: $\mathcal{B}^+_2 = \frac{K-1}{2}$. In this situation, the proportions of the clusters do not matter. Only getting a Dirac model is sufficient to maximise the OvA GEMINI.
+
+We can further conclude that the bound is tight when considering a Dirac model since $1^\alpha=1$ and $0^\alpha=0$, leading to:
+
+\begin{align*}
+\E_{\vec{x}\sim \px}\left[ \pmb{1}_{\left[\vec{x}\in\mathcal{X}_k\right]}^\alpha\right] &= \E_{\vec{x}\sim \px}\left[ \pmb{1}_{\left[\vec{x}\in\mathcal{X}_k\right]}\right],\\
+&=\pi_k.
+\end{align*}
+
+And so do we conclude:
+
+\begin{align*}
+    \I^\text{ova}_{D_\alpha}(\vec{x};y) &=\left(\alpha(\alpha-1)\right)^{-1} \left[ -1 + \sum_{k=1}^K \pi_k^{1-\alpha} \E_{\vec{x}\sim \px}\left[\pykx^\alpha\right]\right],\\
+    &= \left(\alpha(\alpha-1)\right)^{-1}\left[-1+\sum_{k=1}^K\pi_k^{2-\alpha} \right],\\
+    &= \mathcal{B}_{]1,+\infty[}(\pi_1,\cdots,\pi_K)
+\end{align*}
+
+\subsection{Case of a \texorpdfstring{$\alpha \in ]0,1[$}{alpha between 0 and 1}}
+
+In this case, the front factor $(\alpha(\alpha-1))^{-1}$ is negative. Thus, we are interested in minimising the second term and finding the lower bound. We can already infer:
+\begin{align*}
+\pykx &\leq \pykx^\alpha\\
+\E_{\vec{x}\sim \px}[\pykx]&\leq \E_{\vec{x}\sim \px} \left[ \pykx^\alpha\right]\\
+\pi_k&\leq \E_{\vec{x}\sim \px} \left[ \pykx^\alpha\right].
+\end{align*}
+
+
+This lower bound is tight for a Dirac model. We can finally compute for the OvA GEMINI that:
+
+\begin{align*}
+\I^\text{ova}_{D_\alpha}(\vec{x};y) &=\left(\alpha(\alpha-1)\right)^{-1} \left[ -1 + \sum_{k=1}^K \pi_k^{1-\alpha} \E_{\vec{x}\sim \px}\left[\pykx^\alpha\right]\right],\\
+&\leq \left(\alpha(\alpha-1)\right)^{-1}\left[-1+\sum_{k=1}^K\pi_k^{2-\alpha} \right],\\
+&\leq \mathcal{B}_{]0,1[}.
+\end{align*}
+
+Hence, we conclude that $\mathcal{B}_{]0,1[}=\mathcal{B}_{]1,+\infty[} = \mathcal{B}_{\mathbb{R}^{+*}\setminus \{1\}}$. In both cases, using a Dirac model implies that the OvA GEMINI reaches its upper bound.
+
+\subsection{Case of a negative \texorpdfstring{$\alpha$}{alpha}}
+
+The upper bound of the OvA GEMINI in this case is the infinity. Indeed, taking the example of the Dirac model is sufficient to consider regions of the data space $\mathcal{X}$ where the clustering distribution has no support. Thus, the expectation is undefined, or rather drifts towards infinity.
+
+\subsection{Specific case of \texorpdfstring{$\alpha=1$}{alpha equal to 1}, the KL divergence}
+
+In this case, we need to start the computations all over again using the definition $f(t)=t\log{t}$. Indeed, we can skip the term $-t +1$ since it does not affect the value of an $f$-divergence, i.e. for any convex function $f$ s.t. $f(1)=0$ and for any real constant $c$:
+
+\begin{equation*}
+D_{f(t)}(p\|q) = D_{f(t)+c(t-1)}(p\|q).
+\end{equation*}
+
+We thus get:
+
+\begin{align*}
+\I_{D_1}^\text{ova}(\vec{x};y) &= \E_{y\sim p(y)}\left[\E_{\vec{x} \sim \px}\left[\frac{\pxyk}{\px} \log\frac{\pxyk}{\px}\right]\right],\\
+&= \sum_{k=1}^K \pi_k \int_\mathcal{X} \pxyk \log\left(\frac{\pxyk}{\px}\right)d\vec{x},\\
+&= \sum_{k=1}^K \int_\mathcal{X} \pykx \px \log \left(\frac{\pykx}{\pi_k} \right)d\vec{x}.
+\end{align*}
+
+We can then separate the log term to make appear the two different entropies contributing to the mutual information:
+
+\begin{align*}
+\I_{D_1}^\text{ova}(\vec{x};y) &= \sum_{k=1}^K \int_\mathcal{X} \pykx \px\log(\pykx)d\vec{x} - \log{\pi_k}\int_\mathcal{X} \pykx \px d\vec{x},\\
+&= \sum_{k=1}^K \int_\mathcal{X} \pykx \px\log(\pykx)d\vec{x} - \pi_k\log\pi_k
+\end{align*}
+
+We find once again an upper bound on the integral depending on $p(y|\vec{x})$. We know that the function $g: t\mapsto t\log{t}$ is convex and below 0 for $t\in [0,1]$. Hence:
+
+\begin{equation*}
+\pykx\log{\pykx} \leq 0,
+\end{equation*}
+
+with strict equality iff $\pykx \in \{0,1\}$. This implies that the Dirac model maximises the left integral. We deduce the upper bound of the mutual information:
+
+\begin{align*}
+\I_{D_1}^\text{ova}(\vec{x};y) &= \sum_{k=1}^K \int_\mathcal{X} \pykx \px\log(\pykx)d\vec{x} - \pi_k\log\pi_k,\\
+&\leq \sum_{k=1}^K -\pi_k \log{\pi_k},\\
+&\leq \mathcal{B}_1.
+\end{align*}
+
+This shows that the cluster proportion entropy is the upper bound of the mutual information. It is reached for any Dirac model.
+
+\subsection{Last subcase: the null alpha}
+
+In this case, the $\alpha$-divergence is defined by the function $f(t) = -\log{t}$. Let us derive again the OvA GEMINI:
+
+\begin{align*}
+\I_{D_0}^\text{ova}(\vec{x};y) &= \E_{y\sim p(y)}\left[\E_{\vec{x} \sim \px}\left[- \log\frac{\pxyk}{\px}\right]\right],\\
+&= -\sum_{k=1}^K \pi_k \int_\mathcal{X} \px \log\left(\frac{\pxyk}{\px}\right)d\vec{x},\\
+&= -\sum_{k=1}^K \pi_k\int_\mathcal{X} \px \log \left(\frac{\pykx}{\pi_k} \right)d\vec{x}.
+\end{align*}
+
+We expand again the logarithm and compute the integral over constant terms factorised by $\px$:
+
+\begin{align*}
+\I_{D_0}^\text{ova}(\vec{x};y) &= \sum_{k=1}^K \pi_k\log{\pi_k} - \pi_k\int_\mathcal{X} \px\log{\pykx}d\vec{x}.
+\end{align*}
+
+Now we can see that this OvA GEMINI may converge to infinity. Indeed, for the example of the Dirac model, we evaluate the integral with terms worth $\lim_{t\rightarrow 0}\log{t}$. We cannot conclude on the upper bounds of this case.
+
+\subsection{Maximal upper bound}
+
+We have shown so far that for $\alpha >0$, we can derive two different upper bounds that only depend on the proportions of the clusters $\pi_k$. These upper bounds can be reached by Dirac model of type $\pykx=\pmb{1}_{[\vec{x}\in\mathcal{X}_k]}$.
+
+We can now question for the two upper bounds, $\mathcal{B}_{\mathbb{R}^{+*}\setminus\{1\}}$ and $\mathcal{B}_1$ what are the optimal cluster proportions $\pi_k$. By adding a Lagrangian constraint to enforce $\sum_{k=1}^K \pi_k=1$ in each upper bound, we can show that the maximal upper bound is reached iff $\pi_k=K^{-1} \forall k$. This concludes our proof.

@@ -1,0 +1,74 @@
+Let us consider the value of the OvO GEMINI when the distance $D$ is an $f$-divergence or an IPM.
+
+\subsection{Demonstration for \texorpdfstring{$f$}{f}-divergences}
+We first need to highlight that $f$-divergences come with a conjugate convex function $g$. This conjugate enables the inversion of the arguments of the $f$-divergence:
+
+\begin{equation*}
+D_f(p\|q) = D_g(q\|p),
+\end{equation*}
+for any distributions $p$ and $q$. We can use this trick to revert first the $f$-divergence between the distribution $\pykx$ and $\px$:
+
+\begin{equation*}
+D_f(\pxyk\|\px) = D_g(\px\|\pxyk).
+\end{equation*}
+
+We then write $\px$ as a sum marginalising the $y$ variable. Using the convexity of the function $g$, we get a weighted upper bound of this divergence:
+
+\begin{align*}
+D_g(\px\|\pxyk)&= D_g\left(\sum_{k^\prime=1}^K p(y=k^\prime)p(\vec{x}|y=k^\prime) \| \left(\sum_{k^\prime=1}^K p(y=k^\prime)\right) \pxyk\right),\\
+&\leq \sum_{k^\prime=1}^K p(y=k^\prime) D_g(p(\vec{x}|y=k^\prime) \| \pxyk),\\
+&\leq \E_{k^\prime \sim p(y)} \left[ D_g(p(\vec{x}|y=k^\prime)\|\pxyk)\right].
+\end{align*}
+
+To retrieve the OvO form, we can compute the expectation of this inequality over all possible combinations of $p(y)$:
+
+\begin{align*}
+\E_{y \sim p(y)}\left[D_f(\px\|\pxyk)\right] &\leq \E_{y_1,y_2 \sim p(y)} \left[ D_g (p(\vec{x}|y_1)\|p(\vec{x}|y_2))\right],\\
+\I^\text{ova}_{D_f}(\vec{x};y) &\leq \I^\text{ovo}_{D_g}(\vec{x};y).
+\end{align*}
+
+Then, owing to the conjugate convex functions, we can observe that for any $k, k^\prime \in \{1,\cdots, K\}$:
+
+\begin{multline*}
+D_g(\pxyk\|p(\vec{x}|y=k^\prime)) + D_g(p(\vec{x}|y=k^\prime)\|\pxyk) = D_f(p(\vec{x}|y=k^\prime)\|\pxyk)\\+ D_f(\pxyk\|p(\vec{x}|y=k^\prime)).
+\end{multline*}
+
+Consequently, the symmetry of OvO in its double expectation implies that:
+
+\begin{equation*}
+\I^\text{ovo}_{D_f}(\vec{x};y) = \I^\text{ovo}_{D_g}(\vec{x};y).
+\end{equation*}
+
+And so do we conclude that:
+
+\begin{equation}
+\I^\text{ova}_{D_f}(\vec{x};y) \leq \I^\text{ovo}_{D_f}(\vec{x};y).
+\end{equation}
+
+\subsection{Demonstration for IPMs}
+
+For IPMs, we start from the OvA distance between the distribution of an arbitrary cluster $i$ among $K$:
+
+\begin{equation*}
+D_\text{IPM}(p(\vec{x}|y=i)\|\px) = \sup_{f\in\mathcal{F}} \E_{\vec{x}\sim p(\vec{x}|y=i)}[f(\vec{x})] - \E_{\vec{x}\sim \px}[f(\vec{x})].
+\end{equation*}
+
+We can extend the expectation of the data distribution over all clusters using the sum rules of probabilities:
+
+\begin{align*}
+D_\text{IPM}(p(\vec{x}|y=i)\|\px)&= \sup_{f\in\mathcal{F}} \E_{\vec{x}\sim p(\vec{x}|y=i)}[f(\vec{x})] - \sum_{k=1}^Kp(y=k)\E_{\vec{x}\sim \pxyk}[f(\vec{x})],\\
+&=\sup_{f\in\mathcal{F}} \sum_{k=1}^K p(y=k) \left(\E_{\vec{x}\sim p(\vec{x}|y=i)}[f(\vec{x})] - \E_{\vec{x}\sim \pxyk}[f(\vec{x})]\right).
+\end{align*}
+
+We used in the second line the fact that the sum of $\sum_{k=1}^Kp(y=k)=1$ to factorise the first expectation. Finally, we can use the property that the supremum of a sum is lower or equal than a sum of suprema:
+
+\begin{align*}
+D_\text{IPM}(p(\vec{x}|y=i)\|\px) &\leq \sum_{k=1}^K \sup_{f\in\mathcal{F}} p(y=k)\left(\E_{\vec{x}\sim p(\vec{x}|y=i)}[f(\vec{x})] - \E_{\vec{x}\sim \pxyk}[f(\vec{x})]\right),\\
+&\leq \sum_{k=1}^K p(y=k) D_\text{IPM} (p(\vec{x}|y=i)\|\pxyk).
+\end{align*}
+
+This upper bound corresponds to the expectation of the IPM between a specific cluster distribution $i$ and all other cluster distributions. Finally, by performing the expectation over all cluster of index $i$,  we can conclude that:
+
+\begin{equation}
+\I^\text{ova}_\text{IPM}(\vec{x};y) \leq \I^\text{ovo}_\text{IPM}(\vec{x};y).
+\end{equation}

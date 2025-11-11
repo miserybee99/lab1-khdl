@@ -1,0 +1,36 @@
+For any $f$-divergence and two distribution $p$ and $q$ taking value in the space $\mathcal{X}$, then disjoint support between $p$ and $q$ implies the maximisation of the $f$-divergence. Indeed, the bounds of an $f$-divergence are:
+
+\begin{equation*}
+0 \leq D_f(p,q) \leq f(0)+g(0),
+\end{equation*}
+where the upper bound can be infinity depending on $f$ and its convex conjugate $g: t\longrightarrow tf(1/t)$. Thus, for any two different clusters $k\neq k^\prime$:
+
+\begin{equation*}
+0\leq D_f(p(\vec{x}|y=k)\|p(\vec{x}|y=k^\prime)) \leq f(0)+g(0).
+\end{equation*}
+
+However, distributions for the same clusters have an $f$-divergence of 0. We can therefore sum all the terms and their respective upper bounds:
+
+\begin{align*}
+\sum_{k\neq k^\prime}^K p(y=k)p(y=k^\prime) D_f(p(\vec{x}|y=k)\|p(\vec{x}|y=k^\prime)) &\leq \sum_{k\neq k^\prime}^K p(y=k)p(y=k^\prime) (f(0)+g(0))\\
+\mathcal{I}_{D_f}^\text{ovo}(\vec{x},y) &\leq \sum_{k=1}^K p(y=k)p(y\neq k)(f(0)+g(0)),
+\end{align*}
+
+Following~\cite[theorem 5]{caglar2014divergence}, disjoint supports between the distribution $p(\vec{x}|y=k)$ and $p(\vec{x}|y=k^\prime)$ implies the equality with the upper bound. Assume that the data space $\mathcal{X}$ is separated into $K$ disjoint and supplementary spaces $\mathcal{X}_k$. To each subspace $\mathcal{X}_k$ corresponds a cluster distribution $p(\vec{x}|y=k)$. This disjoint supports are achieved for any model of the form:
+
+\begin{equation*}
+p(y=k|\vec{x}) = \pmb{1}[\vec{x}\in\mathcal{X}_k],
+\end{equation*}
+which implies the disjoint distributions:
+
+\begin{equation*}
+p(\vec{x}|y=k) \propto \pmb{1}[\vec{x}\in\mathcal{X}_k]
+\end{equation*}
+
+Each of these spaces control the proportion of data in the cluster $k$, and hence controls $p(y=k)$. Thus, the OvO GEMINI is equal to its upper bound owing to disjoint supports:
+
+\begin{equation*}
+\mathcal{I}^\text{ovo}_{D_f}(\vec{x},y) = \sum_{k=1}^K p(y=k)p(y\neq k)(f(0)+g(0))
+\end{equation*}
+
+We need to maximise the upper bound. This will be the maximum value of OvO GEMINI reachable for models with disjoint supports. Adding a Lagrangian term to respect the contraint of $\sum_{k=1}^K p(y=k)=1$ leads to the optimal solution $p(y=k)=\frac{1}{K}$. This concludes the proof.

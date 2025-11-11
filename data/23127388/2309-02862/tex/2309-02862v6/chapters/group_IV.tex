@@ -1,0 +1,73 @@
+\section{Group IV}
+\label{sec:group-IV}
+
+In TSO games where no player is allowed to perform any buffer updates, there is no communication between the processes at all.
+A read operation of a process $\process^\pid$ on a variable $\xvar$ either reads the initial value from the shared memory, or the value of the last write of $\process^\pid$ on $\xvar$ from the buffer, if such a write operation has happened.
+
+Thus, we are only interested in the transitions that are enabled for each process, but we do not need to care about the actual buffer content.
+In particular, the information that we need to capture from the buffers and the memory is the values that each process can read from the variables, and whether a process can execute memory fence and atomic read-write instructions or not.
+Together with the global state of the current configuration, this completely determines the enabled transitions in the system.
+
+We call this concept the \emph{view} of the processes on the concurrent system and define it formally as a tuple $\view = \tuple{ \statemap, \valuemap, \fencemap }$, where:
+\begin{itemize}
+    \item $\statemap: \indexset \to \bigcup_{\pid \in \indexset} \stateset^\pid$ is a global state of $\program$.
+    \item $\valuemap: \indexset \times \varset \to \valset$ defines which value each process reads from a variable.
+    \item $\fencemap: \indexset \to \set{ \true, \false }$ represents the possibility to perform a memory fence instruction.
+\end{itemize}
+Given a view $\view = \tuple{ \statemap, \valuemap, \fencemap }$, we write $\statemap\of\view$, $\valuemap\of\view$ and $\fencemap\of\view$ for the global program state $\statemap$, the value state $\valuemap$ and the fence state $\fencemap$ of $\view$.
+
+The view of a configuration $\conf$ is denoted by $\view\of\conf$ and defined in the following way.
+First, $\statemap(\view\of\conf) = \statemap\of\conf$.
+For all $\pid \in \indexset$ and $\xvar \in \varset$, if $\buffermap\of\conf\of\pid|_{\set\xvar\times\valset} = \tuple\xd \cdot \word$, then $\valuemap(\view\of\conf)(\pid, \xvar) = \dval$.
+Otherwise, $\valuemap(\view\of\conf)(\pid, \xvar) = \memorymap\of\conf\of\xvar$.
+Lastly, $\fencemap(\view\of\conf)\of\pid = \true$ if and only if $\buffermap\of\conf\of\pid = \varepsilon$.
+We extend the notation to sets of configurations in the usual way, i.e. $\view(\confset') := \set{ \view(\conf) \mid \conf \in \confset'}$, and to game configurations by $\view(\conf_A) := \view\of\conf_A$ and $\view(\conf_B) := \view\of\conf_B$
+
+If $\view(\conf) = \view(\conf')$ for some $\conf, \conf' \in \confset_\program$, a local process of $\program$ cannot differentiate between $\conf$ and $\conf'$ in the sense that the enabled transitions in both configurations are the same.
+We formalise this idea by defining a bisimulation between $\game$ and a game $\hgame = \tuple{ \viewset, \viewset_A, \viewset_B, \to, \viewset_F }$ played on the views of $\game$.
+Define:
+$$\viewset_A := \set{ \view\of\conf_A \mid \conf_A \in \confset_A } \qquad \viewset_B := \set{ \view\of\conf_B \mid \conf_B \in \confset_B } \qquad \viewset_F := \set{ \view\of\conf_A \mid \conf_A \in \confset_F }$$
+Lastly, we have $\view(\conf) \to \view(\conf')$ whenever $\conf \to \conf'$.
+
+\begin{lem}
+\label{lem:views}
+    The relation $\bisim := \set{ (\conf, \view\of\conf) \mid \conf \in \confset }$ is a bisimulation between $\game$ and $\hgame$.
+\end{lem}
+\begin{proof}
+    We need to show that for all $(\conf_1, \view_2 := \view(\conf_1)) \in \bisim$:
+    \begin{itemize}
+        \item For all $\conf_1 \to \conf_3$ in $\game$, there is $\view_2 \to \view_4$ in $\hgame$ with $\conf_3 \approx \view_4$.
+        \item For all $\view_2 \to \view_4$ in $\game$, there is $\conf_1 \to \conf_3$ in $\hgame$ with $\conf_3 \approx \view_4$.
+        \item $\conf_1 \in \confset^\game_A$ if and only if $\view_2 \in \confset^\hgame_A$.
+        \item $\conf_1 \in \confset^\game_F$ if and only if $\view_2 \in \confset^\hgame_F$.
+    \end{itemize}
+    The first property is trivially fulfilled since $\view(\conf_1) \to \view(\conf_3)$ for any $\conf_1 \to \conf_3$ by definition of $\hgame$.
+
+    For the second property, suppose that $\view_2 \to \view_4$ is due to some transition $\conf_2 \to[\instr_\pid] \conf_4$.
+    We first show that $\instr_\pid$ is enabled at $\conf_1$.
+    Since $\view(\conf_1) = \view(\conf_2)$, it holds that $\statemap(\conf_1) = \statemap(\conf_2)$.
+    Furthermore, if $\instr_\pid = \rd\of\xd_\pid$, then $\valuemap(\view(\conf_1))(\pid, \xvar) = \valuemap(\view(\conf_2))(\pid, \xvar) = \dval$.
+    Also, if $\instr_\pid = \mf_\pid$, then $\buffermap(\conf_2)\of\pid = \varepsilon$ and since $\fencemap(\view(\conf_1))(\pid) = \fencemap(\view(\conf_2))(\pid) = \true$ it follows that $\buffermap(\conf_1)\of\pid = \varepsilon$.
+    Similarly, if $\instr_\pid = \arw\of\xdd_\pid$, then $\valuemap(\view(\conf_1))(\pid, \xvar) = \valuemap(\view(\conf_2))(\pid, \xvar) = \dval$ and $\buffermap(\conf_1)\of\pid = \buffermap(\conf_2)\of\pid = \varepsilon$.
+    From these considerations and the definition of the TSO semantics (see \autoref{fig:tso-semantics}), it follows that $\instr_\pid$ is indeed enabled at $\conf_1$.
+
+    Let $\conf_3$ be the configuration obtained after performing $\instr_\pid$, i.e. $\conf_1 \to[\instr_\pid] \conf_3$.
+    It holds that $\statemap(\conf_3) = \statemap(\conf_4) = \statemap(\conf_1)[\pid \leftarrow \statemap(\conf_4)\of\pid]$.
+    If $\instr_\pid = \wr\of\xd_\pid$, then $\valuemap(\view(\conf_3)) = \valuemap(\view(\conf_4)) = \valuemap(\view(\conf_1))[(\pid, \xvar) \leftarrow \dval]$
+    and $\fencemap(\view(\conf_3)) = \fencemap(\view(\conf_4)) = \fencemap(\view(\conf_1))[\pid \leftarrow \false]$.
+    Similarly, if $\instr_\pid = \arw\of\xdd_\pid$, then $\valuemap(\view(\conf_3)) = \valuemap(\view(\conf_4)) = \valuemap(\view(\conf_1))[(\pid, \xvar) \leftarrow \dval']$
+    but $\fencemap(\view(\conf_3)) = \fencemap(\view(\conf_4)) = \fencemap(\view(\conf_1))$.
+    Otherwise, $\valuemap(\view(\conf_3)) = \valuemap(\view(\conf_4)) = \valuemap(\view(\conf_1))$
+    and $\fencemap(\view(\conf_3)) = \fencemap(\view(\conf_4)) = \fencemap(\view(\conf_1))$.
+    In all cases it follows that $\view(\conf_3) = \view(\conf_4) = \view_4$.
+
+    The third and fourth properties are trivially fulfilled by the definition of $\bisim$ and $\hgame$.
+\end{proof}
+
+\begin{thm}
+    The safety problem for games in group IV is \exptime-complete.
+\end{thm}
+\begin{proof}
+    Apply \autoref{lem:bisim} to $\bisim$ and obtain that the safety problem for $\game$ is equivalent to the safety problem of $\hgame$.
+    Since there exist only exponentially many views, \exptime-completeness follows from \autoref{lem:finite} and \autoref{cor:complexity}.
+\end{proof}

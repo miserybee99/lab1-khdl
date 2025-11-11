@@ -1,0 +1,11 @@
+The complexity of the Wasserstein metric is $\mathcal{O}(N^3\log{N})$ for a batch of size $N$. Consequently, the complexity of the OvO Wasserstein reaches $\mathcal{O}(K^2N^3\log{N})$ for $K$ clusters. This implies that this GEMINI is hardly usable for a high number of clusters. To tackle this complexity, we propose instead to sample $M$ independent pairs among the $K(K-1)/2$ pairs of clusters to compare. We evaluate the OvO Wasserstein on these pairs and scale it to the same order as if performed on all pairs. This is stochastically equivalent to maximising the metric for all pairs:
+
+\begin{equation}
+    \hat{\I}^\text{ovo}_\mathcal{W}(\vec{x};y) = \frac{2M}{K(K-1)}\times\sum_{k,k^\prime \in I}\p(y=k)\p(y=k^\prime)\times \mathcal{W}_\delta\left(\{m_i^k\}_{i=1}^N, \{m_i^{k^\prime}\}_{i=1}^N \right),
+\end{equation}
+
+with
+
+$$I = \{(k_n, k^\prime_n)\}_{n=1}^M\quad; (k_n,k^\prime_n) \sim \mathcal{U}\left(\{1, \cdots, K\}^2 \right),$$ a set of uniformly drawn pairs of clusters.
+
+This optimisation requires however longer training time as a tradeoff for a controlled complexity of $\mathcal{O}(MN^3)$. Note that the same optimisation can be applied to the OvA Wasserstein-GEMINI.

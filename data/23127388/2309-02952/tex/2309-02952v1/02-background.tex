@@ -1,0 +1,144 @@
+\section{Background}
+\label{sec:background}
+
+In this section, we provide the necessary groundwork that is needed to follow the rest of this paper.
+Initially we describe the system model, which introduces the basic notions, define the terminology, and outline the assumptions used in our work.
+Subsequently, we delve into Cyclon, the peer-sampling protocol that is the focus of our research.
+Our Attack model concludes this section, which defines the rationale behind the actions of malicious nodes.
+
+\subsection{System Model}
+\label{subsec:system-model}
+
+
+We consider a network of $n$ nodes, each having a unique ID.
+Nodes are connected over a routed network infrastructure, which allows communication between any pair of them.
+The sole condition for communication is that the sender knows the network address (e.g., the IP address and port) of the receiver.
+
+Information about neighbors is stored and exchanged by means of \emph{node descriptors}, also referred to as \emph{links}.
+A node descriptor contains the node's unique ID and its network address.
+The descriptor of a node may be generated exclusively by the node itself, but it can be freely passed around from any node to any other.
+
+The network is dynamic, nodes may join, leave, or fail, with no prior notice.
+Messages may be delayed or dropped.
+However, message integrity is guaranteed and malicious nodes cannot impersonate legitimate ones, as every message is cryptographically signed by its sender.
+
+Network nodes possess clocks that are relatively synchronized with each other.
+We use \emph{cycles} as a time unit in protocol design and evaluation.
+A cycle corresponds to the period during which a node is allowed to initialize exactly one gossip exchange.
+
+Each node has exactly one cryptographic private/public key pair.
+We set the value of the unique ID of each node to be equal to the value of its public key.
+
+We assume that the acquisition of unique identifiers is not a trivial process.
+This property can be achieved by mechanisms described in~\cite{TheSybilAttack}, such as relying on a trusted authority, or having to solve a unique computational puzzle in order to acquire an identifier.
+
+\subsection{Cyclon}
+\label{subsec:cyclon}
+
+
+Cyclon~\cite{voulgaris.jnsm.2005} is a popular peer-sampling protocol, known for building overlays that share a lot of properties with random graphs.
+Cyclon is remarkably scalable, robust to failures, and lightweight.
+It operates in a fully decentralized, self-organizing fashion.
+
+
+In Cyclon, node descriptors contain the following fields:
+\begin{itemize}
+  \item The node's ID
+  \item The node's network address
+  \item A timestamp denoting when this specific descriptor was generated
+\end{itemize}
+
+Each node maintains a small partial view of the network of size $\ell$ (known as the \emph{view length}), that is, a list of $\ell$ descriptors of other nodes.
+Periodically, a node selects the \emph{oldest} descriptor in its view, removes it from its view, and initiates a gossip exchange with the respective peer.
+In this gossip exchange, the initiator first sends $s$ descriptors to its gossip partner: a fresh descriptor of itself plus another $s-1$ descriptors selected (and removed) from its view at random.
+Upon receiving these, the gossip partner responds by also sending $s$ descriptors back, all of them selected (and removed) from its view at random.
+Each node stores the $s$ received descriptors in its view, filling in the gaps from the $s$ descriptors it removed.
+In case a node finds itself with empty slots in its view after an exchange (e.g., because it has recently joined and its view is not fully populated yet, or because the other party did not provide enough descriptors), it is free to retain the descriptors it sent to the other party.
+
+In a Cyclon gossip exchange, nodes effectively \emph{swap} some of their descriptors, hence, parameter $s$ is known as the \emph{swap length}.
+By doing so, overlay links are being mixed at random, resulting into overlays that demonstrate remarkable similarity to random graphs, as has been shown in~\cite{voulgaris.jnsm.2005}.
+
+
+\begin{figure}
+  \includegraphics[width=\linewidth]{figs/drawings/cyclon}
+  \caption{Gossip exchange in Cyclon. The initiator (blue) redeems its link to its gossip partner (green), replacing it by a link to a third node (yellow) provided by the partner. The gossip partner removes its link to a third node, replacing it by a fresh link to the initiator provided by the initiator. Note: The two nodes may also exchange a few more random links, one-to-one, not shown here.}
+  \label{fig:cyclon_gossip}
+\end{figure}
+
+
+Note that when a node initiates gossiping to a neighbor, it removes that neighbor's descriptor from its view.
+We say that it \emph{redeems} that descriptor for a gossip exchange.
+Given a fail-free environment, the overlay connectivity is nevertheless preserved, as the neighboring relation between the two nodes is not lost, but simply changes direction.
+Links to third nodes are not removed either.
+Third nodes just move from being neighbors of one node to being neighbors of another.
+\figref{fig:cyclon_gossip} illustrates a gossip exchange between two nodes.
+
+Cyclon renews the links of the overlay by removing the oldest descriptors and by injecting a fresh descriptor per node per cycle.
+This way, a descriptor's life expectancy becomes naturally bounded, as a descriptor is not likely to get redeemed before it becomes old, while it is also not likely to become too old before it gets redeemed.
+In combination with the fixed birth rate of descriptors, this implies that any given node's descriptors will have a relatively stable population over time.
+
+Interestingly, the descriptor population of each individual node is inherently being pushed towards an equilibrium.
+A node \emph{increases} its indegree by one (by injecting a fresh descriptor) precisely once per cycle, when it initiates a gossip exchange.
+On the other hand, a node's indegree is \emph{decreased} by one when it is chosen as a partner in a gossip exchange initiated by someone else (someone who redeems one of the node's old descriptors).
+Therefore, a node with a low indegree (i.e., few descriptors floating around) is likely to be contacted less than once per cycle, on average, therefore its descriptors will be getting redeemed slower than they are getting born, thus the node's indegree will tend to rise.
+On the opposite side, a node with a high indegree (i.e., lots of its descriptors around), will be contacted more than once per cycle, on average, seeing its descriptors being redeemed at a faster pace than being born, thus the node's indegree will tend to drop.
+
+The consequence of the aforementioned observations is that, besides having a fixed outdegree as explicitly configured through their view length, nodes in Cyclon also experience a tightly bounded indegree, which is shown to inherently fluctuate around its outdegree (i.e., its view length $\ell$), with very small deviation.
+\figref{fig:degree} presents the indegree distribution of two Cyclon overlays, for network sizes of 1K and 10K nodes, respectively.
+These overlays show that they are extremely robust, as no node is left behind with a low indegree.
+
+
+\begin{figure}
+  \includegraphics{figs/degree/indegree_n1K_v20}
+  \includegraphics{figs/degree/indegree_n10K_v50}
+  \caption{Indegrees in Cyclon overlays. Each individual node's indegree is very closely bounded to the system-wide configured outdegree.}
+  \label{fig:degree}
+\end{figure}
+
+
+\begin{figure*}[t]
+  \includegraphics{figs/vanilla-alexandros/vanilla_n1K_v20}
+  \includegraphics{figs/vanilla-alexandros/vanilla_n10K_v50}
+  \caption{A small set of malicious nodes can easily take over 100\% of the network.
+  These experiments of 1K nodes with view length 20 (left) and 10K nodes with view length 50 (right), demonstrate how fast an attacker can take full control of the network by deploying even the minimum number of malicious nodes required, namely, 20 and 50, respectively.
+  In these experiments, all nodes operate correctly until cycle 50, during which the percentage of links to malicious nodes is analogous to their population, as expected.
+  From that point onwards, malicious nodes continue gossiping seemingly correctly (i.e., correct rate, correct gossip exchanges, etc.), however they present a view consisting of malicious  nodes exclusively.}
+  \label{fig:hubattack}
+\end{figure*}
+
+
+Despite its desirable properties, Cyclon comes with a major shortcoming, namely its vulnerability to malicious nodes.
+Cyclon has been designed around the assumption of seamless cooperation between nodes.
+When this is not the case, it becomes an easy target to attacks.
+A handful of colliding malicious nodes that deviate from the protocol's rules, may easily leverage Cyclon's gossip exchanges to take over all links to and from legitimate nodes.
+It is not hard to imagine that by presenting to legitimate nodes fake views containing only links to their malicious colleagues, malicious nodes can gradually pollute legitimate nodes' views, eventually taking over 100\% of the links.
+
+\figref{fig:hubattack} demonstrates this vulnerability.
+It presents experiments for a 1K and a 10K-node network, in which a small number of nodes, equal to the view length $\ell$, manage to take over all links in a very short number of cycles.
+In all experiments, malicious nodes behave correctly until cycle 50, after which they start their coordinated attack.
+
+Our work proposes \prot, a revised, security-sensitive extension of Cyclon, which efficiently shields Cyclon overlays from such attacks.
+
+
+\subsection{Attack Model}
+\label{subsec:attack-model}
+
+
+In our attack model, we assume a party of malicious nodes that run under the same operator.
+Malicious nodes collude with each other, have mutual knowledge about the network, share the same pool of node descriptors, and forge node descriptors on demand to assist each other.
+
+%As mentioned in the~\ref{subsec:system-model}, it is assumed that a Sybil resistance mechanism is in place.
+%We presume that a malicious party could potentially have a larger set of identifiers at their disposal, however these may not exceed the number of identifiers possessed by legitimate nodes.
+
+The ultimate goal of the malicious party is to monopolize all the connections from and to legitimate nodes.
+In pursuit of this objective, each individual malicious node is required to pollute the network with descriptors that point to nodes of its malicious party, ultimately establishing hub positions as described in \ref{subsec:the-hub-attack}.
+
+As pointed out in~\ref{subsec:cyclon}, when Cyclon is employed, the links of the overlay are continuously recycled, wherein old links are replaced by newly generated ones.
+Taking this into consideration, a malicious party would not reach its goal if its participants are slow to pollute the network.
+In order to outperform the self-healing properties of Cyclon, malicious nodes employ aggressive strategies that involve rapid provision of supplementary node descriptors.
+
+As showcased in~\cite{voulgaris.jnsm.2005}, Cyclon demonstrates remarkable efficacy in redistributing node descriptors throughout the network, thereby equipping each overlay node with a randomized set of peers.
+Even if a malicious node communicating with a legitimate node memorizes the view of its victim, the view will change in a span of a few cycles.
+Due to this, malicious nodes in our model do not endeavor to predict the contents of legitimate nodes' views, when choosing which of their peers they will communicate with, or when selecting which nodes from their party the supplementary descriptors will point to.
+Instead, they make such choices uniformly at random.
+

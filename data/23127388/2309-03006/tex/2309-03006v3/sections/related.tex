@@ -1,0 +1,58 @@
+%!TEX root = ../main.tex
+
+\section{Related Work}
+
+In this section, we survey additional recent research work in the area of detecting bugs in smart contracts and fuzzing. 
+
+\paragraph{Solana Bug Detection Approaches}
+To the best of our knowledge, VRust~\cite{Cui2022-nm} is currently the only static analysis tool for Solana programs.
+VRust finds missing owner, signer, and key checks, integer, account confusion, cross program invocation, numerical precision error, and bump seed bugs.
+It detects these bugs by analyzing source code and checking for vulnerable patterns.
+However, VRust relies on the availability of source code which is unfortunately not available for the majority of Solana programs.
+%
+Moreover, in contrast to \tool, VRust suffers from a high false alarm rate of \num{89,58}\%.
+Hence, due to the overwhelming number of alarms, it is very likely that developers will miss the true positives.
+
+
+\paragraph{Library Fuzzing}
+Fuzzing~\cite{Bohme2016-xt, Bohme2017-vv, Liang2018-ws, nyx, aflpp, libafl} is a popular technique for evaluating the security of software and hardware components~\cite{Feng2020-ni, Maier2020-hg} and finding critical vulnerabilities.
+Different approaches are needed to fuzz complex targets that require well-structured data types~\cite{Bastani2017-hi, Godefroid2008-sw, Gros2018-di, Han2019-ef, You2019-uu}.
+For example, Fuzzil~\cite{Gros2018-di} is a grammar-based fuzzer for JavaScript engines. 
+Recent research has focused on fuzzing targets on different platforms~\cite{fuzzware,sgxfuzz,usbfuzz}. Fuzzware~\cite{fuzzware}, SGXFuzz~\cite{sgxfuzz}, and USBFuzz~\cite{usbfuzz} fuzz their targets in an emulated environment. 
+\tool follows a similar fuzzing strategy as it generates valid Solana transactions from randomly mutated input bytes and executes them in an emulated Solana blockchain.
+
+Taint propagation~\cite{You2019-uu, Rawat2017-lj, pata, angora, dowser, Aschermann2019-ha} is widely used by fuzzers to identify which part of an input should be changed.
+Dowser~\cite{dowser} applies taints by identifying the input data bytes used in security-relevant operations. 
+Vuzzer~\cite{Rawat2017-lj}, Redqueen~\cite{Aschermann2019-ha}, and PATA~\cite{pata} concentrate on guiding the fuzzer to pass barriers, e.g., passing a magic value validation. A similar technique could be incorporated in \tool to further improve the performance.
+In this paper, we use Libafl~\cite{libafl} as a fuzzer.
+Libafl is a high-performance fuzzer with state-of-the-art fuzzing techniques, e.g., including a \emph{persistent mode} which avoids the bottleneck of forking a new process for each fuzzing iteration.
+Furthermore, the extensible design of Libafl enables us to integrate \tool's coverage information component into the fuzzing loop.
+Therefore, Libafl is the best available fuzzer for this work.
+
+\paragraph{Smart Contract Fuzzing}
+Fuzzing has also been applied to Eth-ereum smart contracts~\cite{harvey,confuzzius,rodler2023efcf, contractfuzzer, Ding2021-qg}. 
+Harvey~\cite{harvey} is a coverage-guided fuzzer for smart contracts.
+It uses program instrumentation to create a feedback mechanism for input prediction.
+In addition to that, it creates transaction sequences to detect smart contract bugs, like reentrancy and integer bugs.
+ConFuzzius~\cite{confuzzius} is a hybrid fuzzer.
+It leverages data dependency analysis and symbolic taint analysis to solve input constraints with the goal of reaching deeper nested paths, thereby increasing coverage.
+EFCF~\cite{rodler2023efcf} is a coverage-guided binary-only fuzzer that tightly integrates with well-known fuzzing frameworks for native and legacy programs.
+EFCF transpiles the EVM bytecode of a smart contract to native C++ programs and uses state-of-the-art fuzzing optimization techniques~\cite{aflpp}.
+
+However, all these smart contract fuzzing approaches only cover Ethereum smart contracts. 
+Ethereum and Solana vulnerabilities are fundamentally different and require different bug detection mechanisms.
+In addition, the aforementioned approaches benefit from Ethereum's more advanced security tool landscape, which Solana lacks due to its immaturity, and transferring these techniques require extensive effort.
+As a result, these techniques are neither applicable to detect Solana-specific vulnerabilities, nor do they support Solana programs at all.
+
+\paragraph{Smart Contract Analysis}
+In addition to fuzzing, other approaches to detect bugs and securing smart have been proposed~\cite{Schneidewind2020-mj, securify, oyente, evmpatch, sereum, Mossberg2019-xp, Torres2018-je}. 
+Securify~\cite{securify} deploys formal verification to detect vulnerabilities in Ethereum smart contracts.
+It discovers a variety of vulnerabilities, including reentrancy, race conditions, and timestamp dependency.
+Oyente~\cite{oyente} and Manticore~\cite{Mossberg2019-xp} are symbolic execution tools which analyze contracts to discover reentrancy and integer overflow issues. 
+Sereum~\cite{sereum} deploys dynamic analysis to detect a variety of reentrancy attack patterns. 
+EVMPatch~\cite{evmpatch} instruments the bytecode of smart contracts to enable instant patching of smart contracts.
+Osiris~\cite{Torres2018-je} introduces a symbolic execution approach for detecting integer-related bugs in Ethereum smart contracts.
+%
+While these approaches are successful in detecting bugs in Ethereum smart contracts, they are heavily reliant on Solidity or EVM bytecode, which are closely tied to the Ethereum ecosystem.
+Furthermore, many works focus on bug classes that do not exist in Solana, like reentrancy.
+To conclude, these approaches cannot analyze Solana programs, and also lack detection capabilities for Solana-specific bugs. 

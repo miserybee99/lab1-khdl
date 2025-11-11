@@ -1,0 +1,54 @@
+\section{Introduction} % Placeholder - could omit section header here
+
+% Often many possible ways of explaining things or presenting material in an educational technology. We may not know ahead of time which are most effective, and their effectiveness may vary based on students’ characteristics, such as prior knowledge or motivation.
+% MAB algorithms offer one way to dynamically improve the technology such that many different strategies can be included, and the system can direct more students to more effective conditions. Contextual MAB algorithms can take into account students’ characteristics, so that the technology adapts to provide the best instructional strategy for each individual.
+% But, we may not know ahead of time precisely which characteristics should be used for personalization, and because the system is constantly adapting, the impacts of adaptation may be uneven: students who have particular characteristics may benefit more from the adaptation than other students. 
+% We use simulations to explore the impact of adaptive algorithms on students in three different scenarios:
+% When the student characteristics have no impact on condition effectiveness.
+% When one dimension of the student characteristics is associated with student outcomes, but doesn’t impact which instructional strategy is more effective for an individual student.
+% When one dimension of the student characteristics is associated with student outcomes, and it impacts student outcomes such that the best instructional strategy is different for different student groups.
+% Within these simulations, we vary two factors:
+% How many student characteristics (i.e., factors) does the algorithm use for personalization?
+% In cases where one student characteristic does impact effectiveness, how does the distribution of that characteristic in the population impact average student outcomes and student outcomes conditioned on the value of that characteristic?
+
+Within educational technologies, there are a myriad of ways to design instructional components such as hints or explanations. Research in education and the learning sciences provides some insight into how to design these resources (e.g.,~\cite{shute2008focus,aleven2016help}). However, there is often uncertainty about which version of a resource will be most effective in a particular context, and effectiveness may vary based on students' characteristics, such as prior knowledge or motivation. 
+%This uncertainty may lead to creating multiple versions of an educational technology, each reflecting a different possible way of designing or delivering instruction.
+
+Randomized experiments are one way to compare multiple versions of a technology, but such experiments impose a delay between collecting required evidence and using that evidence to improve student experiences. Recently, multi-armed bandit (MAB) algorithms have been proposed to improve technologies in real time: each student is assigned to one version of the technology, and the algorithm observes the student's learning outcome~\cite{liu2014trading,williams2018enhancing}. Each subsequent student is more likely to be assigned to a version of the technology that has been more effective for previous students, as the algorithm discovers what is effective. Such algorithms maintain uncertainty as they learn, balancing exploring to learn more about what works with exploiting the observed results from previous students.
+Typical MAB algorithms do not take into account student characteristics and thus can only identify which version of a technology is better for students on average, but contextual MAB algorithms can personalize which version to assign to each student, potentially increasing the number of students who are directed to versions that are most helpful for them individually~\cite{shaikh2019balancing}. 
+
+While deploying contextual MAB algorithms could improve student experiences, it raises two potential issues. First, instructional designers must decide which student characteristics will be considered for personalization.
+%requires deciding which characteristics will be considered for personalization. 
+For instance, more concrete examples might be more helpful for students with lower prior knowledge, while more abstract examples could be more helpful for students with higher prior knowledge. This relationship could only be learned if the algorithm has `prior knowledge' as a feature of each student. Should the algorithm also consider which prerequisite course was taken when selecting an example, or is prior knowledge sufficient? Designers are unlikely to be certain which characteristics influence effectiveness, but the choice of characteristics will influence the performance of the algorithm. Excluding characteristics that do impact effectiveness could decrease the positive impact on students, but including extraneous characteristics that do \textit{not} impact effectiveness could also decrease this impact. 
+In the latter case, the system might have to do more exploration to learn how the effectiveness of instruction differs along each extraneous characteristic, and so direct a greater number of students to less effective versions.
+
+
+The second issue raised by online adaptive algorithms is whether the constantly adapting system will benefit certain groups of students more than others.
+%, such as those students whose characteristics are more common.
+Since contextual MAB algorithms learn by observing how the consequences of their choices are related to feature values, students whose characteristics are less common may be more likely to interact with the algorithm when it has limited information about what is most effective for that type of student. This could exacerbate differences in outcomes between subgroups of students. Yet, such algorithms could also have an equalizing effect for students with less common characteristics: students have the potential to experience a version of the technology that is most appropriate for them, even when this version is not the most appropriate for a typical student.
+%the proportion of students who expe
+%who are from smaller sub-groups could benefit less from these 
+
+In this paper, we use simulations to explore these issues and their consequences for student experiences in adaptive educational technologies which use MAB algorithms. We focus on three common types of models for how student characteristics are related to outcomes: a \textit{baseline} model in which student characteristics do not impact the effectiveness of different versions of the technology; a \textit{universal optimal action} model, in which student characteristics impact effectiveness but the same version is most effective for all students; and a \textit{personalized optimal action} model, in which student characteristics impact which version leads to the best outcomes for a given student. 
+
+We show that including the potential for personalization can negatively influence student outcomes except in the \textit{personalized optimal action} model, where this information is necessary to encode the best policy. 
+%even when that leads to a more accurate model of the underlying generative process for those student outcomes.
+The more characeristics that are included for personalization, the greater the negative impact on outcomes. Additionally, including these characteristics may lead the algorithm to systematically treat students differently based on characteristics that do not influence their outcomes. When student characteristics are not uniformly distributed, including extraneous characteristics means that students in a minority group are more negatively affected than students in the majority group.
+%This increased variance is worsened when student characteristics are not uniformly distributed, with some characteristics being more common than others.
+%as is common when, for example, more students take one version of a prerequisite course than another. 
+% For \textit{personalized optimal action} scenarios where personalization is helpful, we found that uneven distributions of student characteristics meant that typically, personalization had a mild negative impact on the majority group of students and a strong pos
+% We also examine the potential impact of MAB algorithms in the real world by using previously collected experimental data. These simulations using the experimental data demonstrate show the potential benefits of personalization and add nuance to the prior simulation results by demonstrating when both minority and majority groups of students can benefit from personalizaton.
+% We focus on cases consistent with the where students with some characteristics experience better outcomes under the control condition while other students experience better outcomes under the experimental conditions
+% (consistent with \textit{personalized optimal action} scenarios). 
+We use experimental data to show the potential benefits of personalization and add nuance to the prior simulation results by demonstrating how personalization can benefit not only students in a minority group but also all groups of students when information about the student characteristics magnifies differences between conditions.
+%when both minority and majority groups of students can benefit from personalizaton.
+%, most strongly for those students who learn best from the condition that is less effective for the majority of students.
+We end by discussing the consequences of these results for integrating adaptive components into existing educational technologies.
+
+% We use simulations to explore the impact of adaptive algorithms on students in three different scenarios:
+% When the student characteristics have no impact on condition effectiveness.
+% When one dimension of the student characteristics is associated with student outcomes, but doesn’t impact which instructional strategy is more effective for an individual student.
+% When one dimension of the student characteristics is associated with student outcomes, and it impacts student outcomes such that the best instructional strategy is different for different student groups.
+% Within these simulations, we vary two factors:
+% How many student characteristics (i.e., factors) does the algorithm use for personalization?
+% In cases where one student characteristic does impact effectiveness, how does the distribution of that characteristic in the population impact average student outcomes and student outcomes conditioned on the value of that characteristic?

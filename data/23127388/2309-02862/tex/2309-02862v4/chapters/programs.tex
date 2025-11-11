@@ -1,0 +1,76 @@
+\section{Concurrent Programs}
+
+\subsection{Syntax}
+
+Let $\valset$ be a finite data domain and $\varset$ be a finite set of shared variables over $\valset$.
+We define the \emph{instruction set}
+\begin{align*}
+\instrs :=\ & \set{ \rd\of\xd, \wr\of\xd \mid \xvar \in \varset, \dval \in \valset } \\
+	 \cup\ & \set{ \arw\of\xdd \mid \xvar \in \varset, \dval, \dval' \in \valset } \\
+	 \cup\ & \set{ \nop, \mf }
+\end{align*}
+which are called \emph{read}, \emph{write}, \emph{atomic read-write}, \emph{skip} and \emph{memory fence}, respectively.
+A process is represented by a finite state labelled transition system.
+It is given as the triple $\process = \tuple{ \stateset, \instrs, \transition }$, where $\stateset$ is a finite set of \emph{local states} and $\transition \subseteq \stateset \times \instrs \times \stateset$ is the transition relation.
+As with transition systems, we write $\state_1 \to[\instr] \state_2$ if $\tuple{ \state_1, \instr, \state_2} \in \transition$ and $\state_1 \to \state_2$ if there exists some $\instr$ such that $\state_1 \to[\instr] \state_2$.
+
+A \emph{concurrent program} is a tuple of processes $\program = \tuple{ \process^\pid }_{\pid \in \indexset}$, where $\indexset$ is a finite set of process identifiers.
+For each $\pid \in \indexset$ we have $\process^\pid = \tuple{ \stateset^\pid, \instrs, \transition^\pid }$.
+A \emph{global} state of $\program$ is a function $\statemap: \indexset \to \bigcup_{\pid \in \indexset} \stateset^\pid$ that maps each process to its local state, i.e $\statemap(\pid) \in \stateset^\pid$.
+\autoref{fig:concurrent-program} shows a simple example of a concurrent program $\program$ consisting of two processes $\process^1$ and $\process^2$.
+\input{figures/concurrent_program}
+
+\subsection{SC Semantics}
+
+Under SC (Sequential Consistency) semantics, all processes of a concurrent program interact with the shared memory directly, and all operations appear to be executed in some sequential order that is consistent with the program order of each individual process.
+
+Formally, an SC \emph{configuration} is a tuple $\conf = \tuple{ \statemap, \memorymap }$, where $\statemap: \indexset \to \bigcup_{\pid \in \indexset} \stateset^\pid$ is a global state of $\program$ and $\memorymap: \varset \to \valset$ represents the memory state of each shared variable.
+Given a configuration $\conf$, we write $\statemap\of\conf$ and $\memorymap\of\conf$ for the global program state and memory state of $\conf$.
+
+The semantics of a concurrent program running under SC is defined by a transition system $\TS^\SC_\program = \tuple{ \confset^\SC_\program, \lblset^\SC_\program, \to^\SC_\program }$, where $\confset^\SC_\program$ is the set of all SC configurations of $\program$ and $\lblset^\SC_\program := \set{ \instr_\pid \mid \instr \in \instrs, \pid \in \indexset }$ is the set of labels.
+The transition relation $\to$ (we usually drop the indices ${}^\SC_\program$ whenever they are clear from context) is given by the following rules (see \autoref{fig:sc-semantics}):
+\begin{itemize}
+	\item \textbf{Read:} If $\statemap(\pid) = \state$, $\memorymap(\xvar) = \dval$ and $\state \to[\rd\of\xd] \state'$, then $\tuple{ \statemap, \memorymap } \to[\rd\of\xd_\pid] \tuple{ \statemap', \memorymap }$, where $\statemap'(\pid) = \state'$ and $\statemap'(\pid') = \statemap(\pid')$ for all $\pid' \neq \pid$.
+	\item \textbf{Write:} If $\statemap(\pid) = \state$ and $\state \to[\wr\of\xd] \state'$, then $\tuple{ \statemap, \memorymap } \to[\wr\of\xd_\pid] \tuple{ \statemap', \memorymap' }$, where $\statemap'(\pid) = \state'$, $\statemap'(\pid') = \statemap(\pid')$ for all $\pid' \neq \pid$, $\memorymap'(\xvar) = \dval$ and $\memorymap'(\xvar') = \memorymap(\xvar')$ for all $\xvar' \neq \xvar$.
+	\item \textbf{ARW:} If $\statemap(\pid) = \state$, $\memorymap(\xvar) = \dval$ and $\state \to[\arw\of\xdd] \state'$, then $\tuple{ \statemap, \memorymap }\to[\arw\of\xdd_\pid] \tuple{ \statemap', \memorymap' }$, where $\statemap'(\pid) = \state'$, $\statemap'(\pid') = \statemap(\pid')$ for all $\pid' \neq \pid$, $\memorymap'(\xvar) = \dval$ and $\memorymap'(\xvar') = \memorymap(\xvar')$ for all $\xvar' \neq \xvar$.
+	\item \textbf{Skip:} If $\statemap(\pid) = \state$ and $\state \to[\nop] \state'$, then $\tuple{ \statemap, \memorymap } \to[\nop_\pid] \tuple{ \statemap', \memorymap }$, where $\statemap'(\pid) = \state'$ and $\statemap'(\pid') = \statemap(\pid')$ for all $\pid' \neq \pid$.
+\end{itemize}
+The memory fence operation $\mf$ is not used in programs running under SC semantics.
+If needed, it can be formally defined as following the same semantics as $\nop$.
+\input{figures/SC_semantics}
+
+A global state $\statemap_F$ is \emph{reachable} from an initial configuration $\conf_0$, if there is a configuration $\conf_F$ with $\statemap(\conf_F) = \statemap_F$ such that $\conf_F$ is reachable from $\conf_0$ in $\TS^\SC_\program$. The \textbf{state reachability problem} of SC is, given a program $\program$, an initial configuration $\conf_0$ and a final global state $\statemap_F$, to decide whether $\statemap_F$ is reachable from $\conf_0$ in $\TS^\SC_\program$.
+
+\subsection{TSO Semantics}
+
+Under TSO semantics, the processes of a concurrent program do not interact with the shared memory directly, but indirectly through FIFO \emph{store buffers} instead.
+When performing a \emph{write} instruction $\wr\of\xd$, the process adds a new message $\tuple\xd$ to the tail of its own store buffer.
+A \emph{read} instruction $\rd\of\xd$ works differently depending on the current buffer content of the process.
+If its buffer contains a write message on variable $\xvar$, the value $\dval$ must correspond to the value of the most recent such message.
+Otherwise, the value is read directly from memory.
+The \emph{atomic read-write} instruction $\arw\of\xdd$ is only enabled if the buffer of the process is empty and the value of $\xvar$ in the memory is $\dval$.
+When executed, this instruction directly changes the value of $\xvar$ in the memory to $\dval'$.
+A \emph{skip} instruction only changes the local state of the process.
+The \emph{memory fence} instruction is disabled, i.e. it cannot be executed, unless the buffer of the process is empty.
+Additionally, at any point during the execution, the process can \emph{update} the write message at the head of its buffer to the memory.
+For example, if the oldest message in the buffer is $\tuple\xd$, it will be removed from the buffer and the memory value of variable $\xvar$ will be updated to contain the value $\dval$.
+This happens in a non-deterministic manner.
+
+Formally, we introduce a TSO \emph{configuration} as a tuple $\conf = \tuple{ \statemap, \buffermap, \memorymap }$, where:
+\begin{itemize}
+	\item $\statemap: \indexset \to \bigcup_{\pid \in \indexset} \stateset^\pid$ is a global state of $\program$.
+	\item $\buffermap: \indexset \to (\varset \times \valset)\kstar$ represents the buffer state of each process.
+	\item $\memorymap: \varset \to \valset$ represents the memory state of each shared variable.
+\end{itemize}
+Given a configuration $\conf$, we write $\statemap\of\conf$, $\buffermap\of\conf$ and $\memorymap\of\conf$ for the global program state, buffer state and memory state of $\conf$.
+The semantics of a concurrent program running under TSO is defined by a transition system $\TS^\TSO_\program = \tuple{ \confset^\TSO_\program, \lblset^\TSO_\program, \to^\TSO_\program }$,
+where $\confset^\TSO_\program$ is the set of all possible TSO configurations
+and $\lblset^\TSO_\program := \set{ \instr_\pid \mid \instr \in \instrs, \pid \in \indexset } \cup \set{ \up_\iota \mid \pid \in \indexset }$ is the set of labels.
+The transition relation $\to$ (i.e. $\to^\TSO_\program$) is given by the rules in \autoref{fig:tso-semantics}, where we use $\buffermap\of\pid|_{\set\xvar \times \valset}$ to denote the restriction of $\buffermap\of\pid$ to write messages on the variable $\xvar$.
+
+\input{figures/tso_semantics}
+
+A global state $\statemap_F$ is \emph{reachable} from an initial configuration $\conf_0$, if there is a configuration $\conf_F$ with $\statemap(\conf_F) = \statemap_F$ such that $\conf_F$ is reachable from $\conf_0$ in $\TS_\program$.
+The \textbf{state reachability problem} of TSO is, given a program $\program$, an initial configuration $\conf_0$ and a final global state $\statemap_F$, to decide whether $\statemap_F$ is reachable from $\conf_0$ in $\TS_\program$.
+
+We define $\up\kstar$ to be the transitive closure of $\set{ \up_\iota \mid \pid \in \indexset }$, i.e. $\conf_1 \to[\up\kstar]_\program \conf_2$ if and only if $\conf_2$ can be obtained from $\conf_1$ by some amount of buffer updates.

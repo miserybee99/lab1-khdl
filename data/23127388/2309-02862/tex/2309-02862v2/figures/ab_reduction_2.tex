@@ -1,0 +1,125 @@
+\begin{figure}
+\centering
+\begin{tikzpicture}[
+    state/.style={},
+    xscale=1.5,yscale=-1.5
+]
+    \node[state] at (0,0) (q1) {$\state_1$};
+    \node[state] at (0,1) (q2) {$\state_2$};
+    \node[state] at (0,2) (qm) {$\state_\channelmessage$};
+    \node[state] at (0,3) (q4) {$\state_4$};
+    \node[state] at (0,4) (q5) {$\state_5$};
+    \node[state] at (0,5) (q6) {$\state_6$};
+    \node[state] at (0,6) (q7) {$\state_7$};
+    \node[state] at (0,7) (q8) {$\state_8$};
+    \node[state] at (0,8) (q9) {$\state_9$};
+    \node[state] at (0,9) (q10) {$\state_{10}$};
+    \node[state] at (0,10) (q11) {$\state_{11}$};
+    \node[state] at (0,11) (q12) {$\state_{12}$};
+    \node[state] at (0,12) (q1') {$\state_{1}$};
+
+    \draw[->] (q1) -- node[right] {$\nop$} (q2);
+    \draw[->] (q2) -- node[right] {$\rd(\xwr,\channelmessage)$} (qm);
+    \draw[->] (qm) -- node[right] {$\wr(\xrd,\channelmessage)$} (q4);
+    \draw[->] (q4) -- node[right] {$\wr(\xwr,\bot)$} (q5);
+    \draw[->] (q5) -- node[right] {$\nop$} (q6);
+    \draw[->] (q6) -- node[right] {$\mf$} (q7);
+    \draw[->] (q7) -- node[right] {$\nop$} (q8);
+    \draw[->] (q8) -- node[right] {$\wr(\yvar,0)$} (q9);
+    \draw[->] (q9) -- node[right] {$\nop$} (q10);
+    \draw[->] (q10) -- node[right] {$\mf$} (q11);
+    \draw[->] (q11) -- node[right] {$\wr(\xrd,\bot)$} (q12);
+    \draw[->] (q12) -- node[right] {$\nop$} (q1');
+
+    % force move
+
+    \node[state] at (3,1) (qf) {$\state_F$};
+    \draw[->] (q2) -- node[above right] {$\nop$} (qf);
+    \draw[->] (qf) to [out=315,in=45,loop] node[right] {$\nop$} (qf);
+
+    \node[state] at (-3,2) (qf) {$\state_L$};
+    \draw[->] (qm) -- node[above] {$\nop$} (qf);
+    \draw[->] (qf) to [out=225,in=135,loop] node[left] {$\nop$} (qf);
+
+    \node[state] at (3,3) (qf) {$\state_F$};
+    \draw[->] (q4) -- node[above right] {$\nop$} (qf);
+    \draw[->] (qf) to [out=315,in=45,loop] node[right] {$\nop$} (qf);
+
+    \node[state] at (-3,5) (qf) {$\state_L$};
+    \draw[->] (q6) -- node[above] {$\nop$} (qf);
+    \draw[->] (qf) to [out=225,in=135,loop] node[left] {$\nop$} (qf);
+
+    \node[state] at (-3,9) (qf) {$\state_L$};
+    \draw[->] (q10) -- node[above] {$\nop$} (qf);
+    \draw[->] (qf) to [out=225,in=135,loop] node[left] {$\nop$} (qf);
+
+    % force updates
+    \node[state] at (3,0) (qf) {$\state_F$};
+    \draw[->] (q1) -- node[above right] {$\rd(\xwr,\channelmessage)$} (qf);
+    \draw[->] (qf) to [out=315,in=45,loop] node[right] {$\nop$} (qf);
+
+    \node[state] at (-3,0) (qf) {$\state_L$};
+    \draw[->] (q1) -- node[above] {$\rd(\xwr,\channelmessage)$} (qf);
+    \draw[->] (qf) to [out=225,in=135,loop] node[left] {$\nop$} (qf);
+
+    \node[state] at (-3,1) (qf) {$\state_L$};
+    \draw[->] (q2) -- node[below] {$\rd(\xwr,\bot)$}
+                      node[above] {$\rd(\yvar,1)$} (qf);
+    \draw[->] (qf) to [out=225,in=135,loop] node[left] {$\nop$} (qf);
+
+    \node[state] at (3,2) (qf) {$\state_F$};
+    \draw[->] (qm) -- node[above right] {$\rd(\yvar,1)$} (qf);
+    \draw[->] (qf) to [out=315,in=45,loop] node[right] {$\nop$} (qf);
+
+    \node[state] at (-3,3) (qf) {$\state_L$};
+    \draw[->] (q4) -- node[above] {$\rd(\yvar,1)$} (qf);
+    \draw[->] (qf) to [out=225,in=135,loop] node[left] {$\nop$} (qf);
+
+    \node[state] at (3,4) (qf) {$\state_F$};
+    \draw[->] (q5) -- node[above right] {$\rd(\yvar,1)$} (qf);
+    \draw[->] (qf) to [out=315,in=45,loop] node[right] {$\nop$} (qf);
+
+    \node[state] at (-3,4) (qf) {$\state_L$};
+    \draw[->] (q5) -- node[above] {$\rd(\yvar,1)$} (qf);
+    \draw[->] (qf) to [out=225,in=135,loop] node[left] {$\nop$} (qf);
+
+    \node[state] at (3,5) (qf) {$\state_F$};
+    \draw[->] (q6) -- node[above right] {$\rd(\yvar,1)$} (qf);
+    \draw[->] (qf) to [out=315,in=45,loop] node[right] {$\nop$} (qf);
+
+    \node[state] at (-3,6) (qf) {$\state_L$};
+    \draw[->] (q7) -- node[above] {$\rd(\yvar,1)$} (qf);
+    \draw[->] (qf) to [out=225,in=135,loop] node[left] {$\nop$} (qf);
+
+    \node[state] at (3,7) (qf) {$\state_F$};
+    \draw[->] (q8) -- node[below right] {$\rd(\yvar,0)$}
+                      node[above right] {$\rd(\xwr,\channelmessage)$} (qf);
+    \draw[->] (qf) to [out=315,in=45,loop] node[right] {$\nop$} (qf);
+
+    \node[state] at (-3,8) (qf) {$\state_L$};
+    \draw[->] (q9) -- node[above] {$\rd(\xwr,\channelmessage)$} (qf);
+    \draw[->] (qf) to [out=225,in=135,loop] node[left] {$\nop$} (qf);
+
+    \node[state] at (3,9) (qf) {$\state_F$};
+    \draw[->] (q10) -- node[above right] {$\rd(\xwr,\channelmessage)$} (qf);
+    \draw[->] (qf) to [out=315,in=45,loop] node[right] {$\nop$} (qf);
+
+    \node[state] at (-3,10) (qf) {$\state_L$};
+    \draw[->] (q11) -- node[above] {$\rd(\xwr,\channelmessage)$} (qf);
+    \draw[->] (qf) to [out=225,in=135,loop] node[left] {$\nop$} (qf);
+
+    \node[state] at (3,11) (qf) {$\state_F$};
+    \draw[->] (q12) -- node[above right] {$\rd(\xwr,\channelmessage)$} (qf);
+    \draw[->] (qf) to [out=315,in=45,loop] node[right] {$\nop$} (qf);
+
+    % final state
+
+    \node[state] at (3,12) (qf) {$\state_F$};
+    \draw[->] (q1') -- node[above right] {$\rd(\xwr,\top)$} (qf);
+    \draw[->] (qf) to [out=315,in=45,loop] node[right] {$\nop$} (qf);
+
+\end{tikzpicture}
+\bigskip
+\caption{$\process^2$ of the AB-TSO reduction from PCS}
+\label{fig:ab-reduction-2}
+\end{figure}

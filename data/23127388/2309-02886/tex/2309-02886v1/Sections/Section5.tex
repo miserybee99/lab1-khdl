@@ -1,0 +1,154 @@
+\section{Experiments}
+\label{sec:5}
+
+Two experiments are described in this section. In the first experiment, measurements were performed using METAS traceable coaxial standards and the SRM method was compared with SOLR calibration. The second experiment demonstrates the application of the SRM method for on-wafer calibration. Since the SRM method presented here is new, there are no commercially available impedance substrate standard (ISS) kits that contain all the necessary standards, especially the network-load standards. Therefore, we decided to perform a Monte Carlo (MC) analysis using synthetic CPW data based on an actual on-wafer setup. The SRM standards were generated using a validated CPW model to analyze the impact of various uncertainties on the SRM calibration.
+
+\subsection{Coaxial Measurements}
+
+The measurement involves the comparison of the proposed SRM method with a SOLR calibration using a commercial METAS traceable calibration kit with a $2.92\,\mathrm{mm}$ interface. The calibration results are compared using verification standards with defined uncertainty bounds that is also traceable to METAS. The VNA used for the measurement is the ZVA from Rohde \& Schwarz (R\&S), and the calibration kit used is the ZN-Z229 $2.92\,\mathrm{mm}$ kit from R\&S. The standards used from the kit include short, open, and match standards with female interfaces, as well as two adapters with female-female and female-male interfaces of equal length. An SOLR calibration was conducted using the short, open, match standards, and female-female adapter, while assuming that the adapter standard is unknown during the SOLR calibration process.
+
+For the implementation of SRM standards, the symmetrical standards are directly measured by connecting the three one-port devices at both ports. The female-female adapter is used to represent the reciprocal network. For the network-load standard, the symmetrical one-port devices are connected to the female-male adapter and measured at the left port. In all steps, the standards are assumed unknown, except for the match standard, which is only defined in the final step of the calibration via \eqref{eq:2.23} and \eqref{eq:2.24}. An example that illustrates the measurement of the standards is shown in Fig.~\ref{fig:5.5}.
+\begin{figure}[th!]
+	\centering
+	\subfloat[]{\includegraphics[width=.32\linewidth]{Figures/coax_load.pdf}}~
+	\subfloat[]{\includegraphics[width=.32\linewidth]{Figures/coax_thru.pdf}}~
+	\subfloat[]{\includegraphics[width=.32\linewidth]{Figures/coax_network_load.pdf}}
+	\caption{Example photos of measured coaxial standards. (a) load standard, (b) adapter (network), and (c) load connected with an adapter (network-load).}
+	\label{fig:5.5}
+\end{figure}
+
+The verification kit utilized for the comparison is the ZV-Z429 $2.92\,\mathrm{mm}$ kit from R\&S. The kit contains a mismatch standard and an offset short standard with female interfaces. These verification standards have been previously characterized by the manufacturer with traceability to METAS, and their S-parameters are provided with uncertainty bounds. To verify the accuracy of the calibration, we define an error metric as the magnitude of the error vector of the calibrated response to the reference response given by
+\begin{equation}
+	\text{Error}_{ij} \ (\mathrm{dB})  = 20\,\mathrm{log}_{10}\left| S_{ij}^\mathrm{cal} - S_{ij}^\mathrm{ref} \right|
+	\label{eq:5.1}
+\end{equation}
+where $S_{ij}^\mathrm{cal}$ and $S_{ij}^\mathrm{ref}$ represent the calibrated and reference values, respectively. 
+
+The results from calibrating the mismatch and offset short verification kit using both SOLR and SRM calibration methods are depicted in Fig.~\ref{fig:5.6}. The plots reveal that both calibration methods produced similar outcomes, with errors relative to the reference data of the verification kit remaining below $-30\,\mathrm{dB}$. To facilitate visual comparison, we opted to plot the group delay instead of the phase. In both, the SOLR and SRM calibration, the group delay overlaps with the reference data for both mismatch and offset short. However, we observe a small discrepancy in the magnitude response of the offset short standard after $15\,\mathrm{GHz}$, where ripples can be observed. Nevertheless, this falls within the uncertainty bounds of the magnitude response of the offset short.
+\begin{figure}[th!]
+	\centering
+	\includegraphics[width=0.95\linewidth]{Figures/solr_vs_srm_calibrated_duts.pdf}
+	\caption{Comparison of calibrated mismatch and offset short verification kits using SOLR and SRM methods. The uncertainty bounds are of the reference measurement and reported as 95\% Gaussian distribution coverage.}
+	\label{fig:5.6}
+\end{figure}
+
+It is difficult to determine the exact cause for the ripple in the calibrated magnitude response of the offset short. This ripple is small and falls within the uncertainty bounds defined by METAS. One possible explanation for this variation could be the difference between the female-female and female-male adapters. The adapters have the same length and cross-section, as shown in the X-ray image in Fig.~\ref{fig:5.7x}. In theory, they should have the same response after pairing, as they result in a smooth continuation of the $2.92\,\mathrm{mm}$ interface \cite{IEEE2022}. However, the female interface has a slotted design, which makes this continuation not entirely smooth. Additionally, the presence of pin gaps affects different calibrations in different ways \cite{Hoffmann2007,Hoffmann2009,Wong2017,Lewandowski2019}. The pin gaps after pairing for the measured standards are summarized in Table~\ref{tab:5.1}.
+\begin{figure}[th!]
+	\centering
+	\includegraphics[width=0.85\linewidth]{Figures/adapters_xray_comp.pdf}
+	\caption{X-ray inspection of the female-female and female-male adapters.}
+	\label{fig:5.7x}
+\end{figure}
+
+\begin{table}[th!]
+	\centering
+	\caption{Pin gap of paired connectors. Values are reported in $\mu\mathrm{m}$. The pin depth gauge has a resolution of $2.54\,\mu\mathrm{m}$ ($0.0001\,\mathrm{in}$). The letter ``f'' stands for female (jack) and ``m'' for male (plug).}
+	\label{tab:5.1}
+	\begin{tabular}{@{$\quad$}cccccc@{$\quad$}}
+		\toprule
+		\multicolumn{1}{l}{} &
+		\begin{tabular}[c]{@{}c@{}}Short\\ (f)\end{tabular} &
+		\begin{tabular}[c]{@{}c@{}}Open\\ (f)\end{tabular} &
+		\begin{tabular}[c]{@{}c@{}}Match\\ (f)\end{tabular} &
+		\begin{tabular}[c]{@{}c@{}}Adapter\\ (ff)\end{tabular} &
+		\begin{tabular}[c]{@{}c@{}}Adapter\\ (fm)\end{tabular} \\ \midrule
+		\begin{tabular}[c]{@{}c@{}}Port 1\\ (m)\end{tabular}  & 31.75 & 31.75 & 31.75 & 35.56 & 54.61 \\ \midrule
+		\begin{tabular}[c]{@{}c@{}}Port 2\\ (m)\end{tabular} & 31.75 & 31.75 & 31.75 & 36.83 & -     \\ \midrule
+		\begin{tabular}[c]{@{}c@{}}Adapter\\ (fm)\end{tabular}    & 31.75 & 31.75 & 31.75 & -     & -     \\ \bottomrule
+	\end{tabular}
+\end{table}
+
+Table~\ref{tab:5.1} indicates that all one-port standards have the same pin gap at both ports, while the female-female adapter deviates slightly. Furthermore, the table reveals that the adapter standard used to create the network-load standard (female-male) has the largest pin gap at the port interface (i.e., $54.61\,\mu\mathrm{m}$). This discrepancy is also apparent in the X-ray images in Fig.~\ref{fig:5.7xx}.
+\begin{figure}[th!]
+	\centering
+	\subfloat[]{\includegraphics[width=.95\linewidth]{Figures/open_xray_small.pdf}}\\
+	\subfloat[]{\includegraphics[width=.95\linewidth]{Figures/network_A_xray_small.pdf}}\\
+	\subfloat[]{\includegraphics[width=.95\linewidth]{Figures/network_open_port_xray_small.pdf}}
+	\caption{X-ray inspection of paired standards: (a) load standard, (b) female-female adapter (network), and (c) load connected with a female-male adapter (network-load).}
+	\label{fig:5.7xx}
+\end{figure}
+
+The ripple observed in the magnitude response of the offset short standard is also noticeable when analyzing the error between the extracted error terms of the SOLR and SRM calibrations, as shown in Fig.~\ref{fig:5.7}. It is clear that both ports have ripple in the source match term. The source match term describes the reflection at the calibration plane, where the effects of the pin gap would be most pronounced \cite{EURAMET2018}. This could also explain the fact that the SOLR calibration did not show such ripple, since all one-port standards have the same pin gap, and the discrepancy in the female-female adapter is not relevant since it is only used to solve the 7th error term, which depends only on the reciprocity property of the network.
+\begin{figure}[th!]
+	\centering
+	\includegraphics[width=0.95\linewidth]{Figures/error_calibration_comparison.pdf}
+	\caption{The magnitude of the error vector of the VNA's error terms between SOLR and SRM methods.}
+	\label{fig:5.7}
+\end{figure}
+
+A final comparison is made comparing the calibrated female-female adapter with both calibration methods. In both SOLR and SRM methods, the adapter was assumed to be unknown but reciprocal during the calibration process. The reference S-parameters of the adapter were provided by the manufacturer and used to establish the error metric. However, no uncertainty bounds were available. Fig.~\ref{fig:5.8} depicts the calibrated adapter derived from both SOLR and SRM methods. These measurement results are compared to the reference S-parameters of the adapter. Both calibration procedures deliver comparable results with similar errors.
+
+\begin{figure}[th!]
+	\centering
+	\includegraphics[width=0.95\linewidth]{Figures/solr_vs_srm_calibrated_line.pdf}
+	\caption{Comparison of the calibrated female-female adapter using SOLR and SRM methods.}
+	\label{fig:5.8}
+\end{figure}
+
+Although SOLR and SRM delivered similar results in this experimental example, it is important to note that for the SOLR method, all SOL standards already have been characterized beforehand, whereas for the SRM method only the match standard must be characterized. In addition, it is noteworthy that we achieved results comparable to metrology-level calibration using only S-parameter definition of a single standard, namely the match standard, which sets the reference impedance.This can be particularly advantageous when using economical coaxial calibration kits, as the S-parameters of the open and short standards do not need to be specified.
+
+
+\subsection{Statistical Numerical Analysis}
+
+The procedure for the numerical analysis involves creating synthetic data of CPW standards using the model developed in \cite{Phung2021a,Schnieder2003,Heinrich1993}. To emulate an on-wafer setup accurately, we utilize error boxes from an actual on-wafer setup that was extracted using multiline TRL calibration on an ISS kit. Details on the measurement setup can be found in \cite{Hatab2023}, where the accuracy of the CPW model was tested, and the measurement datasets are available via \cite{Hatab2023a}. In this numerical setting, the objective is to generate SRM standards based on the CPW model and embed them in the error boxes of the actual VNA setup, introducing different randomness at each iteration to perform the MC analysis. A block diagram summarizing this numerical experiment is depicted in Fig.~\ref{fig:5.1}.
+\begin{figure}[th!]
+	\centering
+	\includegraphics[width=0.95\linewidth]{Figures/simulation_error_box.pdf}
+	\caption{Block diagram illustration of the numerical simulation concept to generate realistic synthetic data for the MC analysis.}
+	\label{fig:5.1} 
+\end{figure}
+
+Regarding the geometric parameters of the CPW structure used for simulation, we employed the following values, which are based on the measured ISS \cite{Hatab2023}: signal width of $49.1\,\mu\mathrm{m}$, ground width of $273.3\,\mu\mathrm{m}$, conductor spacing of $25.5\,\mu\mathrm{m}$, and conductor thickness of $4.9\,\mu\mathrm{m}$. The substrate is made of lossless Alumina with a dielectric constant of $9.9$. The conductor is made of gold with conductivity of $41.1\,\mathrm{MS/m}$.
+
+For the SRM standards, we implemented match, short, and open standards as non-ideal standards, as shown in Fig.~\ref{fig:5.2}. To create the network-load standards, we used a $4\,\mathrm{mm}$ CPW line as the reciprocal standard, which is combined with the non-ideal match, short, and open standards. Additionally, as discussed in Section~\ref{sec:4}, we created half network-load standards using half of the reciprocal standard, i.e., a $2\,\mathrm{mm}$ CPW line. The reference impedance for both ports was set to $Z_a^{(ref)}=Z_b^{(ref)}=50\,\Omega$. It is worth noting that in the SRM calibration procedure, all standards are not specified, except for the match standard that sets the reference impedance.
+\begin{figure}[th!]
+	\centering
+	\subfloat[]{\includegraphics[width=.5\linewidth]{Figures/cpw_match_model.pdf}}
+	\subfloat[]{\includegraphics[width=.5\linewidth]{Figures/cpw_short_model.pdf}}\\[-1pt]
+	\subfloat[]{\includegraphics[width=.5\linewidth]{Figures/cpw_open_model.pdf}}
+	\caption{Models used to simulate non-ideal load standards (a) $50\,\Omega$ match standard with $L_0=5\,\mathrm{pH}, C_0=0.5\,\mathrm{fF}$, (b) short standard with $L_0=10\,\mathrm{pH}, C_0=0.5\,\mathrm{fF}$, and open standard with $C_0=10\,\mathrm{fF}, L_0=0.5\,\mathrm{pH}$. All standards are offset by a $200\,\mu\mathrm{m}$ CPW line segment.}
+	\label{fig:5.2}
+\end{figure}
+
+Various sources of uncertainty were considered in the MC analysis, including VNA noise, asymmetry in the one-port standards, variation in the reciprocal network, variation in the match standard, and crosstalk. To model VNA noise in the MC analysis demonstration, Gaussian noise with a standard deviation of $\sigma_\mathrm{noise}=0.001$ was employed \cite{Hatab2023}. To introduce asymmetry, we introduced a 10\% Gaussian variation in the lumped elements of the one-port standards in Fig.~\ref{fig:5.2} and cross-sectional variation in the CPW offset segment \cite{Hatab2023}. Similary, the reciprocal standard was varied by adjusting the CPW cross-section parameters \cite{Hatab2023} and the length uncertainty of $\pm20\,\mu\mathrm{m}$. The match standard was created separately and perturbed similarly to the one-port standards. To introduce crosstalk, we included a capacitive coupling between the symmetric one-port standards using a randomly assigned capacitor, as shown in Fig.~\ref{fig:5.1x}. The capacitance has a standard deviation of $\sigma_{C_\mathrm{X}}=0.25\,\mathrm{fF}$, corresponding to a standard deviation coupling of approximately $-30\,\mathrm{dB}$ at $150\,\mathrm{GHz}$.
+\begin{figure}[th!]
+	\centering
+	\includegraphics[width=0.95\linewidth]{Figures/leaky_symmetric_load.pdf}
+	\caption{Block diagram showing the inclusion of crosstalk in the MC analysis.}
+	\label{fig:5.1x} 
+\end{figure}
+
+To verify the accuracy of the calibration, we included a stepped impedance line as DUT, which uses the same CPW structure with the only exception of signal width equal to $15\,\mu\mathrm{m}$. The data has been processed using Python with the help of the package \textit{scikit-rf} \cite{Arsenovic2022}. The frequency response o of the DUT before and after embedding it in the error boxes is depicted in Fig.~\ref{fig:5.3}.
+\begin{figure}[th!]
+	\centering
+	\includegraphics[width=0.95\linewidth]{Figures/numerical_simulation_DUT.pdf}
+	\caption{DUT S-parameter response before and after embedding within the error boxes.}
+	\label{fig:5.3}
+\end{figure}
+
+After conducting 5000 runs of the MC analysis, we obtained the results illustrated in Fig.~\ref{fig:5.4}. The figure displays the mean-value of the calibrated DUT and the uncertainty bounds based on the full and half network variants. As can be seen from the figure, the mean-value of the MC analysis is in agreement with the reference data of the DUT, indicating a proper convergence of the MC simulation. On the other hand, the uncertainty bounds of both full and half network variants show similar values, with the half network showing slightly higher uncertainty, which is probably due to the fact that the reciprocal network used in the network-load standards requires a stricter requirement of being half of the reciprocal network.
+\begin{figure}[th!]
+	\centering
+	\includegraphics[width=0.95\linewidth]{Figures/calibrated_dut_all.pdf}
+	\caption{The mean-value and the uncertainty bounds of the calibrated DUT from the MC analysis. The uncertainty bounds are reported as 95\% Gaussian distribution coverage.}
+	\label{fig:5.4}
+\end{figure}
+
+To examine the impact of each uncertainty source, we repeated the MC analysis, considering each uncertainty source individually. The results in Fig.~\ref{fig:5.4x} and Fig.~\ref{fig:5.4xx} show the uncertainty budget for the full and half network cases, respectively. The calibration process is mainly influenced by the symmetric and reciprocal standards since these standards must be symmetric for the one-port standards, and the reciprocal network needs to be replicated in the network-load standards. Interestingly, the smallest contributor to the uncertainty budget is the crosstalk. Noise has a minor effect compared to the uncertainty in calibration standards, but is slightly more significant than crosstalk. Finally, the match standard shows most of its impact in the $S_{11}$ response, while a minor impact can be seen in the $S_{21}$ response.
+
+As already observed in Fig.~\ref{fig:5.4}, the half-network approach shows a slightly higher overall uncertainty than the full-network approach. However, it should be noted that only with the half-network approach is it possible to implement the standards at a constant distance, as illustrated in Fig.~\ref{fig:4.1}.
+\begin{figure}[th!]
+	\centering
+	\includegraphics[width=0.95\linewidth]{Figures/unc_budget_full.pdf}
+	\caption{Uncertainty budget of the calibrated DUT due to various uncertainty sources in SRM calibration based on the full network approach, reported as 95\% Gaussian distribution coverage.}
+	\label{fig:5.4x}
+\end{figure}~
+\begin{figure}[th!]
+	\centering
+	\includegraphics[width=0.95\linewidth]{Figures/unc_budget_half.pdf}
+	\caption{Uncertainty budget of the calibrated DUT due to various uncertainty sources in SRM calibration based on the half network approach, reported as 95\% Gaussian distribution coverage.}
+	\label{fig:5.4xx}
+\end{figure}
+
+
+% EOF

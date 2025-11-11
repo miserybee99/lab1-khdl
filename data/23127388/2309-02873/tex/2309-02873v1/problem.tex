@@ -1,0 +1,39 @@
+% !TEX root = main.tex
+
+\section{Problem Setting} \label{section:problem}
+In this section, we formulate our problem and demonstrate how the concepts in Sec. \ref{section:background} are related to it.
+To this end, consider system \eqref{eq:dyn} with outputs $y_n$ (cf Eq.\eqref{eq:obs}).
+Our goal is to make accurate predictions for $y_n$. 
+Here, we consider the situation, where access to an inaccurate physics-based approximation $(\hat s_n)_{n=0}^N \in \mathbb{R}^{d_s}$ of the outputs is provided by a black-box simulator.
+Thus, access to the simulator's latent states or the dynamics is not available. 
+We propose to leverage the concepts in Sec. \ref{section:background} and learn how to reconstruct latent states from the simulator that are meaningful for the prediction task, thus maximizing the simulator's influence on the predictions. 
+Since the simulator can typically not capture all dynamics, we introduce an additional residuum $r$. 
+
+We model these concepts by splitting the latent state $x$ (cf Eq.~\eqref{eq:dyn}) into $u \in \mathbb{R}^{d_u}$ and $v \in \mathbb{R}^{d_v}$, where $d_x = d_u+d_v$.
+With $u$, we denote the latent states that can be reconstructed from the simulator and refer to them as being \textbf{observable via the simulator (OVS)}.
+The non-OVS states $v$ on the other hand cannot be reconstructed from the simulator.
+We propose to formulate a common dynamics model for simulator and data by extending system \eqref{eq:partially_obs} via
+\begin{equation}\label{eq:partially_obs}
+\begin{aligned}
+u_{n+1}&=f_u(u_n) \\
+v_{n+1}&=f_v(u_n, v_n) \\ 
+y_n & = g(u_n)+r(u_n,v_n) \\
+\hat{s}_n & = h(u_n),
+\end{aligned}
+\end{equation}
+with $f_u:\mathbb{R}^{d_u} \to \mathbb{R}^{d_u}$ and $f_v:\mathbb{R}^{d_u} \times \mathbb{R}^{d_v} \to \mathbb{R}^{d_v}$.
+Here, $f_u$ determines the propagation of the OVS latent states $u$, while $f_v$ determines the propagation of the non-OVS latent states $v$. 
+The observation model $g$ maps the OVS states $u$ to the OVS part of the predictions, while $r$ maps the OVS states $u$ and non-OVS states $v$ to the non-OVS residuum. 
+The simulator is reconstructed via the observation model $h$.  
+Our goal is to learn $f_u,f_v,g,h$ and $r$ from measurement data $\hat y$ and simulator outputs $\hat{s}$.
+
+The key insight is that we force $u$ to be OVS by addressing $f_u$ via a trainable observer that receives $\hat s$ as an input.
+By design, we obtain simulator-informed latent states $u$ and corresponding outputs $g(u)$.
+In general, we can represent every system via Eq. \eqref{eq:partially_obs}.
+By setting $d_v=0$ and removing the non-OVS residuum, we obtain the fully OVS case.  
+By setting $d_u=0$, our model is reduced to the pure learning-based case. 
+We choose an additive structure for the observation model in order to obtain control over the corresponding non-OVS residuum $r$.
+However, different structures are also possible. 
+
+ 
+

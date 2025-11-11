@@ -1,0 +1,14 @@
+\newif\ifHeightAcquired
+\NewDocumentCommand{\resetHeight}{}{\HeightAcquiredfalse}
+\NewDocumentCommand{\myincludegraphics}{O{} m}{%
+    \ifHeightAcquired%
+        \includegraphics[height=\figheight]{#2}%
+    \else%
+        \let\tempbox\relax%
+        \newsavebox{\tempbox}%
+        \sbox{\tempbox}{\includegraphics[#1]{#2}}%
+        \global\edef\figheight{\the\ht\tempbox}%
+        \global\HeightAcquiredtrue%
+        \usebox{\tempbox}%
+    \fi%
+}

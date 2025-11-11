@@ -1,0 +1,41 @@
+\begin{figure}
+\centering
+\begin{tikzpicture}[xscale=8,yscale=-3]
+    \definecolor{fin}{RGB}{0,170,0}
+    \definecolor{ins}{RGB}{0,0,170}
+    \tikzset{fin/.style={color=fin}}
+    \tikzset{ins/.style={color=ins}}
+
+    \node (q1r1-A) at (0, 0) {$\tuple{ (\state_1, \rstate_1), \set{ x \mapsto 0 } }_A$};
+    \node (q1r1-B) at (1, 0) {$\tuple{ (\state_1, \rstate_1), \set{ x \mapsto 0 } }_B$};
+
+    \node (q2r1-B) at (0, 1) {$\tuple{ (\state_2, \rstate_1), \set{ x \mapsto 1 } }_B$};
+    \node (q2r1-A) at (1, 1) {$\tuple{ (\state_2, \rstate_1), \set{ x \mapsto 1 } }_A$};
+
+    \node[fin] (q2r2-A) at (0, 2) {$\tuple{ (\state_2, \rstate_2), \set{ x \mapsto 1 } }_A$};
+    \node (q2r2-B) at (1, 2) {$\tuple{ (\state_2, \rstate_2), \set{ x \mapsto 1 } }_B$};
+
+    \draw[->] ([yshift= 1pt] q1r1-A.east) -- node[below, ins] {$\nop$} ([yshift= 1pt] q1r1-B.west);
+    \draw[->] ([yshift=-1pt] q1r1-B.west) -- node[above, ins] {$\nop$} ([yshift=-1pt] q1r1-A.east);
+
+    \draw[->] (q1r1-A) -- node[right, ins] {$\wr(\xvar, 1)$} (q2r1-B);
+    \draw[->] (q1r1-B) -- node[right, ins] {$\wr(\xvar, 1)$} (q2r1-A);
+
+    \draw[->] ([yshift= 1pt] q2r1-B.east) -- node[below, ins] {$\nop$} ([yshift= 1pt] q2r1-A.west);
+    \draw[->] ([yshift=-1pt] q2r1-A.west) -- node[above, ins] {$\nop$} ([yshift=-1pt] q2r1-B.east);
+
+    \draw[->] (q2r1-B) -- node[right, ins] {$\rd(\xvar, 1)$} (q2r2-A);
+    \draw[->] (q2r1-A) -- node[right, ins] {$\rd(\xvar, 1)$} (q2r2-B);
+
+    \draw[->] ([yshift= 1pt] q2r2-A.east) -- node[below, ins] {$\nop$} ([yshift= 1pt] q2r2-B.west);
+    \draw[->] ([yshift=-1pt] q2r2-B.west) -- node[above, ins] {$\nop$} ([yshift=-1pt] q2r2-A.east);
+
+\end{tikzpicture}
+\caption{
+    The transition relation of the SC game $\game^\SC(\program, \set{\rstate_2})$ induced by the program $\program$ from \autoref{fig:concurrent-program}.
+    Note that only configurations reachable from $\tuple{ (\state_1, \rstate_1), \set{ x \mapsto 0 } }_A$ are shown.
+    The labels in blue are not formally part of the game definition, but are included to indicate which instruction of $\program$ gives rise to the transition.
+    The configuration in green is the final state induced by the set of final local states $\stateset_F^\program := \set{\rstate_2}$.
+}
+\label{fig:sc-game}
+\end{figure}

@@ -1,0 +1,127 @@
+%!TEX root = ../main.tex
+\section{Solana Program Security and Challenges}
+
+There are different types of vulnerabilities in Solana programs.
+Attackers exploiting these vulnerabilities may compromise accounts managed by vulnerable programs, i.e., by stealing an account's funds or manipulating an account's data. 
+The attacker typically accomplishes this by crafting and executing sequences of instructions that allow the attacker to maliciously select the order of accounts and the instruction data in each instruction. 
+As a result, an attacker gains access to accounts owned by or authorized to the vulnerable program, and can steal lamports or violate the accounts' data integrity.
+
+\subsection{Solana Program Vulnerabilities}
+\label{sub:sol-vulnerabilities}
+In the following, we describe five key vulnerabilities~\cite{Neodyme2021-vw, Cui2022-nm, Goodin2022-wormhole} of Solana programs, which we all address in this paper. 
+
+\paragraph{Missing Signer Check}
+A \emph{missing signer check} (MSC) vulnerability exists when a program does not verify that an account that should have signed the transaction according to the business logic actually signed the transaction.
+This allows an attacker to gain unauthorized access to program behavior. 
+
+\paragraph{Missing Owner Check}
+A \emph{missing owner check} (MOC) vulnerability exists when a program reads and processes data from an account that, according to the business logic, should be owned by the program without verifying it is actually owned by the program.
+Thus, an attacker could create his own account with data and pass it to the program as input. 
+
+\paragraph{Arbitrary CPI}
+An \emph{arbitrary CPI} (ACPI) vulnerability exists when a program does not verify the program id of the invoked program during CPI.
+Hence, an attacker can deploy a malicious program on the blockchain and pass it as input to the program possessing the arbitrary CPI vulnerability. 
+As a result, the program possessing the vulnerability invokes the malicious program using CPI, giving the attacker control over the execution.
+This is especially critical if the program grants additional privileges to the invoked program by signing PDAs. 
+
+\paragraph{Missing Key Check} 
+A \emph{missing key check} (MKC) vulnerability exists when a program expects a specific account and processes its data without verifying that the passed account is actually the expected specific account.
+This vulnerability resulted in a loss of up to 320 million USD in the Wormhole program ~\cite{Goodin2022-wormhole}.
+
+\paragraph{Integer Bugs}
+An \emph{integer bug} (IB) exists when values underflow or overflow in arithmetic operations. 
+This vulnerability can be exploited by an attacker when a program transfers lamports from account $a$ to account $b$. 
+Here, the attacker selects the value to be transferred so high that the lamports field of account $b$ overflows, while the lamports field of account $a$ underflows.
+The Solana runtime allows this transfer because the total amount of lamports remains the same before and after executing the instruction. 
+
+
+\subsection{Solana Security Analysis}
+\label{sec:solana-security-analysis}
+
+In contrast to the available tools and approaches for Ethereum smart contract security analysis, only very few approaches and tools support Solana program security analysis.
+The existing ecosystem merely consists of bytecode lifters~\cite{bn-ebpf-solana,ghidra-ebpf} that are capable to lift the eBPF bytecode of Solana programs to another, tool-specific intermediate language (IL), such as Ghidra's~\cite{ghidra} or Binary Ninja's~\cite{binja} IL.
+These plugins help in reverse engineering, but do not conduct any sophisticated security analysis on their own.
+
+Currently, VRust~\cite{Cui2022-nm} is the only existing static analysis approach that covers Solana programs with a focus on security.
+VRust covers a wide range of vulnerability patterns for common vulnerabilities in Solana smart contracts.
+As a result, VRust was able to detect 12 vulnerabilities in popular open-source smart contracts~\cite{Cui2022-nm}.
+% 
+VRust uses the Rust compiler to analyze Solana programs on the Rust Mid-Level Intermediate Representation (MIR)~\cite{rust-mir}. 
+The MIR is a typed language that has complete information about the memory layout and types of a variable's data structure.
+
+The Rust compiler uses MIR as a compiler-internal representation that models control-flows and data-flows for further optimization of the ownership and borrow checking rules, hence it is designed to model control-flows and data-flows precisely.
+% 
+In general, it is possible to map MIR-level objects backwards to higher-level representations, which also provides access to high-level information like variable names.
+As a result, today's decompiling and lifting approaches~\cite{bn-ebpf-solana,ghidra-ebpf} cannot achieve the same precision for data-flows as MIR.
+Further, custom analysis passes can be implemented as a visitor on top of the MIR-level control flow graph for any given Solana program written in the Rust programming language.
+However, relying on the MIR for vulnerability analysis strictly requires source code, because the MIR can only be generated by the Rust compiler from the higher-level representations.
+
+Solana programs can be written in C or Rust, and it is possible to differentiate between programs written in either language by checking which system calls a program uses.
+As this can be done on bytecode level, we count the occurrences of the C vs. Rust variants of the \emph{sol\_invoke\_signed} system call.
+We find that 97\% of Solana programs are written in the Rust programming language, whereas the remaining programs use the C programming language.
+Thus, VRust cannot analyze these programs.
+The \emph{Solana security.txt}~\cite{solana-security-txt} feature allows program authors and developers to provide information on where to find the source code of a program and whom to contact for security issues.
+We use this information to find out about source code availability of Solana programs.
+Our findings show that less than 2\% of Solana programs come with source code.
+As a result, VRust cannot be applied to a vast majority of Solana programs.
+
+
+\subsection{Challenges of Fuzzing Solana Programs}\label{sec:challenges}
+A popular approach to uncover bugs is coverage-guided fuzzing~\cite{afl, aflpp, nyx, libafl}.
+This technique mutates the inputs based on instruction-coverage data, or feedback information, collected during the target's execution, to uncover new paths in the application.
+Fuzzing Solana contracts is yet to be explored.
+
+\paragraph{Ethereum Smart Contract Fuzzing}
+Fuzzing Ethereum smart contracts is a heavily researched area~\cite{rodler2023efcf, sfuzz, harvey, fuzz-symex, contractfuzzer, confuzzius}.
+Ethereum fuzzers like EFCF~\cite{rodler2023efcf} model interaction between smart contracts to detect complex and hard-to-find Ethereum bugs, e.g., compositional reentrancy bugs.
+However, these approaches are not feasible or applicable to Solana, because of its unique programming model (cf. \Cref{sec:sol-analysis}).
+Modelling the interaction between Ethereum smart contracts does not require in-depth information about the type of other smart contracts.
+In order to model the interaction between programs and accounts in Solana, it is necessary to know the domain of a program.
+For instance, the program in \Cref{lst:msc} interacts with three different types of accounts: a wallet, a vault, and an authority.
+Ethereum encapsulates the state within the smart contract, i.e., an Ethereum fuzzer~\cite{contractfuzzer} does not need to consider the different types of data to detect bugs.
+Nevertheless, to detect more complex bugs, like delegated re-entrancy bugs, Ethereum fuzzers~\cite{rodler2023efcf} must understand the semantics of the respective contracts.
+In contrast, it is hard to detect which type an account assumes in a Solana program.
+%
+Therefore, modelling the blockchain state and the content of accounts is essential to detect real, reproducible and impactful bugs in smart contracts.
+Thus, in order to faithfully fuzz Solana programs, a Solana fuzzer has to solve the following challenges:
+
+\begin{Challenge}
+\paragraph{Challenge 1: Modeling Ledger Snapshots} 
+As Solana requires programs to store data in external, non-executable accounts, it is necessary to model a valid \ledgersnap which consists of multiple accounts.
+Moreover, programs must be able to change this snapshot across multiple transactions as well as operate on the changed snapshots to be able to execute business logic which depends on a specific state of the \ledgersnap.
+\label[challenge]{c1}
+\end{Challenge}
+
+\begin{Challenge}
+\paragraph{Challenge 2: Reproducibility of Transactions} 
+To identify vulnerabilities exploitable in the real production blockchain, it is necessary to generate transactions that are reproducible in the production blockchain.
+\label[challenge]{c2}
+\end{Challenge}
+
+\begin{Challenge}
+\paragraph{Challenge 3: Cluster Information} 
+Several Solana programs require cluster information at runtime, such as the amount of lamports to allocate a byte of data. 
+Solana programs receive this cluster information using functions provided by \emph{sysvar} accounts, which must be passed to the program as input.
+Hence, it is necessary to ensure that Solana programs receive sysvar accounts as input and are able to call functions of these sysvar accounts. 
+\label[challenge]{c3}
+\end{Challenge}
+
+\begin{Challenge}
+\paragraph{Challenge 4: Solana-specific Vulnerabilities} 
+Since Solana programs comprise specific vulnerabilities resulting from the Solana programming model, it is necessary to develop detection mechanisms to detect these Solana-specific vulnerabilities. 
+\label[challenge]{c4}
+\end{Challenge}
+
+\begin{Challenge}
+\paragraph{Challenge 5: Program semantics need to be retrieved} 
+Solana programs manage accounts associated with the program using PDAs with a program-specific seed structure. 
+Since programs verify whether the public key of a passed account corresponds to the program-specific PDA seed structure, it is necessary to \emph{i)} determine the program-specific PDA seed structure and \emph{ii)} to pass accounts to the program, whose public key is derived from the program-specific PDA seed structure.
+\label[challenge]{c5}
+\end{Challenge}
+
+\begin{Challenge}
+\paragraph{Challenge 6: Faithful CPI} 
+Solana programs are able to invoke other programs at runtime using CPI. 
+Hence, the runtime environment must ensure that programs can use the CPI mechanism to invoke both on-chain programs---in a separate eBPF VM---and native programs in the Solana runtime. 
+\label[challenge]{c6}
+\end{Challenge}

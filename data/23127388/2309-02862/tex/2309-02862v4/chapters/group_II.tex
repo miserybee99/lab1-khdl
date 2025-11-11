@@ -1,0 +1,87 @@
+\section{Group II}
+
+This group contains TSO games where both players are allowed to update the buffer \emph{only} before their own move.
+Let player X be the player that has a winning strategy and player Y her opponent.
+Note that this differs from the previous section, in which the players X and Y were defined based on their updating capabilities.
+
+Similar to the argumentation for Group I, we want to show that player X also has a winning strategy where she empties the buffer in each move.
+But, in contrast to before, this time there is an exception:
+Since the player has to update the buffer \emph{before} her move, by updating a memory variable she might disable a read transition that she intended to execute.
+Thus, we do not require her to empty the buffer in that case.
+
+Formally, let $\game = \tuple{ \confset, \confset_A, \confset_B, \to, \confset_F}$ be a TSO game where both players are allowed to perform buffer updates exactly before their own moves.
+Suppose $\sigma_X$ is a winning strategy for player X and some configuration $\conf_0$.
+We construct another strategy $\bar\sigma_X$ for player X.
+Let $\conf \in \confset_X$, $\conf' = \sigma_X(\conf)$ and $\bar\conf$ as in the previous section, i.e. a (non-unique) configuration such that $\conf \to[\up\kstar] \bar\conf$ and the buffers of $\bar\conf$ are empty.
+Suppose that $\conf \to[\instr_\pid] \conf'$, where $\instr_\pid$ is not a read or atomic read-write instruction.
+Then, starting from $\conf$, updating all buffer messages does not change that the transition from $\statemap(\conf)\of\pid$ to $\statemap(\conf')\of\pid$ is enabled.
+Thus, $\instr_\pid$ can also be executed from $\bar\conf$.
+We call the resulting configuration $\tilde\conf'$ and observe that $\bar\conf \to \tilde\conf'$ and $\conf' \to[\up\kstar] \tilde\conf'$.
+We define $\bar\sigma_X(\conf) := \tilde\conf'$.
+This can be seen in \autoref{fig:group-II}.
+Note that $\tilde\conf'$ may have at most one message in its buffers.
+In the other case, where there is no transition from $\conf$ to $\conf'$ other than read or atomic read-write instructions, we define $\bar\sigma_X(\conf) := \sigma_X(\conf) = \conf'$ and observe that $\conf'$ cannot have more buffer messages than $\conf$.
+
+\input{figures/group_II}
+
+\begin{clm}
+\label{claim:bb1}
+    $\bar\sigma_X$ is a winning strategy for $\conf_0$.
+\end{clm}
+\begin{proof}
+    First, suppose that $\conf_0 \in \confset_X$ and let $\sigma_Y$ be an arbitrary strategy of player Y.
+    We define another (non-positional) strategy $\bar\sigma_Y$, that depends on the last two configurations, by $\bar\sigma_Y(\conf, \conf') := \sigma_Y(\bar\sigma_X(\conf))$.
+    We observe that for all $\conf \in \confset_X$, it holds that $\bar\sigma_Y(\conf, \sigma_X(\conf)) = \sigma_Y(\bar\sigma_X(\conf))$.
+    It follows that the play $\play_1$ induced by $\sigma_X$ and $\bar\sigma_Y$ and the play $\play_2$ induced by $\bar\sigma_X$ and $\sigma_Y$ agree on every second configuration, i.e. the configurations in $\confset_X$.
+    In particular, the sequence of visited global TSO configurations is the same in both plays.
+    Since $\sigma_X$ is winning, it means that $\play_1$ is winning for player X and thus also $\play_2$ is winning.
+    Because we chose $\sigma_Y$ arbitrarily, it follows that $\bar\sigma_X$ is a winning strategy.
+
+    Otherwise, if $\conf_0 \in \confset_Y$, we consider the successors of $\conf_0$ instead.
+    We note that $\bar\sigma_X$ must also be a winning strategy for each $\conf \in \post(\conf_0)$.
+    But then, we can apply the previous arguments to each of those configurations and conclude that $\bar\sigma_X$ is a winning strategy for all of them.
+    Thus, it is also a winning strategy for $\conf_0$.
+\end{proof}
+
+We conclude that if player X has a winning strategy $\sigma_X$, then she also has a winning strategy $\bar\sigma_X$ where she empties the buffers before every turn in which she does not perform a read operation.
+By symmetry, the same holds true for player Y.
+Thus, we can limit our analysis to this type of strategies.
+We see that the number of messages in the buffers is bounded:
+Suppose that the game is in configuration $\conf \in \confset_X$.
+Then, $\bar\sigma_X$ either empties the buffer and adds at most one new message, or it performs a transition due to a read instruction, which does not increase the size of the buffers.
+The analogous argumentation holds for player Y.
+Hence, we can reduce the game to a game on bounded buffers, which is finite state and thus decidable.
+
+Given the configuration $\conf_0$ as above, we construct a finite game $\game' = \tuple{ \confset', \confset_X', \confset_Y', \to', \confset_F'}$ as follows.
+The set $\confset_X'$ contains all configurations from $\confset_X$ which have at most as many buffer messages than $\conf_0$ (or at most one message, if $\conf_0$ has empty buffers):
+$$\confset_X' := \Set{ \conf \in \confset_X \mid \sizeof{\buffermap\of\conf} \leq \max\set{1, \sizeof{\buffermap\of{\conf_0}}} } \qquad \text{where} \qquad \sizeof\buffermap = \sum_{\pid\in\indexset} \sizeof{\buffermap\of\pid}$$
+The set $\confset_Y'$ is defined accordingly.
+Note that both sets are finite.
+Lastly, $\to'$ is defined as the restriction of $\to$ to configurations of $\game'$, and $\confset_F' := \confset_F \cap \confset_A'$.
+We define $\bar\sigma_X'$ to be the restriction of $\bar\sigma_X$ to $\confset_X'$.
+Since $\bar\sigma_X'(\conf) \in \confset_Y'$ for all $\conf \in \confset_X'$, $\bar\sigma_X'$ is indeed a valid strategy for $\game'$.
+In particular, it is the restriction of $\bar\sigma_X$ to $\game'$.
+
+\begin{clm}
+\label{claim:bb2}
+    $\bar\sigma_X'$ is a winning strategy for $\conf_0$ in $\game'$.
+\end{clm}
+\begin{proof}
+    First, consider the case where $\conf_0 \in \confset_X$.
+    Let $\sigma_Y'$ be a strategy for player Y in $\game'$ and let $\sigma_Y$ be an arbitrary extension of $\sigma_Y'$ to $\game$.
+    The play $\play$ induced by $\bar\sigma_X$ and $\sigma_Y$ in $\game$ is the same as the play $\play'$ induced by $\bar\sigma_X'$ and $\sigma_Y'$ in $\game'$.
+    Since $\bar\sigma_X$ is a winning strategy, $\play$ is a winning play.
+    It follows that $\play'$ must also be a winning strategy.
+    Since $\sigma_Y'$ was arbitrary, it follows that $\bar\sigma_X'$ is a winning strategy and $\conf_0$ is winning in $\game'$.
+\end{proof}
+
+\begin{thm}
+    The safety problem for games of group II is \exptime-complete.
+\end{thm}
+\begin{proof}
+    By \autoref{claim:bb1} and \autoref{claim:bb2}, if a configuration $\conf_0$ is winning for player A in game $\game$, then it is also winning in $\game'$.
+    The same holds true for player B.
+    Thus, the safety problem for $\game$ is equivalent to the safety problem for $\game'$.
+    Similar to the games of group I, $\game'$ is finite and has exponentially many configurations.
+    By \autoref{lem:finite} and \autoref{cor:complexity}, we can again conclude that the safety problem is \exptime-complete.
+\end{proof}

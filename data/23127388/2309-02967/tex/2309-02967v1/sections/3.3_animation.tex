@@ -1,0 +1,73 @@
+\subsection{Animation}
+\label{sec:animation}
+Previous research has demonstrated that animations synchronized with narration can stimulate both visual and auditory senses, leading to improved data representation~\cite{cheng2022investigating, huth2023studies}.
+Therefore, we describe how we incorporate animation and synchronize it with narration in this section.
+We design the animations based on the two-part narration generated in \autoref{sec:narration}. 
+We aim to identify the data related to specific phrases in the narration and add appropriate animations to the corresponding time intervals.
+Based on prior research~\cite{ge2020canis}, we use three key aspects to define an animation:
+\begin{itemize}
+    \item \textbf{Target}: The target elements to be animated.
+    As we have added relevant classes and IDs into the input SVG as the labeled SVG (as discussed in \autoref{sec: understanding}), targeting elements is not challenging.
+    Technically, we utilize the W3C Selectors API.
+    
+    \item \textbf{Effects}: The animation effects.
+    Similar to \cite{wang2021animated}, we adopt three principal animation types in presentation software (e.g., Keynote and PowerPoint): entrance, emphasis, and exit. 
+    Then, we choose multiple prevalent animation styles from past research~\cite{wang2021animated, ge2020canis} and devise styles to fulfill our requirements.
+    Part of the animation effects is depicted in \autoref{fig:cases} with dotted blue boxes.
+    
+    \item \textbf{Interval}: A suitable time interval for elements to enter and exit the screen.
+    Instead of using time seconds to represent the entry and exit times, we adopt a different approach. 
+    We use the start and end word indices in the narration as a reference.
+    For instance, the interval $[10, 20]$ denotes the animation starting from the 10th word and ending at the 20th word.
+    Since we use a text-to-speech technique to generate the audio, the API can conveniently generate the timestamp of a specific word in the narration.
+    Thus, with all the words having timestamps, we can convert the word index interval into a normal time interval.
+    
+\end{itemize}
+
+Defining the three variables is the key to completing the task of adding animation.
+For each animation, we need to identify the relevant phrases first and convert them into a word index interval. 
+Then, we select the corresponding elements as targets and apply an appropriate animation effect to create a polished and visually engaging Live Chart. 
+We process the two-part narration separately.
+
+\subsubsection{Animation for the contextual narration}
+We first analyze the contextual narration to locate the interval and identify the relevant targets. 
+For the first sentence related to the chart title, we set the target as \textit{``title''} and locate the entire first sentence as its interval. 
+Moving on to the second sentence about encodings, we locate the position of the words ``x-axis'' and ``y-axis'' for bar and line charts. 
+The sentence can be divided into three parts, each representing a distinct interval.
+The first and second parts target \textit{``x-axis''} and \textit{``y-axis''}, respectively, and the last part target \textit{``legend''}. 
+\changed{For instance, as shown in \autoref{fig:narration}(a6), the first part is represented by ``displays months while'', the second part is represented by ``shows the average... and''.}
+For pie charts, we set the interval as the whole sentence and the target as \textit{``sector''} and \textit{``legend''}. 
+To display corresponding elements in the front part of live charts, we utilize the entrance animation among the three available animation types.
+Thus, animation effects like fade-in and wipe are selected for the contextual narration.
+
+\begin{figure*}[ht]
+    \centering
+    \includegraphics{figures/cases.pdf}
+    \caption{Two use cases. (a1-a5)(b1-b5) The image flow illustrates the keyframes of the Live Chart. Animations are drawn with dotted blue boxes.
+    The following text describes the corresponding audio narration, with the first tag indicating the chart component or the insight type.}
+    \label{fig:cases}
+\end{figure*}
+
+
+\subsubsection{Animation for the insights}
+We create animations that correspond to each insight in order to enhance the storytelling.
+Having identified the pertinent data for each sub-insight, we utilized the ``ac-data'' attribute labeled in \autoref{sec: understanding} to target the appropriate elements.
+SVG paths and texts can be the candidates.
+Concerning the word interval, we continue to rely on \gpt{} to interpret the insightful narration, as it is responsible for generating the narration itself. 
+Our approach is progressive, consisting of two prompts. 
+Given the table, a list of the distilled insights, and insightful narration, the first prompt is employed to assign sentences to each insight (\autoref{fig:narration}(a7)).
+In the output, sentences are included in the insight structure (\autoref{fig:narration}(b)).
+Furthermore, with the same inputs (table and insightful narration) and the distilled insights accompanied by their corresponding sentences, the second prompt is utilized to allocate phrases within each insight sentence to each sub-insight (\autoref{fig:narration}(a8)).
+\changed{Phrases are added in the subinsights structure after this step (\autoref{fig:narration}(b)).}
+Through this process, we identify the appropriate word interval for the animation.
+Then we proceed to select the animation effects for the above elements.
+We opt for emphasis animations while choosing animation effects. 
+We use the animation effects ``show box'', ``show text'', ``change color'' and ``highlight'' for the elements in three chart types.
+Additionally, we include the ``bar bounce'' effect for bar charts, as well as ``show arrow'' and ``show circle'' for line and bar charts.
+Sometimes certain animation effects may not have specific elements to target within a chart.
+For instance, the ``show circle'' effect cannot be used for line charts that lack points.
+In such scenarios, we alter the emphasis effect into a list of entrance-exit animations. To be precise, we create such elements and allow them to enter at the beginning of the animation, followed by their exit at the end of the animation.
+We select different animation effects for different insights in each chart to ensure the richness of the generated charts.
+All animation effects are chosen based on the chart type and insight type.
+
+

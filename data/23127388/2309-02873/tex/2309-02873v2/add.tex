@@ -1,0 +1,322 @@
+\section{Additional results and experiments} \label{section:add}
+In this section, we will provide additional results.
+We will first complete the results from the experiments section by adding plots, RMSE over time and runtimes. 
+To further analyze the method, we will add an ablation study based on the partially OVS system presented in the problem formulation. 
+Further, we will demonstrate how our method can be extended to invertible neural networks, allowing to directly address the dynamics $f_u$. 
+
+\subsection{System v): Pure learning-based scneario}
+We present an additional example for the pure learning-based scenario and refer to it as system (v).
+We extend the experiment in \citep{ensinger2023combining} Exp. ii) and use identical data from the double-torsion pendulum \citep{lisowski} with a varied control input.
+As in their setting, we learn a simulator substitute by training a GRU on the low-pass filtered and downsampled signal. 
+We refer to their method as Filter. 
+However in contrast to their setting, we inform the high-pass via the low-pass components. 
+This is done by feeding them as an input to our KKL-RNN and the hybrid GRU.
+The results demonstrate that we can further improve the concept in \citet{ensinger2023combining}.
+While the GRU shows accumulating errors, Residual model and Filter both benefit from the stable long-term behavior of the low-pass component.
+However, since low-pass and high-pass component are not linked for those models, the high-pass component still suffers from accumulating errors and deteriorated behavior, which is prevented by our KKL-RNN and the hybrid GRU.
+This finding is more clearly visible in the rollout plots \ref{subfig:4_baseline} than in the RMSE \ref{t:lb} since it mainly refers to the high-frequency components. 
+The signal however is mainly dominated by the low frequency behavior that Residual Model, Filter, hybrid GRU and hybrid KKL-RNN share.
+
+\begin{table*}[h!]
+	\centering 	
+	\caption{Total RMSEs for systems iv)-v) (mean (std)) over 5 independent runs.}
+	\label{t:lb}
+	\begin{tabular}{rccccc}
+		\noalign{\smallskip} \hline    \noalign{\smallskip}
+		task & GRU & Residual Model & Filter &Hybrid GRU & Hybrid KKL-RNN (ours)  \\
+		\hline
+		v) & 1.18 (0.29) & 0.64 (0.07) & 0.33 (0.06) & \textbf{0.29} (0.07) & \textbf{0.29} (0.09)  \\
+		\noalign{\smallskip} \hline \noalign{\smallskip}
+	\end{tabular}\quad
+\end{table*} 
+
+\subsection{GRU ablation study}
+As a recap, our proposed KKL-RNN architecture consists of
+\begin{itemize}
+	\item Partially observable system containing OVS and non-OVS latent states; 
+	\item Specific loss function penalizing the non-OVS components;
+	\item KKL-observer. 
+\end{itemize}
+The goal of this study is to analyze how different parts of the architecture affect the results.
+In particular, we try to find out how the split in OVS and non-OVS affects the results and how the KKL observer affects the results in contrast to an architecture built from different GRUs.  
+To this end, we consider three GRU architectures to further analyze the system based on the partially OVS system presented in Section 2
+with $f_u:\mathbb{R}^{d_u} \times \mathbb{R}^{d_s} \rightarrow \mathbb{R}^{d_u}$ and $f_v:\mathbb{R}^{d_u} \times \mathbb{R}^{d_v} \rightarrow \mathbb{R}^{d_v}$.
+Next, we consider single components of the partially OVS system or the whole system.
+We model all components with GRUs. 
+In the first scenario, we extend the hybrid GRU with an observation model $h$ that aims to reproduce the simulator. 
+The transitions remain the same as in the hybrid GRU setting. 
+With this experiment we analyze if it is sufficient to simultanously model the simulator. 
+This forces the model to learn latent states that are able to reproduce the simulator. 
+For the remaining architectures, we aim to reproduce the dynamics in the partially OVS systems.
+To this end, we will train separate GRUs on $f_u$ and $f_v$. 
+As before, $g$, $r$ and $h$ will be modeled with linear layers. 
+We vary the input the GRUs receive. 
+To make the architecture comparable to the hybrid KKL-RNN, we will apply the same losses to Scenario 2 and Scenario 3.
+Providing the observations as an input to both GRUs in Scenario 2), we analyze whether it is sufficient to consider the proposed split and the corresponding loss function.
+In the third scenario, we aim to reproduce our KKL-RNN architecture as closely as possible.
+This is done by providing only the simulator as an input to the first model and only the data as an input to the second model. 
+With this experiment, we study, whether the KKL observer could also be replaced with an additional GRU receiving identical input data. 
+In summary, we consider the following architectures. 
+\begin{itemize}
+	\item Scenario 1: We extend the hybrid GRU with an additional observation function $h$ modeling the simulator. 
+	\item Scenario 2: $f_u$ and $f_v$ are modeled with standard GRUs receiving output feedback. I.e., both receive the data and later output feedback as a control input. 
+	\item Scenario 3: $f_u$ receives only the simulator as control input, $f_v$ receives the simulator and output feedback as control input. This mimics the setting of our KKL-RNN.  
+\end{itemize}
+
+
+\subsubsection{Results} 
+The results are presented in Table \ref{t:ablation}. 
+They indicate that Scenario 2 is not enough to model the whole system, probably because the data do not contain enough information to model also the simulator for all systems. 
+This is for example demonstrated in Fig. \ref{subfig:S2mass}.
+In contrast, this information is provided in Scenario 1 and 3 by providing the simulator as control input to both models. 
+It can be seen that Scenario 1 has a similar accuracy as the hybrid GRU and suffers from similar problems. 
+Especially, it also shows the deteriorated behavior in system i) (cf. Fig. \ref{subfig:S1mass}) and can not reproduce the oscillations for system ii) 
+(cf. Fig \ref{subfig:S1DT}) and iv) (cf. Fig. \ref{subfig:S1VDP}). 
+In contrast to Scenario 1, Scenario 3 is informed about the split in OVS and non-OVS part in its architecture similar to the KKL-RNN.
+However, still Scenario 3 has similar problems with learning the correct oscillations. 
+Further, it is also visible that it does not learn the correct split in OVS and non-OVS (cf. Fig. \ref{subfig:S3mass}, Fig. \ref{subfig:S2DT} and Fig. \ref{subfig:VDP}). 
+The results indicate that the KKL-observer is a central component of our method and the split into the partially OVS system not enough.  
+At the same time, the results show that the highest accuracy is in general achieved with Scenario 3, indicating that the proposed architecture is already useful in itself. 
+This includes the split in OVS and non-OVS, the loss and an observer-inspired setup.  
+The proposed architecture could thus also be applied in combination with standard recurrent networks. 
+
+\begin{table*}[h!]
+	\centering 
+	\caption{Results for Scenario 1)-3) on systems i)-v) (mean (std)) over 5 indep. runs.}
+	\label{t:ablation}
+	\begin{tabular}{rccc}
+		\noalign{\smallskip} \hline \noalign{\smallskip}
+		System & Scenario 1 & Scenario 2  & Scenario 3   \\
+		\hline
+		i) &  \textbf{0.25} (0.12) & 0.97 (0.14) & \textbf{0.25} (0.07) \\
+		ii)& 0.54 (0.29)  & 1.28 (0.03) & \textbf{0.41} (0.02) \\
+		iii) & \textbf{0.24} (0.02) & 0.47 (0.12) & 0.27 (0.01) \\
+		iv) & 0.1 (0.08) & 0.63 (0.43) & \textbf{0.06} (0.04)  \\
+		v) & \textbf{0.28} (0.09) & 1.35 (0.24) & \textbf{0.28} (0.08) \\
+		\noalign{\smallskip} \hline \noalign{\smallskip}
+	\end{tabular}\quad
+\end{table*}
+\begin{figure*}[ht!]
+	\begin{subfigure}{0.49\textwidth}
+		\centering
+		\includegraphics[width= \textwidth]{Plots/Scenario3_mass.pdf}
+		\caption{Scenario 1 on system i)} \label{subfig:S1mass}
+	\end{subfigure}	
+	\begin{subfigure}{0.49\textwidth}
+		\centering
+		\includegraphics[width= \textwidth]{Plots/Scenario2_mass.pdf}
+		\caption{Scenario 2 on system i)} \label{subfig:S2mass}
+	\end{subfigure}	
+	\begin{subfigure}{0.49\textwidth}
+		\centering
+		\includegraphics[width= \textwidth]{Plots/Scenario1_mass.pdf}
+		\caption{Scenario 3 on system iii)} \label{subfig:S3mass}
+	\end{subfigure}	
+	\caption{Plots for system i). Shown are the results for Scenario 1 in Fig. \ref{subfig:S1mass}, Scenario 2 in Fig. \ref{subfig:S2mass} and Scenario 3 in Fig. \ref{subfig:S3mass}. All models have problems to reproduce the oscillations and Scenario 1 even shows upswinging oscillations. Further, the models are not able to learn the correct split in OVS and non-OVS. For Scenario 3 it is clearly visible that the residuum takes over most of the prediction task.}
+	\label{fig:mass}
+\end{figure*}
+
+\begin{figure*}[ht!]
+	\begin{subfigure}{0.49\textwidth}
+		\centering
+		\includegraphics[width= \textwidth]{Plots/Scenario_1_double_torsion.pdf}
+		\caption{Scenario 1 on system ii)} \label{subfig:S1DT}
+	\end{subfigure}	
+	\begin{subfigure}{0.49\textwidth}
+		\centering
+		\includegraphics[width= \textwidth]{Plots/Scenario_3_double_torsion.pdf}
+		\caption{Scenario 3 on system ii)} \label{subfig:S2DT}
+	\end{subfigure}	
+	\caption{Plots for system ii). Shown are the results for Scenario 1 in Fig. \ref{subfig:S1DT} and Scenario 3 in Fig. \ref{subfig:S2DT}.
+		Both methods are not able to reproduce the oscillations correctly and Scenario 3 learns a wrong split in OVS and non-OVS.}
+	\label{fig:mass}
+\end{figure*}
+
+\begin{figure*}[ht!]
+	\begin{subfigure}{0.49\textwidth}
+		\centering
+		\includegraphics[width= \textwidth]{Plots/Scenario_1_VDP.pdf}
+		\caption{Scenario 1 on system iv)} \label{subfig:S1VDP}
+	\end{subfigure}	
+	\begin{subfigure}{0.49\textwidth}
+		\centering
+		\includegraphics[width= \textwidth]{Plots/Scenario_2_VDP.pdf}
+		\caption{Scenario 2 on system iv)} \label{subfig:S2VDP}
+	\end{subfigure}	
+	\begin{subfigure}{0.49\textwidth}
+		\centering
+		\includegraphics[width= \textwidth]{Plots/Scenario_3_VDP.pdf}
+		\caption{Scenario 3 on system iv)} \label{subfig:VDP}
+	\end{subfigure}	
+	\caption{Plots for system i). Shown are the results for Scenario 1) in Fig. \ref{subfig:S1VDP}, Scenario 2) in Fig. \ref{subfig:S2VDP} and Scenario 3) in Fig. \ref{subfig:VDP}. Again, the models learn a wrong split and are not able to reproduce the oscillations correctly.}
+	\label{fig:mass}
+\end{figure*}
+
+
+
+\subsection{Invertible neural network} 
+As described in Section 4, we provide the option to train with invertible neural networks in case direct access to the dynamics $f_u$ is required, e.g. to analyze for fixed points, include symmetries etc.
+In detail, we learn $T_{\theta}^{\star}$ as invertible network allowing to access $T_{\theta}$ by inversion. 
+An invertible network is obtained by stacking coupling layers \citep{DBLP:conf/iclr/DinhSB17}. 
+For $f_u$ it holds that 
+\begin{equation}
+f_u=T^{\star}_{\theta}(D_{\theta}T_{\theta}u_n+F\hat{s}_n). 
+\end{equation}
+This allows to obtain $u_{n+1}$ directly via $f_u(u_n)$. 
+Later, in Sec. \ref{sec:KKL}, we provide details on the architecture. 
+We train the architecture on system i) for 5 independent random seeds.
+This provides similar results as the default scenario containing a standard MLP. 
+Fig. \ref{subfig:mass} shows a plot of the rollouts demonstrating that also the qualitative results are similar to the default setting.
+In particular, the split in OVS and non-OVS is accurate and the simulator can be reconstructed. 
+
+
+\subsection{Additional plots} 
+We add missing plots for all experiments in the experimental section. 
+In Fig. \ref{fig:hybrid}, we report the accumulated RMSEs over time for systems i-iii).
+In Fig. \ref{fig:baselines}, we report the accumulated RMSEs over time for systems iv) and v). 
+We provide plots for the baselines on systems i) and iii) in Fig. \ref{fig:hybrid_KKL}, indicating that they are not able to reproduce the dynamics well.
+Fig. \ref{subfig:3_KKLRNN} shows the results of our hybrid KKL-RNN for system ii). 
+It indicates that it reproduces the dynamics well even if it does not perfectly reproduce the decaying behavior of the oscillations.
+The split in OVS and non-OVS component however is reproduced perfectly.
+Further, we provide missing plots for systems iv) and v) representing the pure learning-based scenario. 
+In Fig. \ref{fig:lb} we demonstrate that the KKL-RNN is able to reproduce the dynamics of both systems and learns the correct split in OVS and non-OVS.
+Fig. \ref{subfig:5_KKLRMM} further shows that the model can jointly learn the sine oscillations and VDP oscillator that is reconstructed from the sine oscillations. 
+Fig. \ref{fig:lb_baselines} shows that the baselines struggle on these tasks. 
+    
+
+\begin{figure*}[h!]
+	\begin{subfigure}{0.49\textwidth}
+		\centering
+		\includegraphics[width= \textwidth]{Plots/rollout_plot_mass.pdf}
+		\caption{System i), RMSE over time} \label{subfig:RMSE_mass}
+	\end{subfigure}	
+	\begin{subfigure}{0.49\textwidth}
+		\centering
+		\includegraphics[width= \textwidth]{Plots/rollout_plot_double_torsion_distorted.pdf}
+		\caption{System ii), RMSE over time} \label{subfig:RMSE_double_torsion}
+	\end{subfigure}	
+	\begin{subfigure}{0.49\textwidth}
+	\centering
+	\includegraphics[width= \textwidth]{Plots/rollout_plot_friction.pdf}
+	\caption{System iii), RMSE over time} \label{subfig:RMSE_friction}
+\end{subfigure}	
+	\caption{Accumulated RMSEs over time for systems i)-iii). Fig. \ref{subfig:RMSE_mass} shows the results for system i), 
+		Fig. \ref{subfig:RMSE_double_torsion} shows the results for system ii) and Fig. \ref{subfig:RMSE_friction} shows the results for system iii).}
+	\label{fig:hybrid}
+\end{figure*}
+
+\begin{figure*}[h!]
+	\begin{subfigure}{0.49\textwidth}
+		\centering
+		\includegraphics[width= \textwidth]{Plots/rollout_plot_VDP.pdf}
+		\caption{System iv), RMSE over time} \label{subfig:RMSE_VDP}
+	\end{subfigure}	
+	\begin{subfigure}{0.49\textwidth}
+		\centering
+		\includegraphics[width= \textwidth]{Plots/rollout_train_sim.pdf}
+		\caption{System v), RMSE over time} \label{subfig:RMSE_sim}
+	\end{subfigure}	
+	\caption{Accumulated RMSEs over time for systems iv) and v). Fig. \ref{subfig:RMSE_VDP} shows the results for system iv) 
+  and Fig. \ref{subfig:RMSE_double_torsion} shows the results for system ii), \ref{subfig:RMSE_sim} shows the results for system v).}
+	\label{fig:baselines}
+\end{figure*}
+%
+\begin{figure*}[h!]
+	\begin{subfigure}{0.49\textwidth}
+		\centering
+		\includegraphics[width= \textwidth]{Plots/exp1_baselines.pdf}
+		\caption{System i), baselines} \label{subfig:1_baselines}
+	\end{subfigure}	
+	\begin{subfigure}{0.49\textwidth}
+		\centering
+		\includegraphics[width= \textwidth]{Plots/exp4_baselines.pdf}
+		\caption{System iv), baselines} \label{subfig:4_baselines}
+	\end{subfigure}	
+	\caption{Baselines for system i) in Fig. \ref{subfig:1_baselines} and system iii) in Fig. \ref{subfig:4_baselines}. The baselines do not provide a good representation of the rollouts in both cases. Especially, they show deteriorated long-term behavior.}
+	\label{fig:hybrid_KKL}
+\end{figure*}
+
+\begin{figure*}
+	\begin{subfigure}{0.49\textwidth}
+	\centering
+	\includegraphics[width= \textwidth]{Plots/exp3_KKL_RNN.pdf}
+	\caption{System i), baselines} \label{subfig:3_KKLRNN}
+\end{subfigure}	
+\begin{subfigure}{0.49\textwidth}
+	\centering
+	\includegraphics[width= \textwidth]{Plots/exp_1_hybrid_KKL_invertible.pdf}
+	\caption{System i) with invertible neural network.} \label{subfig:mass}
+\end{subfigure}
+	\caption{Hybrid KKL-RNN for system 3) in Fig. \ref{subfig:3_KKLRNN}. The model learns the correct split in OVS and non-OVS. The oscillations are not perfectly reproduced but still a good representation. Fig. \ref{subfig:4_baselines} depicts system i) with the hybrid KKL-RNN and invertible transformation.}
+\label{fig:hybrid_KKL_new}
+\end{figure*}
+
+\begin{figure*}[h!]
+		\begin{subfigure}{0.49\textwidth}
+			\centering
+			\includegraphics[width= \textwidth]{Plots/exp6_KKLRNN.pdf}
+			\caption{System iv), KKL-RNN} \label{subfig:6_baselines}
+		\end{subfigure}	
+		\begin{subfigure}{0.49\textwidth}
+		\centering
+		\includegraphics[width= \textwidth]{Plots/exp5_KKLRNN.pdf}
+		\caption{System v), KKL-RNN} \label{subfig:5_KKLRMM}
+	\end{subfigure}	
+		\caption{KKL-RNN for system iv) in Fig. \ref{subfig:6_baselines} and system v) in Fig. \ref{subfig:5_KKLRMM}.
+		In both cases, the KKL-RNN learns the correct split in OVS and non-OVS and reproduces the predictions accurately.}
+		\label{fig:lb}	
+\end{figure*}
+%%
+\begin{figure*}[h!]
+	\begin{subfigure}{0.49\textwidth}
+		\centering
+		\includegraphics[width= \textwidth]{Plots/exp6_baselines.pdf}
+		\caption{System iv), baselines} \label{subfig:6_baseline}
+	\end{subfigure}	
+	\begin{subfigure}{0.49\textwidth}
+		\centering
+		\includegraphics[width= \textwidth]{Plots/exp5_baselines.pdf}
+		\caption{System v), baselines} \label{subfig:4_baseline}
+	\end{subfigure}	
+	\caption{Baselines for system iv) in Fig. \ref{subfig:6_baseline} and system v) in Fig. \ref{subfig:4_baseline}.
+	The GRU suffers from the typical drift in system iv), while the residual model doesn't learn the oscillations correctly.
+    For system v), the baselines show deteriorated behavior in the high-pass components.}
+	\label{fig:lb_baselines}
+\end{figure*}
+
+
+\subsection{Runtimes}
+All experiments are conducted on CPUs of an internal cluster. 
+The runtimes for experiments i)-iii) are provided in Table \ref{t:hybrid}, the runtimes for experiments iv)-v) are provided in Table \ref{t:lb}.
+\begin{table*}[h!]
+	\centering 
+	\caption{Mean of total runtimes in seconds for systems i)-iii) over 5 indep. runs.}
+	\label{t:hybrid}
+	\begin{tabular}{rccccc}
+		\noalign{\smallskip} \hline \noalign{\smallskip}
+		task & GRU & Residual Model  & Hybrid GRU & Filter & KKL-RNN (ours)  \\
+		\hline
+		i) & 283 & 276 & 264 & 262 & 535 \\
+		ii)& 119 & 114 & 31  &  92 & 65  \\
+		iii) & 3865   & 3967 & 3104 & 5310 & 8449  \\
+		\noalign{\smallskip} \hline \noalign{\smallskip}
+	\end{tabular}\quad
+\end{table*}
+
+\begin{table*}[ht]
+	\centering 	
+	\caption{Mean of total runtimes in seconds for systems iv)-v) over 5 indep. runs.}
+	\label{t:lb}
+	\begin{tabular}{rccccc}
+		\noalign{\smallskip} \hline \noalign{\smallskip}
+		task & GRU & Residual Model & Filter &Obs-GRU (ours) &KKL-RNN (ours)  \\
+		\hline
+		iv)  & 763  & 514 &- (-)&  556& 1078  \\
+		v) & 1423  & 361  & 1436 &  118 & 207   \\
+		\noalign{\smallskip} \hline \noalign{\smallskip}
+	\end{tabular}\quad
+\end{table*} 
+\newpage
+
+
+

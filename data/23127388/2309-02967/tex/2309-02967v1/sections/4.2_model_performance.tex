@@ -1,0 +1,40 @@
+\subsection{Performance of Chart Element Recognition}
+\label{sec: performance}
+
+\begin{table*}[ht]
+\centering
+\caption{The table presents the effectiveness of pixel-based methods and our dual-stream GNN specifically designed for vector graphics recognition on Vega-lite, Plotly, and D3 datasets. $E_e$ denotes only using the element-wise encoder, $E_s$ denotes only using the stroke-wise encoder, and $E_s + E_e$ denotes using the two encoder.}
+\begin{tabular}{l|ccc|ccc|ccc}
+\toprule
+& \multicolumn{3}{c|}{Vega-lite} & \multicolumn{3}{c|}{Plotly} & \multicolumn{3}{c}{D3}\\
+        \cmidrule(r){2-4} \cmidrule(l){5-7} \cmidrule(l){8-10}
+Methods & $AP_{50}$(\%)  & $AP_{75}$(\%) & mAP (\%) & $AP_{50}$(\%)  & $AP_{75}$(\%) & mAP (\%) & $AP_{50}$(\%)  & $AP_{75}$(\%) & mAP (\%) \\\midrule
+YoloV8-m       & 77.30 & 68.90 & 64.60 & 77.60 & 70.60 & \textbf{66.00} & 64.30 & 50.50 & 49.30\\
+Ours ($E_e$) & 71.75 & 68.65 & 63.14 & 69.25 & 64.90 & 54.93 & 61.43& 59.77 &  51.98\\
+Ours ($E_s$)  & 84.81 & 80.75 & 74.28 & 78.04 & 74.06 & 62.87 & 62.47  & 60.27  & 52.66  \\
+Ours ($E_s + E_e$) & \textbf{85.71} & \textbf{81.85} & \textbf{75.21} & \textbf{80.04} & \textbf{76.57} & 64.55 & \textbf{64.77} & \textbf{61.23} & \textbf{53.40} \\
+\bottomrule
+\end{tabular}
+
+\label{table:AblationStudy}
+\end{table*}   
+
+We conducted a series of quantitative evaluations to assess our understanding method in comparison with baselines.
+
+We selected pixel-based methods as our baselines, utilizing mmyolo~\cite{mmyolo2022} for implementation while keeping all parameter settings remaining the same.
+Our model is implemented using PyTorch Geometric~\cite{pyg} built upon PyTorch~\cite{PyTorch}. 
+We construct a two-layer GNN for the stroke and element-wise encoder. 
+We evaluated different machine-learning model parameters and settled on the following sets.
+The hidden node representation dimension is set to 64, as deeper GNNs tend to suffer from over-smoothing. 
+To avoid over-smoothing, mean aggregation is only conducted on the final layer of the GNN, and each node requires only one transformation and one mean-pooling operation. 
+Moreover, a three-layer MLP is employed as the classifier, with the output dimensions of the middle layers set to 512 and 256.
+The Adam optimizer is utilized with a learning rate of 0.001 and a batch size of 128. 
+The training procedure is performed from scratch for 200 epochs on an Nvidia V100 GPU card.
+
+\textbf{Evaluation Metric.} 
+We adopt the commonly used metrics of AP50, AP75, and mAP. Specifically, AP* denotes the average precision at the intersection over the union (IOU) threshold of 0.5 or 0.75 for object detection tasks. Moreover, we calculate the mAP as the mean of the average precision over the IOU thresholds ranging from 0.50 to 0.95.
+
+\textbf{Results.} 
+We use the dataset described in \autoref{sec: recognition}.
+\minor{For pixel-based methods, we compare our methods with popular one-stage object detection method YoloV8~\cite{yolov8} based on mmyolo.} For YoloV8, the -m variant is scaled YoloV8 with more parameters and better performance. 
+As shown in \autoref{table:AblationStudy}, we evaluate the effectiveness of two different vector encoders for chart element recognition. When solely relying on the stroke-wise encoder, our model demonstrates commendable performance. Through our experimentation, we observed that using both stroke-wise and element-wise encoders in conjunction, via the GNN, results in optimal classification performance.

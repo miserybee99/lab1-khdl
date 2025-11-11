@@ -1,0 +1,364 @@
+\section{Games}
+
+\subsection{Definitions}
+
+A \emph{(safety) game} is an unlabelled transition sytem, in which two players A and B take turns making a \emph{move} in the transition system, i.e. changing the state of the game from one configuration to an adjacent one.
+The set of configurations is partitioned into two sets $\confset_A$ and $\confset_B$ representing the configurations of player A and B, respectively.
+Whenever the game is in a configuration that belongs to player A, it is her turn to decide which move to make.
+This continues until the game reaches a configuration that belongs to player B, at which point the control is passed to her instead.
+The goal of player B is to reach a given set of final configurations, while player A tries to avoid this.
+Thus, it can also be seen as a \emph{reachability} game with respect to player B.
+
+Formally, a game is defined as a tuple $\game = \tuple{ \confset, \confset_A, \confset_B, \to, \confset_F}$, where $\confset$ is the set of configurations, $\confset_A$ and $\confset_B$ form a partition of $\confset$, the transition relation is $\to \subseteq \confset \times \confset$, and $\confset_F \subseteq \confset_A$ is a set of \emph{final configurations}.
+Furthermore, we require that $\game$ is deadlock-free, i.e. $\post(\conf) \neq \emptyset$ for all $\conf \in \confset$.
+
+A \emph{play} $\play$ of $\game$ is an infinite sequence $\conf_0, \conf_1, \dots$ such that $\conf_i \to \conf_{i+1}$ for all $i \in \Nat$.
+In the context of safety games, $\play$ is \emph{winning} for player B if there is $i \in \Nat$ such that $\conf_i \in \confset_F$.
+Otherwise, it is \emph{winning} for player A.
+This means that player B tries to force the play into $\confset_F$, while player A tries to avoid this.
+
+A \emph{strategy} of player A is a partial function $\sigma_A: \confset\kstar \part \confset_B$, such that $\sigma_A(\conf_0, \dots, \conf_n)$ is defined if and only if $\conf_0, \dots, \conf_n$ is a prefix of a play, $\conf_n \in \confset_A$ and $\sigma_A(\conf_0, \dots, \conf_n) \in \post(\conf_n)$.
+A strategy $\sigma_A$ is called \emph{positional}, if it only depends on $\conf_n$, i.e. if $\sigma_A(\conf_0, \dots, \conf_n) = \sigma_A(\conf_n)$ for all $(\conf_0, \dots, \conf_n)$ on which $\sigma_A$ is defined.
+Thus, a positional strategy is usually given as a total function $\sigma_A: \confset_A \to \confset$.
+Given two games $\game$ and $\game'$ and a strategy $\sigma_A$ for $\game$, an \emph{extension} of $\sigma_A$ to $\game'$ is a strategy $\sigma_A'$ of $\game'$ that is also an extension of $\sigma_A$ to the configuration set of $\game'$ in the mathematical sense, i.e. $\sigma_A(\conf_0, \dots, \conf_n) = \sigma_A'(\conf_0, \dots, \conf_n)$ for all $(\conf_0, \dots, \conf_n)$ on which $\sigma_A$ is defined.
+Conversely, $\sigma_A$ is called the \emph{restriction} of $\sigma_A'$ to $\game$.
+For player B, strategies are defined accordingly.
+
+Two strategies $\sigma_A$ and $\sigma_B$ together with an initial configuration $\conf_0$ induce a play $\play(\conf_0, \sigma_A, \sigma_B) = \conf_0, \conf_1, \dots$ such that $\conf_{i+1} = \sigma_A(\conf_0, \dots, \conf_i)$ for all $\conf_i \in \confset_A$ and $\conf_{i+1} = \sigma_B(\conf_0, \dots, \conf_i)$ for all $\conf_i \in \confset_B$.
+A strategy $\sigma_A$ is \emph{winning} from a configuration $\conf$, if for \emph{all} strategies $\sigma_B$ it holds that $\play(\sigma_A, \sigma_B, \conf)$ is a winning play for player A.
+A configuration $\conf$ is \emph{winning} for player A if she has a strategy that is winning from $\conf$.
+Equivalent notions exist for player B.
+The \textbf{safety problem} for a game $\game$ and a configuration $\conf$ is to decide whether $\conf$ is winning for player A.
+
+\begin{lem}[Proposition 2.21 in \cite{DBLP:conf/dagstuhl/Mazala01}]
+\label{lem:positional}
+    In safety games, every configuration is winning for exactly one player.
+    A player with a winning strategy also has a positional winning strategy.
+\end{lem}
+
+Since we only consider safety games in this paper, strategies will be considered to be positional unless explicitly stated otherwise.
+Furthermore, \autoref{lem:positional} implies the following:
+\begin{itemize}
+    \item $\conf_A \in \confset_A$ is winning for player A $\iff$ there is $\conf \in \post(\conf_A)$ that is winning for player A.
+    \item $\conf_B \in \confset_B$ is winning for player A $\iff$ all $\conf \in \post(\conf_B)$ are winning for player A.
+\end{itemize}
+
+A \emph{finite game} is a game with a finite set of configurations.
+It is rather intuitive that the safety problem is decidable for finite games, e.g. by applying a backward induction algorithm.
+In particular, the winning configurations for each player are computable in linear time:
+\begin{lem}[Chapter 2 in \cite{DBLP:conf/dagstuhl/2001automata}]
+\label{lem:finite}
+    Computing the set of winning configurations for a finite game with $n$ configurations and $m$ transitions is in $\bigO(n+m)$.
+\end{lem}
+
+\paragraph{Bisimulations}
+A \emph{bisimulation} (also called \emph{zig-zag relation}) between two games $\game = \tuple{ \confset^\game, \confset^\game_A, \confset^\game_B, \to, \confset^\game_F}$ and $\hgame = \tuple{ \confset^\hgame, \confset^\hgame_A, \confset^\hgame_B, \to, \confset^\hgame_F}$ is a relation $\bisim \subseteq \confset^\game \times \confset^\hgame$ such that for all pairs of related configurations $(\conf_1, \conf_2) \in \bisim$ it holds that (cf. \autoref{fig:bisim}):
+\begin{itemize}
+    \item (\emph{zig}) for each transition $\conf_1 \to \conf_3$ there is a transition $\conf_2 \to \conf_4$ such that $(\conf_3, \conf_4) \in \bisim$.
+    \item (\emph{zag}) for each transition $\conf_2 \to \conf_4$ there is a transition $\conf_1 \to \conf_3$ such that $(\conf_3, \conf_4) \in \bisim$.
+    \item $\conf_1$ and $\conf_2$ are owned by the same player: $\conf_1 \in \confset^\game_A \iff \conf_2 \in \confset^\hgame_A$
+    \item $\conf_1$ and $\conf_2$ agree on being a final configuration: $\conf_1 \in \confset^\game_F \iff \conf_2 \in \confset^\hgame_F$
+\end{itemize}
+We say that two related configurations $\conf_1$ and $\conf_2$ are \emph{bisimilar} and write $\conf_1 \approx \conf_2$.
+We call $\game$ and $\hgame$ \emph{bisimilar} if there is a bisimulation between them.
+It is common knowledge in game theory that winning strategies are preserved under bisimulations:
+
+\begin{figure}
+\centering
+\begin{subfigure}[b]{0.4\linewidth}
+\centering
+\begin{tikzpicture}[xscale=3, yscale=-2]
+    \node at (0,0) (c1) {$\conf_1$};
+    \node at (1,0) (c2) {$\conf_3$};
+    \node at (0,1) (c3) {$\conf_2$};
+    \node at (1,1) (c4) {$\exists\ \conf_4$};
+
+    \draw[->] (c1) -- (c2);
+    \draw[->] (c3) -- (c4);
+    \draw[- ] (c1) -- node[fill=white] {$\approx$} (c3);
+    \draw[- ] (c2) -- node[fill=white] {$\approx$} (c4);
+\end{tikzpicture}
+\caption{zig property}
+\end{subfigure}
+\begin{subfigure}[b]{0.4\linewidth}
+\centering
+\begin{tikzpicture}[xscale=3, yscale=-2]
+    \node at (0,0) (c1) {$\conf_1$};
+    \node at (1,0) (c2) {$\exists\ \conf_3$};
+    \node at (0,1) (c3) {$\conf_2$};
+    \node at (1,1) (c4) {$\conf_4$};
+
+    \draw[->] (c1) -- (c2);
+    \draw[->] (c3) -- (c4);
+    \draw[- ] (c1) -- node[fill=white] {$\approx$} (c3);
+    \draw[- ] (c2) -- node[fill=white] {$\approx$} (c4);
+\end{tikzpicture}
+\caption{zag property}
+\end{subfigure}
+\caption{Configurations in a bisimulation}
+\label{fig:bisim}
+\end{figure}
+
+\begin{lem}
+\label{lem:bisim}
+    Given two bisimilar configurations $\conf^\game_0 \in \confset^\game$ and $\conf^\hgame_0 \in \confset^\hgame$, it holds that $\conf^\game_0$ is winning for player A if and only if $\conf^\hgame_0$ is winning for player A.
+\end{lem}
+\begin{proof}
+    Suppose that $\conf^\game_0$ is winning for player A with (positional) strategy $\sigma^\game_A$ and consider the case $\conf^\game_0 \in \confset^\game_A$.
+    Let $\sigma^\hgame_B$ be an arbitrary strategy for player A in $\hgame$.
+    In the following, we will describe two (non-positional) winning strategies $\sigma^\hgame_A$ and $\sigma^\game_B$.
+
+    For $n \in \Nat$, define recursively (see \autoref{fig:bisim-win}):
+    \begin{itemize}
+        \item $\conf^\game_{2n+1} := \sigma^\game_A(\conf^\game_{2n})$
+        \item $\conf^\hgame_{2n+1}$ such that $\conf^\hgame_{2n} \to \conf^\hgame_{2n+1}$ and $\conf^\game_{2n+1} \approx \conf^\hgame_{2n+1}$, which exists by the zig property of $\bisim$.
+        \item $\sigma^\hgame_A(\conf^\hgame_0, \dots, \conf^\hgame_{2n}) := \conf^\hgame_{2n+1}$
+        \item $\conf^\hgame_{2n+2} := \sigma^\hgame_B(\conf^\hgame_{2n+1})$
+        \item $\conf^\game_{2n+2}$ such that $\conf^\game_{2n+1} \to \conf^\game_{2n+2}$ and $\conf^\game_{2n+2} \approx \conf^\hgame_{2n+2}$, which exists by the zag property of $\bisim$.
+        \item $\sigma^\game_B(\conf^\game_0, \dots, \conf^\game_{2n+1}) := \conf^\game_{2n+2}$
+    \end{itemize}
+
+    \begin{figure}
+        \centering
+        \begin{tikzpicture}[xscale=3, yscale=-2]
+            \node at (0,0) (c1) {$\conf^\game_{2n}$};
+            \node at (0,1) (c2) {$\conf^\hgame_{2n}$};
+            \node at (1,0) (c3) {$\conf^\game_{2n+1}$};
+            \node at (1,1) (c4) {$\exists\ \conf^\hgame_{2n+1}$};
+            \node at (2,0) (c5) {$\exists\ \conf^\game_{2n+2}$};
+            \node at (2,1) (c6) {$\conf^\hgame_{2n+2}$};
+        
+            \draw[- ] (c1) -- node[fill=white] {$\approx$} (c2);
+            \draw[- ] (c3) -- node[fill=white] {$\approx$} (c4);
+            \draw[- ] (c5) -- node[fill=white] {$\approx$} (c6);
+
+            \draw[->] (c1) -- node[above] {$\sigma^\game_A$} (c3);
+            \draw[->] (c3) -- node[above] {$\sigma^\game_B$} (c5);
+            \draw[->] (c2) -- node[above] {$\sigma^\hgame_A$} (c4);
+            \draw[->] (c4) -- node[above] {$\sigma^\hgame_B$} (c6);
+        \end{tikzpicture}
+        \caption{Configurations and strategies in \autoref{lem:bisim}}
+        \label{fig:bisim-win}
+    \end{figure}
+
+    Since $\sigma^\game_A$ is a winning strategy for player A in $\game$, the sequence $\conf^\game_0, \conf^\game_1, \dots$ is a winning play for player A, i.e. it does not visit the set of final configurations $\confset^\game_F$.
+    Thus, $\conf^\hgame_0, \conf^\hgame_1, \dots$ is also a winning play for player A, because for all $n \in \Nat$, $\conf^\game_n \approx \conf^\hgame_n$ and $\conf^\game_n \not\in \confset^\game_F$ implies $\conf^\hgame_n \not\in \confset^\hgame_F$.
+    Since $\sigma^\hgame_B$ was chosen arbitrarily, this shows that $\sigma^\hgame_A$ is a winning strategy for player A in $\hgame$.
+    Note that by \autoref{lem:positional}, player A could also choose a positional strategy instead.
+
+    The case where $\conf^\game_0 \in \confset^\game_B$ is similar, but with the recursive definition shifted by one, i.e. $\conf^\game_{2n+1} := \sigma^\game_B(\conf^\game_{2n})$ and so on.
+\end{proof}
+
+\subsection{SC Games}
+
+We want to define an \emph{SC game} as a safety game where the underlying transition system follows Sequential Consistency semantics.
+While the set of game configurations, the transition relation of the game and the set of its final configurations could be taken directly from the transition system $\TS^\SC_\program$, it is not straightforward to decide how the configuration set should be partitioned into $\confset_A$ and $\confset_B$.
+One idea that comes to mind would be to partition the \emph{local states} of each process.
+But whose turn is it if $\process^1$ is in a state belonging to player A but $\process^2$ is in a state belonging to player B?
+Which player is allowed to move first?
+The standard approach to solve this problem is to consider the product of the concurrent processes instead, i.e. to partition the set of \emph{global states}.
+Another common approach is to switch to turn-based games, where the players alternate in making a move in the game.
+
+For this present work, we chose the latter approach, which means that the players take turns executing exactly one instruction from an arbitrary process.
+This is because we can argue that turn-based games do not pose a significant restriction compared to games with state ownership, but instead can emulate most of their behaviour (see below).
+
+In the following formal definition of an SC game, we will create two copies of each SC configuration, annotated with $A$ and $B$, respectively.
+The transition relation of the game will be restricted to transitions between configurations of different players.
+The use of two identical sets of configurations, one for each player, may seem unnecessary at first glance.
+However, this distinction is crucial for the definition of TSO games in the next section, where the available instructions to execute differ between the two players A and B.
+Furthermore, it allows us to describe turn-based games using the framework of games with configuration ownership, as introduced in the beginning of this section.
+
+A program $\program = \tuple{\process^\pid}_{\pid \in \indexset}$ and a set of final local states $\stateset_F^\program \subseteq \stateset^\program$ induce a safety game $\game^\SC(\program,\stateset_F^\program) = \tuple{ \confset, \confset_A, \confset_B, \to, \confset_F }$ as follows.
+The sets $\confset_A$ and $\confset_B$ are copies of the set $\confset^\program$ of TSO configurations, annotated by $A$ and $B$, respectively:
+$$ \confset_A := \set{ \conf_A \mid \conf \in \confset^\SC_\program} \qquad \text{and} \qquad \confset_B := \set{ \conf_B \mid \conf \in \confset^\SC_\program}$$
+The set of final configurations is defined as:
+$$\confset_F := \set{ \tuple{ \statemap, \buffermap, \memorymap }_A \in \confset_A \mid \exists\: \pid \in \indexset: \statemap\of\pid \in \stateset_F^\program}$$
+That is, it is the set of all configurations where at least one process is in a final state.
+As described previously, the transition relation is defined by the program's instructions, in a way that the two players take turns alternatingly to execute these instructions:
+For each transition $\conf \to[\instr_\pid] \conf'$ where $\conf, \conf' \in \confset^\SC_\program$, $\pid \in \indexset$ and $\instr \in \instrs$, it holds that $\conf_A \to \conf'_B$ and $\conf_B \to \conf'_A$.
+\autoref{fig:sc-game} shows the transitions relation of the SC game induced by the program from \autoref{fig:concurrent-program}.
+\input{figures/sc_game}
+
+Note that in the analysis of SC games (and later of TSO games), we often talk about the program instruction that gives rise to a transition of $\game^\SC$ instead of talking about the transition explicitly.
+For example, in a situation where the game is in some configuration $\conf_A$ with $\statemap(\conf)(\pid) = \state$, we might say that player A executes instruction $\state \to[\instr] \state'$ and mean that player A moves from $\conf_A$ to $\conf'_B$, where $\conf'$ is the unique configuration obtained from executing $\instr$ at $\conf$.
+Similarly, for better readability we might drop the index $A$ or $B$ from a game configuration if it is clear from the context which player's turn it is.
+
+\paragraph{State ownership}
+As mentioned above, turn-based games can emulate games with state ownership.
+The following example illustrates this informal idea.
+Consider an instruction $\state_1 \to[\instr] \state_2$ in some process, where $\state_1$ is supposed to belong to player B.
+We modify the process by adding some new states and transitions, as shown in \autoref{fig:b-states}.
+Note that through a suitable definition of the set of final configurations $\confset_F$ we can ensure that reaching $\state_F$ means that player B wins the game.
+Suppose that the game is in a configuration where the process is in $\state_1$, it is player B's turn and she wants to execute the instruction $\instr$.
+She can do so by taking the transition from $\state_1$ to $\state_2'$.
+Afterwards, it is the turn of player A.
+She is forced to respond by taking the $\nop$ instruction from $\state_2'$ to $\state_2$.
+Otherwise, player B could move to $\state_F$ in her turn and win immediately.
+Now consider the same situation as before but it is the turn of player A instead.
+If she would execute the instruction $\instr$ and move to $\state_2'$, then player B could respond with moving to $\state_F$ and again win immediately.
+Therefore, player A is prevented from executing any instruction starting in $\state_1$.
+
+\begin{figure}
+    \centering
+    \begin{tikzpicture}[xscale=3,yscale=-1]
+        \node (r1) at (0, 0) {$\state_1$};
+        \node (r2) at (1, 0) {$\state_2'$};
+        \node (r3) at (2,-1) {$\state_2$};
+        \node (r4) at (2, 1) {$\state_F$};
+        \draw[->] (r1) -- node[above] {$\instr$} (r2);
+        \draw[->] (r2) -- node[above] {$\nop$} (r3);
+        \draw[->] (r2) -- node[below] {$\nop$} (r4);
+    \end{tikzpicture}
+    \caption{The gadget for a transition $\state_1 \to[\instr] \state_2$}
+    \label{fig:b-states}
+\end{figure}
+
+
+\paragraph{Complexity}
+In the following, we consider the safety problem for SC games.
+Unexpectedly, this problem is \exptime-hard even for games played on a single process.
+We prove this by reducing the \emph{word acceptance problem} of polynomial-space bounded \emph{alternating Turing machines} (ATM) to the safety problem of a single-process SC game.
+
+Consider an ATM $\atm = \tuple{\alphabet, \stateset, \state_0, \state_F, \stateset_\exists, \stateset_\forall, \transition}$ that is space-bounded by some polynomial $p(n)$.
+Given a word $\word \in \alphabet^n$, we construct a concurrent program $\program$ with a single process that simulates $\atm$.
+The key idea is to store the state and head position of the ATM in the local states of the process, and use a set of variables to save the word on the working tape.
+Based on the alternations of the Turing machine, either player A or player B decides which transition the program will simulate.
+More precisely, we let player B simulate $\atm$ at the existential states while player A has control over the simulation at the universal states.
+Player B will win the SC game induced by $\program$ if and only if $\atm$ accepts $\word$.
+
+$\program = \tuple\process$ uses the variables $\varset := \{ \pos \mid -p(n) \leq \pos \leq p(n)\} \subset \Int$ over the domain $\valset := \alphabet$ to store the content of the tape.
+The control state of $\atm$, the head position $\pos$ and all necessary intermediate values are stored in the local states of $\process$.
+The construction of $\process$ is shown in \autoref{fig:complexity}.
+Note that e.g. $(\state', \pos, b', \atmD)^A$ is a \emph{state} of $\process$ and not a \emph{configuration} of $\program$ or even $\game^\SC$.
+
+\input{figures/complexity}
+
+Define the set of local final states $\stateset_F^\program := \set{(\state_F, \pos) \mid -p(n) \leq \pos \leq p(n)}$ and the initial memory state $\memorymap_0$, where $\memorymap_0(\pos) = \word(\pos)$ for $1 \leq \pos \leq n$ and $\memorymap_0(\pos) = \blank$ otherwise.
+\begin{thm}
+\label{thm:atm}
+    $\atm$ accepts $\word \in \alphabet^n$ if and only if player B wins the game $\game^\SC(\program, \stateset_F^\program)$ from the initial configuration $\tuple{(\state_0, 1), \memorymap_0}_A$.
+\end{thm}
+\begin{proof}
+    Recall the definitions of $\confset_\infty$ and $\confset_k$ from \autoref{sec:atm} and suppose that $\atm$ accepts $\word$.
+    We argue that player B can force the simulation into $\state_F$ and describe a strategy for her to do so.
+    The main idea is that if the simulation is in a configuration $\conf \in \confset_k$ ($k > 0$), then player B can force the simulation into another configuration $\conf' \in \confset_{k-1}$.
+
+    Let the game be in configuration $\tuple{ (\state, \pos), \tape}_A$ which simulates the $\atm$-configuration $\tuple{ \state, \pos, \tape}$.
+    Note that $(\state, \pos)$ is the local state of $\process$ and $\tape: \varset \to \alphabet$ is its memory state.
+    (Formally, $\tape: \Int \to \alphabet$, but since $\varset \subset \Int$, this is only a slight abuse of notation.
+    Since $\tape\of\pos = \blank$ for all $\pos\not\in\varset$, $\tape: \varset \to \alphabet$ captures the same information as $\tape: \Int \to \alphabet$.)
+    Let $\sym = \tape(\pos)$ be the symbol under the head of the Turing machine and $\tuple{ \state, \pos, \tape} \in \confset_k$ for some $k > 0$.
+    Player A has to take the only enabled transition, which is $\rd(\pos, \sym)$ leading to the local state $(\state, \pos, \sym)^B$.
+    Now, the possible choices for player B depend on whether $\state$ is an existential or universal state.
+
+    If $\state \in \stateset_\exists$, then player B chooses an $\atm$-transition $\tuple{\state,\sym,\state',\sym',\atmD} \in \transition$ with $\tuple{ \state', \pos+\atmD, \word[\pos \gets \sym']} \in \confset_{k-1}$, which exists by definition of $\confset_k$.
+    Player B then moves to the local state $(\state', \pos, \sym', \atmD)^A$ and player A has to respond with $(\state', \pos, \sym', \atmD)^B$.
+
+    Otherwise, if $\state \in \stateset_\forall$, then player B must take the transition to the state $(\state, \pos, \sym)^A$.
+    From there, player A moves to some state $(\state', \pos, \sym', \atmD)^B$.
+    This implies that there is an $\atm$-transition $\tuple{ \state, \sym, \state', \sym', \atmD} \in \transition$.
+    From the construction of $\confset_k$, it follows that $\tuple{ \state', \pos + \atmD, \tape[\pos \gets \sym'] } \in \confset_{k-1}$.
+
+    In both cases, the game is now in some configuration $\tuple{ (\state', \pos, \sym', \atmD)^B, \tape }_B$ with $\tuple{ \state', \pos + \atmD, \tape[\pos \gets \sym'] }_A \in \confset_{k-1}$.
+    Player B takes the transition $\wr(\pos, \sym')$ and the game is in configuration $\tuple{ (\state', \pos + \atmD), \tape[\pos \gets \sym'] }_A$.
+    It follows by simple induction over $k$ that player B can force the game into simulating an $\atm$-configuration of $\confset_0$.
+
+    For the other direction, assume that $\atm$ does not accept $\word$.
+    This time we describe a strategy for player A to win the game.
+    Similar to the previous argumentation, we can show by induction that player A can simulate a sequence of configurations that are \emph{not} accepting.
+    The difference is that if $\state \in \stateset_\exists$, then player B can never choose any transition that leads to an accepting configuration, while in the case of $\state \in \stateset_\forall$, player A can always avoid accepting configurations.
+    This follows from the fact that the simulated $\atm$-configurations $\tuple{ \state, \pos, \tape}$ are not elements of any of the $\confset_k$.
+\end{proof}
+
+\begin{thm}
+    \label{thm:complexity}
+        The safety problem for SC games is \exptime-complete.
+    \end{thm}
+\begin{proof}
+    The word acceptance problem of a linearly bounded ATM $\atm$ is \exptime-hard \cite{DBLP:conf/focs/ChandraS76, DBLP:journals/jacm/ChandraKS81}.
+    In \autoref{thm:atm}, it is reduced to the safety problem for the SC game induced by a concurrent program $\program$.
+    This program has $\bigO(\sizeof\stateset \cdot \sizeof\alphabet \cdot p(n))$ local states, which is polynomial in the size of $\atm$.
+    It follows that the safety problem for TSO games is \exptime-hard.
+    Membership follows directly from \autoref{lem:finite} and the fact that for any $\program$, the game $\game^\SC(\program, \stateset^\program_F)$ has $\bigO(\Pi_{\pid \in \indexset} \sizeof{\stateset^\pid} \cdot \sizeof\valset^{\sizeof\varset})$ many configurations.
+\end{proof}
+
+\subsection{TSO Games}
+
+Given a $\program = \tuple{\process^\pid}_{\pid \in \indexset}$ and a set of final local states $\stateset_F^\program \subseteq \stateset^\program$, the TSO game $\game^\TSO(\program,\stateset_F^\program)$ is defined similar to the SC game $\game^\SC(\program,\stateset_F^\program)$.
+The only addition is that the game needs to be able to handle buffer updates.
+Therefore, we allow one or both of the players to perform buffer updates, either before or after their turn.
+Which player is allowed to do so and when exactly she is allowed to do so depends on the concrete instantiation of the TSO game.
+The complete transition rules of the TSO game are:
+\begin{itemize}
+    \item For each transition $\conf \to[\instr_\pid] \conf'$ where $\conf, \conf' \in \confset^\program$, $\pid \in \indexset$ and $\instr \in \instrs$, it holds that $\conf_A \to \conf'_B$ and $\conf_B \to \conf'_A$.
+    This is the same as for SC and means that each player can execute any TSO instruction, but they take turns alternatingly.    
+    \item \emph{If player A can update before her own turn:}
+    For each transition $\conf_A \to \conf'_B$ introduced by any of the previous rules, it holds that $\tilde\conf_A \to \conf'_B$ for all $\tilde\conf$ with $\tilde\conf \to[\up\kstar] \conf$.
+    \item \emph{If player A can update after her own turn:}
+    For each transition $\conf_A \to \conf'_B$ introduced by any of the previous rules, it holds that $\conf_A \to \tilde\conf'_B$ for all $\tilde\conf'$ with $\conf' \to[\up\kstar] \tilde\conf'$.
+    \item The update rules for player B are defined in a similar manner.
+\end{itemize}
+
+\input{figures/tso_game}
+From this definition, we obtain 16 different variants of TSO games, which differ in whether each of the players can update \emph{never}, \emph{before} her turn, \emph{after} her turn, or \emph{always} (before and after her turn).
+\autoref{fig:tso-game} shows the transition relation of the TSO game induced by the program from \autoref{fig:concurrent-program}, in the case where player A is allowed to update buffer messages both before and after her turn, but player B is not allowed to do so.
+
+We group games with similar decidability and complexity results together.
+An overview of these four groups is presented in \autoref{fig:tso-groups}.
+Each group is described in detail in the following sections.
+
+But first, we use the complexity results for SC games to obtain a lower bound for all groups of TSO games.
+Interestingly, we can argue that the exact type of TSO game is irrelevant.
+Note that the program $\program$ from \autoref{thm:atm} uses only one process and no memory fences or atomic read-writes.
+Consider the view the single process $\process$ has on a variable of the concurrent system.
+Independently of the buffer updates, the process will always read the last value that it has written:
+Either the last write is still in the buffer and will be read from there, or the process reads directly from the memory, which must contain the last value written by the process.
+Thus, any sequence of instructions executed in the SC game is also enabled in the TSO game.
+This is formalised through a bimsimulation between the games $\game^\TSO(\program, \stateset_F^\program) = \tuple{ \confset^\TSO, \confset^\TSO_A, \confset^\TSO_B, \to, \confset^\TSO_F}$ and $\game^\SC(\program, \stateset_F^\program) = \tuple{ \confset^\SC, \confset^\SC_A, \confset^\SC_B, \to, \confset^\SC_F}$.
+
+For a TSO configuration $\conf$, let $\bar\conf$ be the configuration obtained from $\conf$ by updating all buffer messages to the memory, i.e. $\conf \to[\up\kstar] \bar\conf$ and $\buffermap(\bar\conf) = \tuple\varepsilon$.
+Note that $\bar\conf$ is unique since $\program$ has only one process and thus there is only one way to update all messages.
+We extend this notation to game configurations in the obvious way.
+\begin{lem}
+\label{lem:SC-TSO-bisim}
+    The relation
+    $$\bisim := \set{ (\conf, \tuple{\statemap\of\conf, \memorymap(\bar\conf)}) \mid \conf \in \confset^\TSO} \subset (\confset^\TSO \times \confset^\SC)$$
+    is a bisimulation between $\game^\TSO(\program, \stateset_F^\program)$ and $\game^\SC(\program, \stateset_F^\program)$.
+\end{lem}
+\begin{proof}
+    We need to show that for all $(\conf_1, \conf_2) \in \bisim$:
+    \begin{itemize}
+        \item For all $\conf_1 \to \conf_3$ in $\game^\TSO$, there is $\conf_2 \to \conf_4$ in $\game^\SC$ with $\conf_3 \approx \conf_4$.
+        \item For all $\conf_2 \to \conf_4$ in $\game^\SC$, there is $\conf_1 \to \conf_3$ in $\game^\TSO$ with $\conf_3 \approx \conf_4$.
+        \item $\conf_1 \in \confset^\TSO_A$ if and only if $\conf_2 \in \confset^\SC_A$.
+        \item $\conf_1 \in \confset^\TSO_F$ if and only if $\conf_2 \in \confset^\SC_F$.
+    \end{itemize}
+    For the first property, consider a transition $\conf_1 \to \conf_3$ in $\game^\TSO$.
+    It is due to some instruction $\statemap(\conf_1) \to[\instr] \statemap(\conf_3)$ in $\process$ of $\program$.
+    If $\instr = \rd\of\xd$ for some variable $\xvar$ and value $\dval$, then $\dval$ must be the value of the last $\xvar$-message in the buffer of $\conf_1$, or the buffer does not contain such a message and $\dval$ is the value of $\xvar$ in the memory.
+    In both cases, $\memorymap(\bar\conf_1)\of\xvar = \dval$.
+    Thus, $\rd\of\xd$ is enabled at $\conf_2$, since $\statemap(\conf_1) = \statemap(\conf_2)$ and $\memorymap(\bar\conf_1) = \memorymap\of{\conf_2}$.
+    Otherwise, if $\instr$ is an instruction other than $\rd$, it is always enabled at $\statemap(\conf_2)$.
+    Note that $\instr\neq\mf$ and $\instr\neq\arw\of\xdd$ since $\program$ does not use memory fences.
+
+    Let $\conf_4$ be the unique SC configuration obtained from $\conf_2$ after executing the program instruction $\statemap(\conf_1) \to[\instr] \statemap(\conf_3)$.
+    If $\instr = \wr\of\xd$ for some variable $\xvar$ and value $\dval$, then $\memorymap(\bar\conf_3) = \memorymap(\bar\conf_1)[\xvar\gets\dval]$ and $\memorymap(\conf_4) = \memorymap(\conf_2)[\xvar\gets\dval]$.
+    This holds even if $\conf_1 \to \conf_3$ includes buffer message updates of any kind.
+    Otherwise, if $\instr$ is an instruction other than $\wr$, it simply holds that $\memorymap(\bar\conf_3) = \memorymap(\bar\conf_1)$ and $\memorymap(\conf_4) = \memorymap(\conf_2)$.
+    Since $\memorymap(\bar\conf_1) = \memorymap(\conf_2)$, we have $\memorymap(\bar\conf_3) = \memorymap(\conf_4)$.
+    Using $\statemap(\conf_3) = \statemap(\conf_4)$ we conclude that $\conf_3 \approx \conf_4$.
+
+    The second property is proven analogously.
+    The third and fourth properties are trivially fulfilled by the definition of $\bisim$.
+\end{proof}
+
+\pagebreak[5]
+
+\begin{cor}
+\label{cor:complexity}
+    The reachability problem for TSO games is \exptime-hard.
+\end{cor}
+\begin{proof}
+    This follows directly from \autoref{lem:bisim}, \autoref{thm:atm}, \autoref{lem:SC-TSO-bisim} and the fact that the word acceptance problem of linearly bounded ATMs is \exptime-hard.
+    Note that \autoref{lem:bisim} is applicable since $\conf \approx \conf'$ implies $\statemap(\conf) \in \stateset^\program_F \iff \statemap(\conf') \in \stateset^\program_F$.
+\end{proof}

@@ -1,0 +1,21 @@
+\begin{table*}[!tb]
+\centering
+\caption{Definition of the GEMINI for $f$-divergences, MMD and the Wasserstein distance. We directly write here the equation that can be optimised to train a discriminative model $\pyx$ via stochastic gradient descent since they are expectations over the data.}
+\label{tab:all_geminis}
+\begin{tabular}{c c}
+\toprule
+Name&Equation\\\hline\\
+KL OvA/MI& $\E_{\pdata}\left[D_\text{KL}(\pyx \|\py)\right]$\\
+KL OvO& $\E_{\pdata}[D_\text{KL}(\pyx \| \py))+D_\text{KL}(\py \| \pyx))]$\\
+\begin{minipage}{0.2\linewidth}\centering Squared Hellinger\\OvA\end{minipage} & $1-\E_{\pdata}[\E_{\py}[\sqrt{\frac{\pyx}{\py}}]]$\\
+\begin{minipage}{0.2\linewidth}\centering Squared Hellinger\\OvO \end{minipage} & $\E_{\pdata}[\mathbb{V}_{\py}[\sqrt{\frac{\pyx}{\py}}]]$\\
+TV OvA& $\E_{\pdata} [D_\text{TV} (\pyx \| \py) ]$\\
+TV OvO& $\frac{1}{2}\E_{\pdata}[\E_{\ya,\yb\sim\py}[|\frac{ \pyxa }{ \pya } - \frac{\pyxb}{\pyb}|]]$\\
+\midrule\\
+MMD OvA& $\E_{\py} \left[ \E_{\xa,\xb \sim \pdata} \left[ k(\xa, \xb) \left( \frac{\p(y|\xa)\p(y|\xb)}{\py^2} + 1 - 2\frac{\p(y|\xa)}{\py}\right) \right]^{\frac{1}{2}}\right]$ \\
+MMD OvO& \begin{minipage}{0.7\linewidth}\centering\begin{multline*}\E_{\ya,\yb \sim \py} \left[ \E_{\xa,\xb \sim \pdata} \left[ k(\xa, \xb) \left( \frac{\p(\ya|\xb) \p(\ya|\xb)}{\pya^2} \right.\right.\right.\\\left.\left.\left. + \frac{\p(\yb |\xa)\p(\yb|\xb)}{\pyb^2} - 2\frac{\p(\ya |\xa)\p(\yb|\xb)}{\pya\pyb}\right) \right]^{\frac{1}{2}}\right] \end{multline*}\end{minipage}\\
+Wasserstein OvA&$\mathbb{E}_{\py}\left[\mathcal{W}_c\left(\sum_{i=1}^N m_i^y\delta_{\vec{x}_i},\sum_{i=1}^N \frac{1}{N}\delta_{\vec{x}_i}\right)\right]$\\
+Wasserstein OvO&$\mathbb{E}_{\ya,\yb\sim \py}\left[\mathcal{W}_c\left(\sum_{i=1}^N m_i^{\ya}\delta_{\vec{x}_i},\sum_{i=1}^N m_i^{\yb}\delta_{\vec{x}_i}\right)\right]$\\
+\bottomrule
+\end{tabular}
+\end{table*}

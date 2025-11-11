@@ -1,0 +1,91 @@
+% !TEX root = neurips_2021.tex
+
+\section{Introduction} \label{section:intro}
+Physical processes $\left(x_n\right)_{n=0}^N \in \mathbb{R}^{d_x}$ can often be described via a discrete-time dynamical system
+\begin{equation}\label{eq:dyn}
+\begin{aligned}
+x_{n+1}= f(x_n).
+\end{aligned}
+\end{equation}
+In practice, the dynamics $f$ are often unknown but measurements are available.  
+Typically, it is not possible to measure the full state space but noisy measurements $\hat{y}_n$ for a function $g$ of the states can be obtained by sensors, thus
+\begin{equation}\label{eq:obs}
+\begin{aligned}
+y_n & = g(x_n) \\
+\hat{y}_n  &= y_n +\epsilon_n, \textrm{ with } \epsilon_n \sim \mathcal{N}(0,\sigma^2),
+\end{aligned}
+\end{equation}
+and $g: \mathbb{R}^{d_x} \rightarrow  \mathbb{R}^{d_y}$.
+Our general motivation here is to make accurate predictions for the future behavior of the measurable states $y_n$ in Eq.~\eqref{eq:obs}.
+One common strategy to address this problem is to train recurrent architectures on $\hat{y}_n$ in Eq.~\eqref{eq:obs} \citep{HochSchm97, 10.5555/3305890.3305957}.
+Analogous to the unknown system, they possess internal latent states.
+Predictions are obtained by mapping the latent states to the measurable states $y_n$ (cf. Eq. \eqref{eq:obs}) via an observation model. 
+While these methods are able to accurately reflect the system's transitions, they often lack physically meaningful predictions, e.g. by violating physical laws. 
+Further, small model mismatches lead to accumulating errors over time in the latent states and thus, also in the predictions  \citep{DBLP:conf/iclr/ZhouLXHH018}.
+
+To address these problems, it is often beneficial to include physical prior knowledge such as energy conservation, invariants etc. in the architecture \citep{chen2020symplectic, NEURIPS2019_26cd8eca}.  
+For many systems, it is even possible to model a physics-based simulator for the system producing stand-alone predictions \citep{10.1145/3447814, 10.1145/3514228}.
+By design, predictions from these models are physically meaningful.
+Further, they typically do not suffer as much from error accumulation.
+However, modeling simplifications or incomplete knowledge lead to inaccuracies in the model.
+In order to combine the best of both worlds, hybrid modeling (HM) fuses physics-based simulations with learning-based approaches \citep{takeishi2021physicsintegrated, wehenkel2023robust, yin2021augmenting}.
+Most hybrid modeling approaches rely on analytical descriptions of physics laws.
+However, such simulators are often not available in practice. 
+Instead, numerical simulators building on these laws are available that are incompatible with most HM approaches.
+Further, simulator software is often proprietary.
+As a consequence, the simulators are often black-box. 
+More specifically, they provide approximations $\hat s \in \mathbb{R}^{d_s}$ to the true outputs $y$ (cf. Eq.~\eqref{eq:obs}). 
+Any additional insight as access to the simulator's internal latent states or dynamics is not available.
+
+We propose to extract the hidden information and dynamics of the simulator outputs. 
+By informing the latent states of a learning-based model with this information, we prevent them from error accumulation and ensure that they are consistent with the simulator.
+In contrast to our approach, previous approaches in the black-box HM case, typically fuse the final predictions to one common prediction. 
+The simplest approach is fusing them additively via a residuum model \citep{Suhartono_2017},
+while more sophisticated approaches e.g. leverage the spectral properties \citep{ensinger2023combining}.
+Thus, the simulator has an influence on the final predictions but not on the evolution of the learning-based component. 
+Instead, we directly control the root of accumulating errors in the predictions by correcting the latent states. 
+This approach is also less restrictive than, e.g., a simple residuum model since it requires less informative simulator trajectories. 
+
+On a technical level, we inform our latent states by leveraging observers. 
+Observers are commonly used in control systems inferring unknown latent states from observations for a \emph{known} dynamics model over time \citep{observer, BERNARD2022224}. 
+Here, we propose to leverage them in a HM scenario.
+In particular, we learn the dynamics for latent states that can explain both, data and simulator via separate observation models.
+These latent states are informed and controlled via the simulator by learning an observer that receives the simulator outputs as input. 
+Intuitively, the observer constantly minimizes the error between predicted and measured simulator outputs.
+Thus, it compensates for model mismatch and prevents the latent states from accumulating errors.
+As a consequence, it also prevents the predictions from accumulating errors, since latent states are mapped to predictions via the observation model. 
+With the observer architecture, we ensure physical behavior to some extent. 
+This is due to the fact that we can only reconstruct latent states that are able to explain the physics-based simulator. 
+ 
+To maintain the flexibility of recurrent architectures, we train an additional recurrent neural network (RNN)-based residuum to address parts of the system, where the simulator is not informative. 
+The influence of both components can be balanced in the loss. 
+Additionally, the learning-based residuum can be controlled, e.g. by forcing it to vanish over time modeling transient behavior. 
+Thus, we obtain full control over all components of the model enabling the simulator to take over as much responsibility over the predictions as desired. 
+In the experiments, we show that our model produces accurate short and long-term predictions and is on par or better than baselines.
+In particular, it also outperforms a recurrent architecture that receives the simulator as control input \citep{SCHON202219, 10.1145/3447814}, especially when the simulator is only partially informative. 
+We also derive the differences and advantages with respect to this architecture intuitively and mathematically and support the empirical findings.  
+ 
+Our model has additional advantages. 
+Due to its architecture, system and simulator dynamics are modeled simultaneously.
+This information can be used to buffer missing simulator outputs.
+Further, the method can be extended to the pure learning-based scenario. 
+Here, we substitute the simulator with a robust but incomplete learning-based substitute.
+As in the hybrid case, the substitute prevents the full system from accumulating errors. 
+In summary, our contributions are:
+
+\begin{compactitem}
+	\item A new view on HM that aims to maximize the influence of a black-box simulator by splitting the latent dynamics into two parts. One is fully controlled by the simulator, the other can be regularized arbitrarily. 
+    \item An observer-based architecture that informs and constantly corrects the latent states of a learning-based model via the simulator. Thus, preventing error accumulation.
+    \item We achieve higher or equal accuracy than learning-based and hybrid baselines. 
+\begin{figure*}[tb]
+	\centering
+	\includegraphics[width=0.92\textwidth]{scheme_full.png}
+	\caption{High-level overview of our method. Transition model (left): The simulator signal $\hat{s}$ is fed into a trainable observer to infer the OVS states $u$. 
+	The non-OVS states $v$ are learned by an additional RNN. 
+	Observation model (right): The simulator is reconstructed by $h_{\theta}$, while $g_{\theta}$ and $r_{\theta}$ reconstruct the measurements.}
+	\label{fig:scheme}
+\end{figure*} 
+\end{compactitem}
+
+
+

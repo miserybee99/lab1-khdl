@@ -1,0 +1,277 @@
+\subsection{Ablation Studies on Vote2Cap-DETR}
+\label{subsec:ablations-vote2cap}
+
+We conduct extensive experiments with Vote2Cap-DETR to study the effectiveness of the proposed components.
+% 
+Without further specification, all experiments are conducted under the ``w/o additional 2D'' setting introduced in section \ref{subsec:datasets,metric,implementation}.
+
+
+
+
+
+\input{sections/tables/ablation-vote-query}
+\myparagraph{How does the Vote Query Improve 3DETR?}
+% 
+For fair comparisons, we first train a VoteNet\cite{qi2019votenet} and a 3DETR-m\cite{misra2021-3detr} model with the same training strategy mentioned described in section \ref{subsec:datasets,metric,implementation} as our baseline.
+% 
+Because of the longer and more advanced training strategy, our re-implemented VoteNet (VoteNet$^*$ in Table \ref{tab:ablation_detection}) performs significantly better than the basic version introduced in \cite{chen2021scan2cap}.
+% 
+All comparisons are made on the ScanNet\cite{dai2017scannet} validation set.
+
+
+
+As mentioned above, we formulate the object queries into $\left(p_{query}, f^{0}_{query}\right)$ so that the seed queries in 3DETR-m\cite{misra2021-3detr} and our proposed vote query could be written as $\left(p_{seed}, \mathbf{0}\right)$ and $\left(p_{vq}, f_{vq}\right)$ respectively.
+% 
+We also introduce one more variant of vote query $\left(p_{vq}, \mathbf{0}\right)$ which only introduces 3D spatial bias.
+% 
+One can see from Table \ref{tab:ablation_detection} that the introduction of 3D spatial bias itself to the query position $p_{vq}$ leads to an improvement in detection (\textcolor{mygreen}{+0.97}\% mAP@0.5).
+% 
+However, it converges slower in the earlier training procedure than in the 3DETR-m baseline, inferring the vote query generation module is not well learned to predict accurate spatial offset estimations at early training epochs.
+% 
+Besides, we can see a boost in both convergence and performance (\textcolor{mygreen}{+2.98}\% mAP@0.5) when we aggregate local contents for initial query feature $f_{vq}$ as well.
+% 
+The overall performance of Vote2Cap-DETR is \textcolor{mygreen}{+3.95}\% mAP@0.5 higher than the 3DETR-m baseline, and \textcolor{mygreen}{+7.17}\% mAP@0.5 higher than the widely adopted VoteNet baseline.
+% 
+
+
+
+
+\myparagraph{How does 3D Context Feature Help Captioning?}
+% 
+Because the evaluation protocol of 3D dense captioning depends on both the localization and caption generation capability, we freeze all parameters other than the caption head and train with the standard cross entropy loss for a fair comparison.
+% 
+Specifically, we employ the object-centric decoder\cite{wang2022spacap3d} as our baseline, which is a transformer-based model that can generate captions with an object's feature as the prefix of the caption.
+%
+In Table \ref{tab:ablation_caption_memory}, ``-'' refers to the object-centric decoder baseline, ``global'' naively involves all context tokens extracted from the scene encoder in the decoder, and ``local'' is our proposed \textbf{D}ual \textbf{C}lued \textbf{C}aptioner (DCC) that incorporates a vote query's $k_s$ ($k_s=128$ empirically) nearest context tokens extracted from the scene encoder.
+
+
+Results show that the caption generation performance benefits from the introduction of additional contextual information.
+%
+Moreover, comparing to the naive inclusion of contextual information from the whole scene, the introduction of local context yields better results, which supports our motivation that considering the close surroundings of an object is crucial when describing it.
+
+\input{sections/tables/ablation-captioner-keys}
+
+
+
+\myparagraph{Does Set-to-Set Training Benefit 3D Dense Captioning?}
+%
+To analyze the effectiveness of set-to-set training, we use a smaller learning rate ($10^{-6}$) for all parameters other than the caption head and freeze these parameters during SCST.
+%
+In Table \ref{tab:set-to-set-training} We refer to the conventional training strategy widely used in previous studies \cite{chen2021scan2cap,wang2022spacap3d} as ``Sentence Training'', which traverses through all sentence annotations in the dataset.
+%
+As shown in Figure \ref{fig:set-to-set}, our proposed ``Set-to-Set'' training achieves comparable results with the traditional strategy during MLE training and converges faster because of a larger batch size on the caption head.
+This also contributes to SCST.
+
+\input{sections/tables/ablation-set-to-set-training}
+
+
+\myparagraph{End-to-End Training from Scratch.}
+%
+Vote2Cap-DETR also enables end-to-end training from scratch for 3D dense captioning. 
+%
+However, both ScanRefer and Nr3D are annotated on limited scenes (562/511 scenes) for training; thus, directly training Vote2Cap-DETR from scratch will underperform given to satisfy two objectives simultaneously.
+% 
+As experiments shown on ScanRefer in Table \ref{tab:end-to-end}, the greedy strategy we choose by pre-training the backbone on the detection task serves as a good pre-requisite for captioning to achieve better performance.
+% 
+\input{sections/tables/ablation-end-to-end-training}
+
+
+
+
+
+
+\myparagraph{Is Vote2Cap-DETR Robust to NMS?}
+%
+Similar to other DETR works, the set loss encourages the model to produce sparse and non-duplicate predictions.
+%
+In Table \ref{tab:effect-nms}, we present a comparison on evaluating both 3D dense captioning (C@0.5) and detection (mAP50, AR50).
+%
+Since the $m@kIoU$ metric (Eq. \ref{eq:m@kIoU}) does not contain any penalties on redundant predictions, getting rid of NMS\cite{neubeck2006nms} results in performance growth in C@0.5.
+%
+Results demonstrate that Vote2Cap-DETR exhibits higher stability compared with VoteNet-based 3D dense captioning methods (\textit{i.e.} SpaCap3D\cite{wang2022spacap3d}, and 3DJCG\cite{cai20223djcg}) without the presence of NMS.
+%
+\input{sections/tables/ablation-robust-nms}
+
+
+
+
+
+\subsection{Ablation Studies on Vote2Cap-DETR++}
+\label{subsec:ablations-vote2cap++}
+
+
+\begin{figure*}[htbp]
+    \centering
+    % 
+    \hfill
+    % 
+    \begin{minipage}[t]{0.24\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{sections/viz-query/refined-vote-plot-0.pdf}
+    \end{minipage}
+    % 
+    \hfill
+    % 
+    \begin{minipage}[t]{0.24\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{sections/viz-query/refined-vote-plot-1.pdf}
+    \end{minipage}
+    % 
+    \hfill
+    % 
+    \begin{minipage}[t]{0.24\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{sections/viz-query/refined-vote-plot-2.pdf}
+    \end{minipage}
+    % 
+    \hfill
+    % 
+    \begin{minipage}[t]{0.24\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{sections/viz-query/refined-vote-plot-3.pdf}
+    \end{minipage}
+    % 
+    \caption{
+        \textbf{The spatial distribution of vote queries in different decoder layers.}
+        % 
+        For each seed point, we find its nearest object, and calculate its corresponding vote query's spatial distance to that object.
+        % 
+        One can see that as a layer goes deeper in the decoder, more and more vote queries are getting close to the objects.
+	}
+    \label{fig:query decoder layer}
+\end{figure*}
+
+
+\begin{figure*}[htbp]
+	\centering
+	\includegraphics[width=\linewidth]{exp-fig/qualitative-all.pdf}
+	\caption{
+    	\textbf{Qualitative results of our proposed methods on ScanRefer and Nr3D validation set.}
+        % 
+        We showcase the localization results with the corresponding captions generated.
+        % 
+        One can see that our proposed methods are able to generate tight bounding boxes close to the object surfaces and accurate descriptions.
+    }
+	\label{fig:qualitative}
+\end{figure*}
+
+
+\whatsnew{
+In this section, we also provide thorough experiments under the same setting as section \ref{subsec:ablations-vote2cap} to study different components proposed in Vote2Cap-DETR++.
+}
+
+\input{sections/tables/per-layer}
+
+\myparagraph{Which Layer Shall We Refine the Queries?}
+% 
+\whatsnew{
+To better analyze the effectiveness of the iterative spatial refinement strategy for vote queries in Vote2Cap-DETR++, we first evaluate a per-layer detection performance of different decoder layers in Vote2Cap-DETR on the ScanNet\cite{dai2017scannet} validation set in Table \ref{tab:per-layer}.
+% 
+One can see that the performance grows as the layer goes deeper.
+% 
+Concurrently, the performance of the first three decoder layers is relatively poor and varies greatly, while the performance of the last five layers are similar ($\ge$ 52.0\% mAP@0.5).
+% 
+Thus, we compare different combinations in Table \ref{tab:revoting}.
+% 
+Here, the baseline model marked ``-'' does not perform any refinement step, which downgrades to Vote2Cap-DETR.
+% 
+The model marked ``\textit{all}'' implies that we adopt the refinement strategy along all the decoder layers.
+% 
+The results marked $[0, 1]$ and $[0, 1, 2]$ stand for refining vote queries in the first two (layer 0 and 1), and the first three layers (layer 0, 1, and 2) respectively.
+% 
+Experiments show that adopting the spatial refinement in the first three decoder layers achieves the best performance.
+}
+
+\input{sections/tables/ablation-revote}
+
+
+
+\myparagraph{Per-Layer Detection Comparison between Vote2Cap-DETR and Vote2Cap-DETR++.}
+\whatsnew{
+% 
+We compare the detection performance among different decoder layers in Vote2Cap-DETR and Vote2Cap-DETR++ in Table \ref{tab:per-layer-comparison}.
+% 
+The first decoder layer has similar performance, while the following three layers of Vote2Cap-DETR++ perform far better than those in Vote2Cap-DETR (\textcolor{mygreen}{+1.66}\%, \textcolor{mygreen}{+2.46}\%, \textcolor{mygreen}{+2.23}\% mAP@0.5).
+% 
+This further indicates that the first three layers efficiently move the queries spatially to precise locations close to objects, leading to box estimations of higher quality.
+}
+\input{sections/tables/per-layer-vote2cap-vs-++}
+
+
+
+\myparagraph{Spatial Location of Queries in Different Decoder Layers.}
+\whatsnew{
+% 
+We showcase the distribution of spatial locations for vote queries in different decoder layers. 
+% 
+As mentioned above, the last five decoder layers share the same spatial location of vote queries.
+% 
+For each seed point, we find its nearest object, and calculate its corresponding vote query's spatial distance to that object in Figure \ref{fig:query decoder layer}.
+% 
+Results show that the seed points that are initially far away from the objects get closer and closer to nearby objects as the decoder layer goes deeper, resulting in higher-quality box estimations with faster convergence.
+% 
+}
+
+
+
+\myparagraph{Comparing with Other 3DETR Attempts.}
+% 
+\whatsnew{
+Since there are few works that directly improve 3DETR\cite{misra2021-3detr}, we compare our proposed Vote2Cap-DETR and Vote2Cap-DETR++ with the hybrid matching strategy\cite{jia2022hybriddetrs} and the learnable anchor points\cite{wang2022anchor} in Table \ref{tab:other 3detr attempts}.
+% 
+In practice, the hybrid matching strategy maintains another set of object queries that are supervised by one-to-many label assignment, while the learnable anchor points are randomly initialized following \cite{wang2022anchor}.
+% 
+As shown in Table \ref{tab:other 3detr attempts}, both methods are inferior to either of our proposed methods.
+% 
+Though the hybrid matching accelerates the training of 3DETR-m in the early training epochs, it still falls behind Vote2Cap-DETR when it converges.
+% 
+Further, the advanced version, Vote2Cap-DETR++, has a faster convergence speed in the early stage than any other methods, and even a better detection performance (\textcolor{mygreen}{+3.35}\% mAP@0.5) than Vote2Cap-DETR when the model converges.
+}
+\input{sections/tables/ablation-comparing-vote-query-to-others}
+
+
+
+
+\myparagraph{Design of Decoupling Queries.}
+% 
+\whatsnew{
+We conduct studies on different designs for task-specific queries on the ScanRefer validation set in Table \ref{tab:decouple query}.
+% 
+The first row refers to our baseline method that generates captions and localizes objects with shared queries as Vote2Cap-DETR.
+% 
+One can see that standalone decoupling of the queries leads to a performance drop.
+% 
+However, when we link the [CAP] queries with [LOC] queries through token-wise projection, we witness a relative performance improvement of \textcolor{mygreen}{+1.57}\% C@0.5.
+}
+\input{sections/tables/ablation-decouple}
+
+
+
+
+
+
+
+\myparagraph{How does additional 3D Spatial Information Help Captioning?}
+% 
+\whatsnew{
+To address the effectiveness of different designs of the spatial information injection, we evaluate the performance of different strategies on ScanRefer\cite{chen2020scanrefer} validation set in Table \ref{tab:captioner spatial} with a frozen backbone.
+% 
+In Table \ref{tab:captioner spatial}, the model in the first row downgrades to DCC since there is no additional spatial information injected into the model.
+% 
+It can be seen that introducing an additional position embedding token $\mathcal{V}^{q}_{pos}$ as the caption prefix largely improves the quality of the generated captions.
+% 
+We also find out that compared with absolute 3D positional encoding, using a shared ranking-based position embedding of context tokens $\mathcal{V}^{s}_{pos}$ further improves the captioning performance.
+}
+\input{sections/tables/ablation-captioner-spatial}
+
+
+
+
+
+\myparagraph{Per-class Detection Performance.}
+% 
+We list per-class detection AP results of the re-implemented VoteNet\cite{qi2019votenet}, 3DETR-m\cite{misra2021-3detr}, and our proposed Vote2Cap-DETR and Vote2Cap-DETR++ on ScanNet\cite{dai2017scannet} validation set under an IoU threshold of 0.5 in Table \ref{tab:ScanNet AP per class}.
+%
+The overall performance is listed in Table \ref{tab:ablation_detection}.
+
+\input{sections/tables/ablation-per-class}

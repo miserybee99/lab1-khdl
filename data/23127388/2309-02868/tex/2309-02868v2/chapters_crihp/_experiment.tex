@@ -1,0 +1,89 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Experiments
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Experiments}
+\label{sec:experiments}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 4.1
+%%%%%%%%
+\subsection{Experimental Setup}
+\label{ssec:4-1}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% table-1
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{table*}[htbp]
+\centering
+\vspace{-2mm}
+\caption{Performance comparison with neural TPP baselines across three datasets. Higher accuracy (ACC) and lower root mean squared error (RMSE) indicate better model performance.}
+\vspace{-2mm}
+\label{table:table-1}
+\scalebox{1.2}{
+\begin{tabular}{ccccccccccc}
+\toprule
+\multicolumn{2}{c}{Models}   & \multicolumn{2}{c}{RNN-based} & \multicolumn{3}{c}{Attention-based} & \multicolumn{3}{c}{GNN-based} \\
+\cmidrule(lr){3-4}\cmidrule(lr){5-7}\cmidrule(lr){8-10}
+\multicolumn{2}{c}{Datasets}                                             & RMTPP            & NHP            & THP            & SAHP   & Att-NHP        & GeoHP           & GCHP-GCN          & CRIHP        \\ \midrule
+\multicolumn{1}{c|}{\multirow{2}{*}{IPTV}} & \multicolumn{1}{c|}{ACC}  & 56.67 & 50.06  & 72.10          & 71.83  & 73.12       & 43.05          & 75.35        & \textbf{76.72} \\
+\multicolumn{1}{c|}{}                       & \multicolumn{1}{c|}{RMSE}  & 22.574 & 18.812 & 12.780          & 13.211   & 11.256     & 20.087         & 10.866       & \textbf{10.131}  \\ \midrule
+\multicolumn{1}{c|}{\multirow{2}{*}{ATM}} & \multicolumn{1}{c|}{ACC}  & 76.70 & 73.67 & 70.71          & 67.20   & 75.92      & 21.62        & 90.88      & \textbf{91.95}         \\
+\multicolumn{1}{c|}{}                       & \multicolumn{1}{c|}{RMSE}  & 6.221 & 7.031 & 3.820         & 4.591    & 4.130     & 9.014         & 2.612        & \textbf{2.598}      \\ \midrule
+\multicolumn{1}{c|}{\multirow{2}{*}{Weeplace}}   & \multicolumn{1}{c|}{ACC}  & 21.97 & 25.17  & 29.10         & 28.65   & 29.38     & 19.22         & 31.81        & \textbf{32.06}     \\
+\multicolumn{1}{c|}{}                       & \multicolumn{1}{c|}{RMSE}  & 7.320 & 6.719 & 6.695          & 6.889   & 6.775      & 25.330         & 6.493       & \textbf{6.452} \\ \bottomrule
+\end{tabular}
+}
+\end{table*}
+
+We validate the performance of our CRIHP on multiple real-world asynchronous time series forecasting datasets, including ATM\cite{42:conf/aaai/XiaoYYZC17}, IPTV\cite{43:journals/tbc/LuoXZDXYZ14}, and Weeplace\cite{44:cheng2011toward}. The ATM dataset was provided by 1554 ATMs at a bank in North America, and their event logs of error reporting were recorded. The IPTV data set is provided by China Telecom, which records the sequence of users' viewing behaviors on the network TV. The log information includes the start and end timestamps of each viewing record, the names of the TV programs, and the corresponding category. Weeplace is a Point of Interest (POI) dataset published by Twitter users, and each POI data contains information on geographical location, including latitude and longitude, and area category labels. We extensively compare the CRIHP model with seven existing neural point process models in three categories, including two RNN-based TPP models (including RMTPP \cite{11:conf/kdd/DuDTUGS16}, NHP \cite{12:conf/nips/MeiE17}), three Attention-based TPP models (including THP \cite{15:conf/icml/ZuoJLZZ20}, SAHP \cite{14:zhang2020self}, Att-NHP \cite{48:conf/iclr/MeiYE22}), and two GNN-based TPP models (including GeoHP \cite{45:conf/aaai/ShangS19} and GCHP-GCN \cite{24:conf/kdd/LiLKP21}). We use ACC and RMSE to evaluate the predictive performance of the model for mark information and occurrence time of the next event, and train 200 epochs for each experiment.
+
+\begin{figure}[htp]
+\centering
+\includegraphics[width=0.45\textwidth]{images_crihp/exp_ablation.pdf}\par
+\vspace{-2mm}
+\caption{Sensitivity analysis of $n_{PT}$ and $M_{PT}$ on ATM and IPVE.}
+\vspace{-2mm}
+\label{fig:fig-exp}
+\end{figure}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 4.2
+%%%%%%%%
+\subsection{Main Results}
+\label{ssec:4-2}
+
+Table~\ref{table:table-1} compares the performance of CRIHP against seven baseline models on different datasets. The results show that CRIHP outperforms the other models in predicting the next event marks and times across all three datasets. This advantage stems from CRIHP's effective modeling of interactions between events. The experiments demonstrate inference of event relations enables superior predictive performance compared to RNN and attention-based models lacking relational reasoning. By incorporating variational inference and contrastive learning, CRIHP exhibits greater expressiveness than existing GNN models. Moreover, the advantages of CRIHP over baselines are most pronounced on the IPTV dataset. The richer event marks in IPTV increase the difficulty of forecasting, which CRIHP handles well through its relational approach to event structure modeling. Overall, CRIHP's relational modeling of complex inter-event effects underlies its strong performance on event sequence prediction tasks.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% table-2
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{table}[htbp]
+ \centering
+ \vspace{-2mm}
+ \caption{Ablation study of the latent variable model, front graph, and CRI.}
+ \vspace{-2mm}
+ \label{table:table-2}
+ \scalebox{1.2}{
+ \begin{tabular}{ccccc} 
+   \toprule 
+    Dataset & \multicolumn{2}{c}{ATM} & \multicolumn{2}{c}{IPTV} \\
+    \cmidrule(lr){2-3}\cmidrule(lr){4-5}
+    Model & ACC & RMSE & ACC & RMSE\\
+   \midrule w/o LVM & 90.60 & 2.636 & 75.21 & 10.878 \\ 
+            w/o  front graph & 89.33 & 3.292 & 74.73 & 11.342 \\ 
+   \midrule w/o CRI & 89.56 & 3.174 & 74.65 & 11.002 \\
+            w/o prototype search & 90.72  & 2.832 & 75.40 & 10.432\\ 
+   \midrule Ours & \textbf{91.95} & \textbf{2.598} & \textbf{76.72} & \textbf{10.131} \\
+   \bottomrule 
+ \end{tabular} }
+\end{table}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 4.3
+%%%%%%%%
+
+\subsection{Ablation Study}
+\label{ssec:4-3}
+To demonstrate the effectiveness of our proposed CRIHP, we conduct ablation studies using two benchmark datasets: ATM and Weeplace. First, we evaluated the effectiveness of the latent variable model and the front graph. Based on the CRIHP model, we remove the NRI and temporal kernel graph respectively, As shown in Table~\ref{table:table-2}, our proposed relational Inference method makes the model infer inter-event relationships more effectively and has better predictive performance. We also verified the effectiveness of the proposed CRI and completely removed the CRI. Additionally, to demonstrate the effectiveness of the sampling method based on the prototype path, we retained the contrastive relationship constraints but removed the prototype search. Instead, we directly constructed the OTD distances between original event sequences for contrastive learning sampling. The experimental results demonstrate that, compared to not using this structure, CRI effectively enhances the reliability of relational inference.
+
+We evaluated the sensitivity of CRIHP to two key parameters: the length of prototype path $n_{PT}$ and the type of the prototype model $M_{PT}$. Regarding $n_{PT}$, as shown in Figure ~\ref{fig:fig-exp}, on the ATM, the model's performance starts to decrease from $n_{PT} = 6 $; on the IPTV, the performance starts to decrease from $n_{PT} = 10$. This indicates that as the $n_{PT}$ increases, the prototype path becomes more similar to the original sequence. Additionally, the inflection point of CRIHP on the ATM dataset occurs earlier than on IPTV, which is related to the shorter average sequence length in ATM. We also analyzed the sensitivity of CRIHP to the choice of prototype model. We selected NHP, Att-NHP, and THP as the base TPP model. As shown in Figure ~\ref{fig:fig-exp}, when selecting Att-NHP, CRIHP exhibits the best predictive performance.

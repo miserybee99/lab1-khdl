@@ -1,0 +1,127 @@
+\section{Group I}
+
+All TSO games in this group have the following in common:
+There is one player that can update messages \emph{after} her turn, and the other player can update messages \emph{before} her turn.
+Both players might be allowed to do more than that, but fortunately we do not need to differentiate between those cases.
+In the following, we call the player that updates after her turn \emph{player X}, and the other one \emph{player Y}.
+Although the definition of safety games seems to be of asymmetric nature (player B tries to \emph{reach} a final configuration, while player A tries to \emph{avoid} them), the proof does not rely on the exact identity of player X and Y.
+
+In this section, given a configuration $\conf$, we write $\bar\conf$ to denote a configuration obtained from $\conf$ after updating all messages to the memory.
+More formally, $\conf \to[\up\kstar] \bar\conf$ and all buffers of $\bar\conf$ are empty.
+Note that if the buffers of multiple processes contain messages at configuration $\conf$, then $\bar\conf$ is not unique:
+Although the global state $\statemap\of{\bar\conf}$ and the buffer content $\buffermap\of{\bar\conf}$ are uniquely defined, the memory $\memorymap\of{\bar\conf}$ may depend on the order in which the buffer messages have been updated to the memory.
+
+Let $\game = \tuple{ \confset, \confset_A, \confset_B, \to, \confset_F }$ be a TSO game as described above, currently in some configuration $\conf_0 \in \confset$.
+We first consider the situation where player X has a winning strategy $\sigma_X$ from $\conf_0$.
+Let $\sigma_Y$ be an arbitrary strategy for player Y and define two more strategies $\bar\sigma_X: \conf \mapsto \overline{\sigma_X\of\conf}$ and $\bar\sigma_Y: \conf \mapsto \sigma_Y(\bar\conf)$.
+That is, they act like $\sigma_X$ and $\sigma_Y$, respectively, with the addition that $\bar\sigma_X$ empties the buffer \emph{after} each turn and $\bar\sigma_Y$ empties the buffer \emph{before} each turn.
+From the definitions it follows directly that $\bar\sigma_Y(\sigma_X(\conf)) = \sigma_Y(\bar\sigma_X(\conf))$ for all $\conf \in \confset_X$.
+An example can be seen in \autoref{fig:group-I}.
+
+\input{figures/group_I}
+
+We argue that $\bar\sigma_X$ is a winning strategy for player X.
+The intuition behind this is as follows:
+Using the notation of \autoref{fig:group-I}, if a configuration $\conf''$ is reachable from $\bar\conf'$, then it is also reachable from $\conf'$, since player Y can empty all buffers at the start of her turn and then proceed as if she started in $\bar\conf'$.
+On the other hand, there might be configurations reachable from $\conf'$ but not $\bar\conf'$, for example a read transition might get disabled by one of the buffer updates.
+Thus, player X never gets a disadvantage by emptying the buffers.
+
+% The formal proof is given in the following.
+
+\begin{clm}
+\label{claim:ab1}
+    $\bar\sigma_X$ is a winning strategy from $\conf_0$.
+\end{clm}
+\begin{proof}
+    \underline{\textbf{Case} $\conf_0 \in \confset_X$:}
+    Since $\bar\sigma_Y(\sigma_X(\conf)) = \sigma_Y(\bar\sigma_X(\conf))$ for all $\conf \in \confset_X$, the plays $\play_1 := \play(\conf_0, \sigma_X, \bar\sigma_Y)$ and $\play_2 := \play(\conf_0, \bar\sigma_X, \sigma_Y)$ agree on every second configuration, i.e. the configurations in $\confset_X$.
+    Moreover, the configurations in between (after an odd number of steps) at least share the same global state, i.e. $\statemap(\sigma_X(\conf)) = \statemap(\bar\sigma_X(\conf))$.
+    In particular, the sequence of visited global TSO states is the same in both plays.
+    Since $\sigma_X$ is a winning strategy from $\conf_0$, it means that $\play_1$ is winning for player X.
+    This means that $\play_2$ is also winning, because for both players, a winning play is clearly determined by the sequence of visited global TSO states.
+    Because we chose $\sigma_Y$ arbitrarily, it follows that $\bar\sigma_X$ is a winning strategy.
+
+    \underline{\textbf{Case} $\conf_0 \in \confset_Y$:}
+    For the other case, we consider the configurations in $\post(\conf_0)$ instead.
+    We observe that $\sigma_X$ must be a winning strategy for all $\conf \in \post(\conf_0)$.
+    We apply the first case of this proof to each of these configurations and obtain that $\bar\sigma_X$ is a winning strategy for all of them.
+    It follows that $\bar\sigma_X$ is a winning strategy for $\conf_0$.
+\end{proof}
+
+Suppose that player X plays her modified strategy as described above.
+We observe that after at most two steps, every play induced by her strategy and an arbitrary strategy of the opposing player only visits configurations with at most one message in the buffers:
+Player X will empty all buffers at the end of each of her turns and player Y can only add at most one message to the buffers in between.
+Hence, they can play on a finite set of configurations instead.
+
+To show this, we construct a finite game $\game' = \tuple{ \confset', \confset_A', \confset_B', \to', \confset_F'}$ as follows.
+$\confset_Y'$ contains all configurations of $\confset_Y$ that have at most one buffer message, i.e.:
+$$\confset_Y' := \set{ \tuple{\statemap, \buffermap, \memorymap}_Y \in \confset_Y \mid \sum_{\pid\in\indexset} \sizeof{\buffermap\of\pid} \leq 1 }$$
+If $\conf_0 \in \confset_Y$, we also add it to $\confset_Y'$, otherwise to $\confset_X'$.
+Lastly, we add $\post(\confset_Y')$ to $\confset_X'$, where $\post$ is with respect to $\game$.
+$\to'$ is defined as the restriction of $\to$ to configurations of $\game'$, and $\confset_F' = \confset_F \cap \confset_A'$.
+Note that $\confset_X'$ also contains configurations with two messages.
+This is needed to account for the case that player Y has a winning strategy, which is handled later in this proof.
+Now, let $\bar\sigma_X'$ be the restriction of $\bar\sigma_X$ to $\confset_X'$ (in the mathematical sense, i.e $\bar\sigma_X': \confset_X' \to \confset_Y$ and $\bar\sigma_X\of\conf = \bar\sigma_X'\of\conf$ for all $\conf \in \confset_X'$).
+
+\begin{clm}
+\label{claim:ab2}
+    $\bar\sigma_X'$ is a winning strategy for $\conf_0$ in $\game'$.
+\end{clm}
+\begin{proof}
+    Looking at the definitions, we confirm that $\bar\sigma_X'$ actually is a valid strategy for $\game'$, i.e. $\bar\sigma_X'(\conf) \in \confset_Y'$, for all $\conf \in \confset_X'$, since $\bar\sigma_X'(\conf)$ has empty buffers.
+    (This makes $\bar\sigma_X'$ the restriction of $\bar\sigma_X$ to $\game'$.)
+    Consider a strategy $\sigma_Y'$ for player Y in $\game'$ and an arbitrary extension $\sigma_Y$ to $\game$.
+    Because $\bar\sigma_X'$ and $\bar\sigma_X$ agree on $\confset_X'$ and $\bar\sigma_Y'$ and $\bar\sigma_Y$ agree on $\confset_Y'$, $\play := \play(\conf_0, \bar\sigma_X', \bar\sigma_Y)$ and $\play' := \play(\conf_0, \bar\sigma_X', \bar\sigma_Y)$ are in fact the exact same play.
+    Since $\bar\sigma_X$ is a winning strategy, $\play$ is a winning play, and thus also $\play'$.
+    Here, note that $\game$ and $\game'$ agree on the final configurations within $\confset'$.
+    Since $\sigma_Y'$ was arbitrary, it follows that $\bar\sigma_X'$ is a winning strategy from $\conf_0$ in $\game'$.
+\end{proof}
+
+What is left to show is that a winning strategy for $\game'$ induces a winning strategy for $\game$.
+Suppose $\sigma_X'$ is a winning strategy for player X in game $\game'$ for the configuration $\conf_0$.
+Let $\sigma_X$ be an arbitrary extension of $\sigma_X'$ to $\game$.
+
+\begin{clm}
+\label{claim:ab3}
+    $\sigma_X$ is a winning strategy for $\conf_0$ in $\game$.
+\end{clm}
+\begin{proof}
+    Let $\sigma_Y$ be a strategy of player Y in $\game$ and $\sigma_Y'$ the restriction of $\sigma_Y$ to $\confset_Y'$ (again, in the mathematical sense).
+    Since the outgoing transitions of every $\conf \in \confset_Y'$ are the same in both $\game$ and $\game'$, $\sigma_Y'$ is a strategy for $\game'$ (and the restriction of $\sigma_Y$ to $\game'$).
+    Furthermore, starting from $\conf_0$, we see that $\sigma_X$ and $\sigma_Y$ induce the exact same play in $\game$ as $\sigma_X'$ and $\sigma_Y'$ in $\game'$.
+    Since the former play is winning, so must be the latter one.
+\end{proof}
+
+Now, we quickly cover the situation where it is player Y that has a winning strategy.
+We follow the same arguments as previously, with minor changes.
+This time, assume $\sigma_Y$ to be a winning strategy and let $\sigma_X$ be arbitrary.
+Define $\bar\sigma_X$ and $\bar\sigma_Y$ as above.
+Following the beginning of the proof of \autoref{claim:ab1}, we can conclude that the sequence of visited global TSO states is the same in both play $\play_1$ and $\play_2$.
+For the remainder of the proof, we swap the roles of X and Y and obtain that $\bar\sigma_Y$ is a winning strategy.
+
+Let $\bar\sigma_Y'$ be the restriction of $\bar\sigma_Y$ to $\confset_Y'$.
+Since $\bar\sigma_Y'(\confset_Y') = \bar\sigma_Y(\confset_Y') \subseteq \post(\confset_Y') \subseteq \confset_X'$, it follows that $\bar\sigma_Y'$ is a strategy of $\game'$ ($\post$ is again with respect to $\game$).
+Consider a strategy $\sigma_X'$ for player X in $\game'$ and an arbitrary extension $\sigma_X$ to $\game$.
+Similar as in \autoref{claim:ab2}, we see that $\play(\conf_0, \bar\sigma_X', \bar\sigma_Y) = \play(\conf_0, \bar\sigma_X', \bar\sigma_Y)$ and conclude that $\bar\sigma_Y'$ is a winning strategy.
+
+The other direction follows from the proof of \autoref{claim:ab3}, with the roles of X and Y swapped.
+
+\begin{thm}
+\label{thm:ab}
+    The safety problem for games of group I is \exptime-complete.
+\end{thm}
+\begin{proof}
+    By \autoref{claim:ab1} and \autoref{claim:ab2}, if a configuration $\conf_0$ is winning for player X in $\game$, then it is also winning in $\game'$.
+    The reverse holds by \autoref{claim:ab3}.
+    The equivalent statement for player Y follows from results outlined above.
+    Thus, the safety problem for $\game$ is equivalent to the safety problem for $\game'$.
+    $\game'$ is finite and has exponentially many configurations.
+    \exptime-completeness follows immediately from \autoref{lem:finite} (membership) and \autoref{cor:complexity} (hardness).
+\end{proof}
+
+\begin{rem}
+    In the game where both players are allowed to update the buffer at any time, we can show an interesting conclusion.
+    By \autoref{claim:ab1} and the equivalent statement for the second player, we can restrict both players to strategies that empty the buffer after each turn.
+    Thus, the game is played only on configurations with empty buffer, except for the initial configuration which might contain some buffer messages.
+    This implies that the TSO program that is described by the game implicitly follows SC semantics.
+\end{rem}

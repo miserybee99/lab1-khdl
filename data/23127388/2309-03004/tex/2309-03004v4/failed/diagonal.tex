@@ -1,0 +1,219 @@
+\subsubsection{Initial Diagonality of $\left(K^l \left(K^l\right)^\transpose\right) \hadamard M^l$}\label{sec:sparsity_at_initialization}
+
+The Hadamard product forms an interesting structure in the sense that the simplicity of Hadamard product allows $K^l \left(K^l\right)^\transpose$ to shadow tedious details in $M^l$ of deeper layers. If we prove $K^l \left(K^l\right)^\transpose$ is very close to a diagonal matrix and $M^l$'s diagonal elements take moderate portions in the total (squared $L_2$) norm, we can conclude that $\left(K^l \left(K^l\right)^\transpose\right) \hadamard M^l$ is approximately diagonal.
+
+Noting that $K^l \left(K^l\right)^\transpose = \begin{bmatrix}\inner{K^l_i}{K^l_j}\end{bmatrix}_{i, j}$, whose diagonal elements are $\inner{K^l_i}{K^l_i} = \norm{K^l_i}_2^2 \ge 0 (i \neq j)$, we need to prove $\inner{K^l_i}{K^l_j} \approx 0$ for $i \neq j$. This property can emerge from modern initialization where entries are initialized with mutually independent and centered distribution. \cref{lemma:KKT_diagonality_at_initialization} provides a precise formulation for this intuition based on ubiquitous initialization.
+\begin{lemma}[Diagonality of $K^l \left(K^l\right)^\transpose$ at initialization]\label{lemma:KKT_diagonality_at_initialization}
+    Let $K^l \in \reals^{n \times d}$ be a matrix initialized by (Gaussian) Xavier or Kaiming initialization, then for sufficiently large $d$, there is
+    \begin{enumerate}
+        \item $\inner{K^l_i}{K^l_i} = \norm{K^l_i}_2^2 \stackrel{\textrm{w.h.p.}}{\ge} 0.5 p$. When $d = 100$, the probability of violation is already approximately $6.95 \times 10^{-6}$, according to numerical computations;
+        \item If $i \neq j$, then $\ex{\inner{K^l_i}{K^l_j}} = 0$;
+        \item If $i \neq j$, then $\ex{\inner{K^l_i}{K^l_j}^2} = \var{\inner{K^l_i}{K^l_j}} = \frac{p}{d}$;
+    \end{enumerate}
+    where $p = \frac{p' d}{n + d}, p' \in \set{2, 4}$ depending on which initialization is used. 
+\end{lemma}
+The proof of it is rather tedious so we leave it in \cref{proof:kkt_diagonality_at_initialization}. From \cref{lemma:KKT_diagonality_at_initialization} we can see that despite there being only $n$ diagonal elements but $n(n-1)$ non-diagonal elements, non-diagonal elements take at most $2$ or $3$ times portions in squared $L_2$ norm of the matrix than diagonal ones. This indicates that $K^l \left(K^l\right)^\transpose$ is approximately diagonal.
+
+Now we show that $M^l$ is not too anti-diagonal in \cref{lemma:ml_diagonality}
+\begin{lemma}[Diagonality of $M^l$]\label{lemma:ml_diagonality}
+    Let $M^l \in \reals^{n \times n}$ be a symmetric, positive semi-definite matrix whose rank is at most $1$, as concluded in \cref{lemma:adversarial_and_sparsity} and \cref{theorem:main}. Then the diagonal elements are responsible for a portion at least $\frac{1}{n}$ in the total squared $L_2$ norm of $M^l$.
+    \begin{proof}
+        \cref{lemma:adversarial_and_sparsity} concluded that symmetric positive semi-definite $M^l$'s rank is at most $1$, so it can be decomposed into
+        \begin{align}
+            M^l = \lambda_1 m m^\transpose,
+        \end{align}
+        where $\lambda_1 \ge 0$ is the largest eigenvalue and $m$ is the corresponding normalized eigenvector.
+
+        To measure how diagonal $M^l$ is, we compute the squared $L_2$ norm ratio between diagonal and all elements, i.e.
+        \begin{align}
+            r 
+            \defeq& \frac{\trace{M^l \hadamard M^l}}{\trace{\left(M^l\right)^\transpose M^l}}\\
+            =&  \frac{\trace{M^l \hadamard M^l}}{\lambda_1^2}.
+        \end{align}
+        Imitating \citet{hadamard_and_eigenvector}, there is
+        \begin{align}
+            M^l \hadamard M^l
+            =&  \lambda_1^2 (m m^\transpose) \hadamard (m m^\transpose)\\
+            =&  \lambda_1^2 (m \hadamard m) (m \hadamard m)^\transpose,
+        \end{align}
+        which leads to
+        \begin{align}
+            \trace{M^l \hadamard M^l}
+            =&  \lambda_1^2 \trace{(m \hadamard m) (m \hadamard m)^\transpose} = \lambda_1^2 \norm{m \hadamard m}_2^2.
+        \end{align}
+        Therefore the norm ratio is
+        \begin{align}
+            r = \norm{m \hadamard m}_2^2.
+        \end{align}
+        The worst case, under the constraint that $\norm{m} = 1$, is $m = \begin{bmatrix} \frac{1}{\sqrt{n}}\end{bmatrix}_i$, which makes $r = \frac{1}{n}$.
+    \end{proof}
+\end{lemma}
+\cref{lemma:ml_diagonality} indicates that the contribution to squared $L_2$ norms is quite uniform in $M^l$ and it is not the case that diagonal elements are adversarially small.
+
+\begin{theorem}[Diagonality at initialization.]\label{theorem:diagonality_at_initialization}
+    If $K^l \in \reals^{n \times d}$ is Xavier- or Kaiming-initialized, at initialization, the ratio of expected sqaured $L_2$ norms in $\left(K^l \left(K^l\right)^\transpose\right) \hadamard M^l$ between diagonal and all elements is at least
+    \begin{align}
+        \frac{0.4 d}{p n + 0.4 d - p} = \frac{0.4}{p' \frac{1 - 1/n}{1 + d /n} + 0.4}
+    \end{align}
+    when $d$ is sufficiently large, e.g. $d > 100$, where $p = \frac{p' d}{n + d}, p' \in \set{2, 4}$ depending on which initialization is used.
+    \begin{proof}
+        For entry at $(i, j)$, there is
+        \begin{align}
+            \ex{\left(\left(K^l \left(K^l\right)^\transpose\right) \hadamard M^l\right)_{i, j}^2}
+            =&  \ex{\inner{K^l_i}{K^l_j}^2} \cdot \left(M^l_{i, j}\right)^2 
+        \end{align}
+        For diagonal elements, $\inner{K^l_i}{K^l_i} \ge 0$ and with w.h.p. $\inner{K^l_i}{K^l_i} > 0.5$ by \cref{lemma:KKT_diagonality_at_initialization}. Therefore for diagonal elements there is
+        \begin{align}
+            \ex{\sum_{i} \left(\left(K^l \left(K^l\right)^\transpose\right) \hadamard M^l\right)_{i, i}^2}
+            =&  \sum_{i} \ex{\inner{K^l_i}{K^l_i}^2} \cdot \left(M^l_{i, i}\right)^2 \\
+            \ge&\sum_{i} 0.4 \cdot \left(M^l_{i, i}\right)^2 = 0.4 \cdot \trace{M^l \hadamard M^l},
+        \end{align}
+        given that $d$ is sufficiently large, e.g. $d > 100$.
+
+        The expected sum of squared non-diagonal elements is
+        \begin{align}
+            \ex{\sum_{i \neq j} \left(\left(K^l \left(K^l\right)^\transpose\right) \hadamard M^l\right)_{i, j}^2}
+            =&  \sum_{i \neq j} \ex{\inner{K^l_i}{K^l_j}^2} \cdot \left(M^l_{i, j}\right)^2\\
+            =&  \sum_{i \neq j} \frac{p}{d} \left(M^l_{i, j}\right)^2 & \left(\text{\cref{lemma:KKT_diagonality_at_initialization}}\right)\\
+            =&  \frac{p}{d} \left(\trace{\left(M^l\right)^\transpose M^l} - \trace{M^l \hadamard M^l}\right)
+        \end{align}
+        The ratio of expected squared $L_2$ norms between diagonal and all elements is
+        \begin{align}
+            &\frac{\ex{\sum_{i} \left(\left(K^l \left(K^l\right)^\transpose\right) \hadamard M^l\right)_{i, i}^2}}{\ex{\sum_{i, j} \left(\left(K^l \left(K^l\right)^\transpose\right) \hadamard M^l\right)_{i, j}^2}}\\
+            \ge&    \frac{0.4 \cdot \trace{M^l \hadamard M^l}}{\frac{p}{d} \left(\trace{\left(M^l\right)^\transpose M^l} - \trace{M^l \hadamard M^l}\right) + 0.4 \cdot \trace{M^l \hadamard M^l}}\\
+            =&  \frac{0.4 r}{\frac{p}{d}(1 - r) + 0.4 r} = \frac{0.4 d}{p n + 0.4d - p}
+        \end{align}
+    \end{proof}
+\end{theorem}
+
+\subsubsection{Preservation of Tendency toward Diagonality}\label{sec:preservation}
+
+\cref{sec:sparsity_at_initialization} has discussed the tendency towards sparsity at initialization, but how this tendency is preserved during training, where $K^l$ and $M^l$ are altered, is still unclear. Since $M^l$'s being moderate is ensured by architectural low-rankness and positive semi-definiteness even in the worst case, we only discuss how diagonality of $K^l \left(K^l\right)^\transpose$ is preserved. We reluctantly make this subsection informal and intuitive because the iterated forward and backward propagation are too complex for analysis.
+
+Inspired by \citet{freq_bias}, we use lazy factors to explain little change in $K^l \left(K^l\right)^\transpose$. In one word, overparameterization and gradient clipping, combined together, amortize the changes across massive parameters, each of which is only slightly changed.
+
+To be more specific, we informally analyze the ``average'' parameter change during training of ViT-Base, which is experimented with by \citet{observation}, under gradient clipping at global norm $1$. Since modern initialization initializes rows approximately to norm $p$, and $K^l \left(K^l\right)^\transpose$ comprises of inner products of rows, we consider a row to be a unit of parameter change. ViT-Base \citep{vit} has in total $12 \times 2$ linear layers, each with 3072 rows, which means each row has to compete for changes with at least $12 \times 2 \times 3072$ rows, letting alone other parameters in position embeddings, biases and MLP layers at self-attention modules. To make that worse, the global norm of gradient in each step is clipped to $1$, making the squared norm of projection from the gradient to the subspace of a row is averagely
+\begin{align}
+    \frac{1^2}{12 \times 2 \times 3072},
+\end{align}
+or equivalently the norm of averagely projected gradient is
+\begin{align}
+    \sqrt{\frac{1^2}{12 \times 2 \times 3072}}.
+\end{align}
+To make things worse, the learning rate is small. Even under modern practice of large step where batch size and learning rate are both increased, the maximum learning rate is still $\sim 10^{-3}$. Further considering the learning rate scheduling such as Cosine annealing, the average learning rate is about half of the maximum one, which makes the average change as small as
+\begin{align}
+    \sqrt{\frac{1^2}{12 \times 2 \times 3072}} \times \frac{10^{-3}}{2}.
+\end{align}
+With this step size, to make an initially unit vector to zero requires $\sqrt{12 \times 2 \times 3072}\times 2 \times 10^3 \approx 5.43 \times 10^5$ steps, while aligning two initially orthogonal unit vectors along the shortest path requires at least $\frac{\sqrt{2}}{2} \approx 0.707$ times of that. With batch size of $512$, the former is equivalent to $217.2$ epochs of ImageNet-1K. For comparison, the PyTorch's recipe trains ViT-Base on ImageNet1k for 300 epochs. As a result, the diagonality will retain for a long time during training.
+
+We argue this informal averaging analysis indeed provide some insights, at least in situations without weight decay. If adaptive optimizers, such as Adam and AdamW, are adopted, they indeed balance the changes among parameters. Moreover, this averaging analysis accounts for a worst case. If more is projected to fewer parameters, then it will be more likely absorbed in $M^l$, which is always moderate by \cref{lemma:ml_diagonality}, and leave a more diagonal $K^l \left(K^l\right)^\transpose$. In experiments we observe that more norm of the gradient concentrate at deeper layers, which is indeed absorbed by $M^l$ of shallow layers.
+
+When it comes to the norm of $K^l$ and $M^l$, we need to deal with weight decay which dramatically reduces the norm of $K^l$ and $M^l$. 
+We consider normalization layers, such as BatchNorm and LayerNorm, are saviors for this reduction. If applied before activation, they make weights scale-invariant and introduce some effective weights, which always have moderate norms. The interaction between weight decay and normalization in the context of sparsity and diagonality requires further analysis.
+
+
+\subsubsection{Reflecting on Diagonality and its Preservation}\label{sec:reflection}
+
+\cref{theorem:diagonality_at_initialization} establishes the relation between diagonality and initialization. The diagonality depends on the ratio $d / n$, and the initialization distribution of entries. When $d/n$ is large enough, this explanation suits perfectly.
+However, it does not apply to current actual scenarios because 1) $d/n$ is small, for example in ViT-Base $d/n=768/3072=1/4$, and can be even smaller for larger models; and 2) weights are usually initialized with uniform distribution instead of Gaussian, for example in ViT-Base's recipe by PyTorch \citep{pytorch_recipe}. 
+On the other hand, weight decay, if applied, reduces the norm of parameters rapidly, or enlarges the effective learning rate \citep{zhang_three_2018}, endangering lazy diagonality preservation of $\kkT$. 
+These inapplicablities are verified by experiments in \cref{sec:t_experiments}, where initial non-diagonal elements have total norm hundreds of times than diagonal ones.
+We propose in \cref{sec:spectral} another spectral initial explanation that applies better to cases where $d / n$ is small and initialization is based on uniform distribution. Some assumptions are made, but they are supported by evidences in \cref{sec:t_experiments}.
+
+However, this failed explanation hints potential improvements. This implies that if an initialization distribution that makes $\inner{K^l_i}{K^l_j}$ concentrate better than Gaussian is proposed, we can potentially improve the gradient sparsity. It is also beneficial to use wider weights where $d$ is larger than $n$. This, on the other hand, also allows rows in $K^l$ to be mutually orthogonal and permits perfect sparsity, which is impossible when $n > d$. This modification is referred to as wide MLP.
+
+
+
+\appendix
+
+
+\section{Proof of Lemmas and Corollaries}\label{appendix:proof_of_lemmas}
+
+\begin{proof}[Proof of \cref{lemma:KKT_diagonality_at_initialization}]\label{proof:kkt_diagonality_at_initialization}
+    Xavier or Kaiming initialization generate independently $\gaussian{0}{\frac{p}{d}}$-distributed entries in $K^l$ such that the variances of weights for each neuron, i.e., entries in each row, sum to $p$. This translates to 
+    \begin{align}
+        \sum_k \var{K^l_{i, k}}
+        =&  \sum_k \ex{\left(K^l_{i, k} - \ex{K^l_{i, k}}\right)^2} = \sum_{k} \ex{\left(K^l_{i, k}\right)^2} \\
+        =&  \ex{\norm{K^l_i}_2^2} = p.
+    \end{align}
+    Moreover, since $\norm{K^l_i}_2^2 = \sum_{k} \left(K^l_{i, k}\right)^2$ is the sum of squared Gaussian random variables scaled by $\frac{\sqrt{p}}{\sqrt{d}}$, it is subjected to scaled Chi-squared distribution $\frac{p}{d} \chisquared{d}$.
+    The CDF of it is \citep{chi_squared}
+    \begin{align}
+        F(x) = F_{\chisquared{d}}\left(\frac{x d}{p}\right) = \frac{1}{\Gamma\left(\frac{d}{2}\right)} \gamma\left( \frac{d}{2}, \frac{x d}{2 p} \right).
+    \end{align}
+    By Stirling's approximation there is $\Gamma(a) \sim \sqrt{2 \pi (a - 1)} \left(\frac{a-1}{e}\right)^{a-1}$, while there is $\gamma(a, z) = \frac{e^{-z}z^a}{a} \left[ 1 + O\left(\frac{z}{a}\right)\right]$ \citep{asymptotic_incomplete_gamma}. So given that $\frac{z}{a}$ is $O(1)$, the fraction is asymptotically
+    \begin{align}
+        \frac{\gamma(a, z)}{\Gamma(a)}
+        \sim&   \frac{\frac{e^{-z} z^a}{a}}{\sqrt{2 \pi (a-1)} \left(\frac{a-1}{e}\right)^{a-1}}\\
+        \le&  \frac{1}{\sqrt{2 \pi (a-1)}} e^{a + 1 - z} \left(\frac{z}{a-1}\right)^a\\
+        \le&  \frac{1}{\sqrt{2 \pi (a-1)}} \left(e^{1 + \frac{1 - z}{a}}\frac{z}{a-1}\right)^a\\
+    \end{align}
+    So it is sufficient to force $e^{1 + \frac{1 - z}{a}} \frac{z}{a-1} < 1 \iff 1 + \frac{1 - z}{a} + \ln \frac{z}{a - 1} < 0$ in order to ensure the exponential decay of $F(x)$ w.r.t. $a = \frac{d}{2}$.
+    \begin{align}
+        1 + \frac{1-z}{a} + \ln\frac{z}{a-1}
+        =&  \ln \frac{z}{a} - \frac{z}{a} + 1 + \frac{1}{a} + \ln \frac{a}{a-1}\\
+        \le&  \ln \frac{z}{a} - \frac{z}{a} + 1 + \frac{1}{a} + \frac{1}{a - 1}\\
+        \le&  \ln \frac{z}{a} - \frac{z}{a} + 1 + \frac{2}{a - 1}
+    \end{align}
+    Since for any $x > 0$ there is $\ln x \le x - 1$, there is $\ln \frac{z}{a} - \frac{z}{a} + 1 \le 0$. Since $\frac{2}{a-1}$ can be arbitrarily small, when $a$ scales sufficiently large with $d$, for any constant $x = O(1)$ such that $\frac{z}{a} = \frac{x}{p} \neq 1$, $F(x)$ drops exponentially as $d$ increases.
+
+    We numerically compute the probability of $\inner{K^l_i}{K^l_i} < p \cdot x$ when $d = 100$ with the following Mathematica codes,
+    \lstset{
+        basicstyle=\ttfamily
+    }
+    \begin{lstlisting}
+        ScaledChi2CDF[d_, x_] := CDF[ChiSquareDistribution[d], d*x];
+        N[ScaledChi2CDF[100, #]] & /@ {0.1, 0.5, 0.7, 0.9, 0.99, 0.999}
+    \end{lstlisting}
+    which outputs $\{2.18106 \times 10^{-32}, 6.95331 \times 10^{-6}, 0.0098455, 0.246802, 0.490528, 0.515991\}$.
+
+    Now turn to non-diagonal elements. Supposing $i \neq j$, there is 
+    \begin{align}
+        \ex{\inner{K^l_i}{K^l_j}}
+        =&  \inner{\ex{K^l_i}}{\ex{K^l_j}}  &   \left(\text{independence}\right)\\
+        =&  \inner{0}{0} = 0.   &   \left(\text{centered}\right)
+    \end{align}
+    To see how well these inner products concentrate, we calculate their variance. According to \citep{product_of_gaussian}, there is
+    \begin{align}
+        \inner{K^l_i}{K^l_j}
+        =&  \sum_{k} K^l_i K^l_j = \sum_{k}\frac{1}{4}\left(\left(K^l_i + K^l_j\right)^2 - \left(K^l_i - K^l_j\right)^2\right)\\
+        =&  \sum_k \left(\frac{\var{K^l_i + K^l_j}}{4} Q_k - \frac{\var{K^l_i - K^l_j}}{4} R_k\right)\\
+        =&  \frac{p}{2 d}(Q - R),
+    \end{align}
+    where $Q_k, R_k \sim \chisquared{1}$ is mutually independent since $K^l_i$ and $K^l_j$ have the same variance, and $Q, R \sim \chisquared{d}$. Since the variance of Chi-squared distribution of freedom $d$ is $2d$ \citep{chi_squared}, the variance of non-diagonal elements is
+    \begin{align}
+        \var{\inner{K^l_i}{K^l_j}}
+        =&  \left(\frac{p}{2d}\right)^2 \left(\var{Q} + \var{R}\right) = \frac{p}{d}.
+    \end{align}
+    The expectation of the squared inner product is the same as the variance becuase the inner product is centered.
+
+\end{proof}
+
+
+
+\subsection{Inapplicability of Diagonal Explanation}
+
+To show the diagonality of $\kkT$ is lost during training, the $L_1$ norm and/or squared $L_2$ norm ratios of diagonal elements and non-diagonal elements are computed. To ease presentation, they are displayed in \cref{fig:diagonal} after being taken $\log_{10}$.
+
+\begin{figure}
+    \addvalue{norm1}{$L_1$}
+    \addvalue{norm2}{Squared $L_2$}
+    \centering
+    \foreach \norm in {1, 2}{
+        \begin{subfigure}[t]{0.29\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{pic/results/dumps/imagenet1k/sparsified/diagonal/ratio_norm\norm_kkT.jpg}
+            \caption{\scriptsize \usevalue{norm\norm} norm ratio.}\label{fig:diagonal_norm\norm}
+        \end{subfigure}
+    }
+    \begin{subfigure}[t]{0.29\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{pic/results/dumps/imagenet1k/sparsified/from_scratch4/4_7_8_10.jpg}
+        \caption{\scriptsize Training sparsity of Layer 5, 8, 9 and 11.}\label{fig:pruned_layers}
+    \end{subfigure}
+    \caption{The $L_1$ and/or squared $L_2$ norm ratio between diagonal and non-diagonal elements of $\kkT$ at early stage, when modified ViT-Base is trained from scratch on ImageNet-1K.}\label{fig:diagonal}
+\end{figure}
+
+It can be seen from \cref{fig:diagonal}, especially diagonality measured by squared $L_2$ norm in \cref{fig:diagonal_norm2}, that the diagonality is initialized well as proved in \cref{theorem:diagonality_at_initialization}. However, this diagonality is quickly lost after several steps, possibly due to weight decay. There are also drastic drops at Layer 5, 8, 9 and 11. \cref{fig:pruned_layers} indicates that these layers are entirely pruned, right slightly before these drops. After zero activation, back propagated gradients are also zeroed, leaving them solely to weight decay and quickly become zero matrices and behaves strangely in terms of norm ratio in \cref{fig:diagonal_norm1} and \cref{fig:diagonal_norm2}. So diagonality drops in Layer 5, 8, 9 and 11 somehow do not really count. The rest significantly drops but recovers in later steps. Despite this recovering, the lazy and inert diagonal explanation based on gradient amortization still fails under weight decay because otherwise diagonalities should have not dropped at the first several steps. \cref{fig:diagonal_norm2} indicates some more dynamic factors are encouraging diagonality recovering, which spectral explanation, as an extension to the diagonal one, can embrace.
+
+Further result is left in later version, because previous experiments are based on even former theories and did not observe diagonalities.

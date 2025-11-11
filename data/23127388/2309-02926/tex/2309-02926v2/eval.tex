@@ -1,0 +1,122 @@
+\section{Evaluation of \tool{}}
+\label{sec:eval}
+
+\vspace {3pt}\noindent\textbf{Implementation.}
+\tool{} is implemented with about 3000 lines of Python code.
+In Section \ref{sec:approach:1}, we choose the tool PyCG~\cite{salis2021pycg} to assist us in constructing call graphs. In Section \ref{sec:approach:2}, we utilize tool URLExtract~\cite{urlex} to extract URLs from the README file and description, and additionally use its DNS check to filter out some invalid domains in advance. In Section \ref{sec:approach:2}, we use keybert~\cite{grootendorst2020keybert} for keyword extraction in each repository description and gpt-3.5 to refine them. In Section \ref{sec:approach:4}, we use selenium~\cite{selenium} to simulate the interaction between users and apps such as clicking and typing.
+
+\vspace {3pt}\noindent\textbf{Experiment Subjects and Settings.}
+In Section \ref{sec:approach:1}, we pick 11 frameworks for API vulnerability detection which are shown in Table \ref{tab:framework_vulns}. In Section \ref{sec:approach:2}, we select 2 app markets for app searching: \href{https://theresanaiforthat.com/most-saved/#switch}{\texttt{There's An AI For That}}, and \href{https://topai.tools}{\texttt{TopAI.tools}}.
+In addition, we also collect black-box apps from social networks (\eg Twitter). 
+Our analysis focus is mainly on Python-based LLM-integrated frameworks and LLM-integrated web apps. To our knowledge, most of the mainstream LLM-integrated frameworks are implemented in Python, which also attract the most users. Therefore, it ensures our approach and findings sufficiently objective and comprehensive.
+
+\vspace {3pt}\noindent\textbf{Experiment Environment.} 
+We use one Macbook Air M2 (8 cores 24G) and one Ubuntu 22.04 cloud server (2 cores 2G) for experiments. 
+The Python version on Macbook Air is 3.11.4 and is 3.10.6 on the cloud server.
+Here we propose three research questions to evaluate the effectiveness of \tool{}: 
+
+\begin{enumerate}[leftmargin=*,label=\textbf{RQ$\arabic*$.}]
+	\item How accurate is the detection of vulnerable LLM-integrated framework APIs?
+    \item How effective is the app collection?
+    \item How effective is the prompt attack?
+\end{enumerate}
+
+\begin{table}%[!htbp]
+\caption{Overview of call chains and vulnerabilities found by \tool{} (``\#Chain'' represents the number of call chains, ``\#User API'' represents the number of user APIs, ``\#Vuln'' represents the number of vulnerabilities that can be triggered by high-level user API, ``Stars'' represents the number of stars earned by the repo on GitHub)}
+\label{tab:framework_vulns}
+\centering
+\scriptsize
+\vspace{-10pt}
+\begin{tabular}{cccccc}
+\toprule
+                      & \textbf{Version}     & \textbf{\#Chain} & \textbf{\#User API} & \textbf{\#Vuln} & \textbf{\#Stars}       \\ \midrule
+\textbf{LangChain~\cite{langchain}}    & 0.0.232              & 15                    & 5                   & 5               & 81.8k\\%58.8k                \\
+\textbf{LlamaIndex~\cite{llamaindex}} & 0.7.13 \& 0.10.25              & 3                    & 1                   & 2               & 30.5k\\%20.2k                \\
+\textbf{Pandas-ai~\cite{pandasai}}    & 0.8.0 \& 0.8.1              & 5                    & 2                   & 3               & 10.1k\\%8.2k                 \\
+\textbf{Langflow~\cite{langflow}}     & 0.2.7                & 11                   & 2                   & 2               & 14.8k\\%11.6k                \\
+\textbf{Pandas-llm~\cite{pandasllm}}   & dev                  & 2                    & 1                   & 2               & 18\\%5                    \\
+\textbf{Auto-GPT~\cite{autogpt}}     & 0.4.7                & 2                    & 0                   & 0               & 159k\\%147k                 \\
+0va\textbf{Griptape~\cite{griptape}}     & 0.17.1                & 3                    & 1                   & 1               & 1.4k\\%1.1k                 \\
+\textbf{Lagent~\cite{lagent}}     & 0.1.1                & 3                    & 2                   & 1               & 742\\%439                 \\
+\textbf{MetaGPT~\cite{hong2023metagpt}}     & 0.7.3               & 4                    & 2                   & 2               & 38.6k\\
+\textbf{vanna~\cite{vanna}}     & 0.3.3                & 1                    & 1                   & 1               & 6.2k\\
+\textbf{langroid~\cite{langroid}}     & 0.1.224                & 2                    & 1                   & 1               & 1.4k\\
+\midrule
+\textbf{Total}        & \multicolumn{1}{l}{} & \textbf{51}          & \textbf{18}         & \textbf{20}     & \multicolumn{1}{l}{} \\ 
+\bottomrule
+\vspace{-10pt}
+\end{tabular}
+\end{table}
+
+\subsection{Detection Accuracy of Vulnerable APIs (RQ1)} \label{sec:eval:1}
+
+We extract a total of 51 call chains, 18 user-level APIs and 20 vulnerabilities across 11 LLM-integrated frameworks (see Table \ref{tab:framework_vulns}). 
+
+Within these 51 call chains, there are 8 implicit invocations and we successfully handle 6 of them, resulting in a false negative rate of $25\%$. For the false negatives, the reason is the callee does not belong to any class's callable method, \tool{} cannot reduce the function call to the instantiation of the class. Also, we conduct validation of these 51 call chains and confirm that the total false positive rate of call chain extraction is 2.0\%. Moreover, 44 of these 51 call chains could be constructed to trigger arbitrary code execution. For those false positives, the reasons include: \X1 Confusion arises regarding function names within the call chains, leading to incorrect extraction. Certain files exhibit function packing and renaming. This renaming leads to functions having the same names as those in the call chains seeking their callers. Consequently, \tool{} identifies the renamed function as the targeted callee. \X2 The parameters of hazardous functions are uncontrollable. Despite accurate call chain extraction, the uncontrolled parameters of these functions prevent the execution of arbitrary code. \X3 During code execution, certain frameworks implement specialized protective measures. For instance, Auto-GPT employs a method of executing Python code within Docker containers. By isolating from the host system environment, the code is unable to access host data and privileges even when executed. This ensures the security of the framework and its users.
+
+We also compare \tool{} to PyCG in the context of the call chain extraction task.
+From Table~\ref{tab:compare}, it is observed that PyCG exceeds the one-hour time limit when extracting the call graph of the LangChain and LlamaIndex frameworks. Despite running for over 24 hours, no results are obtained. This is due to the excessive number of code files in these two frameworks. LangChain has over 1600 Python files, while LlamaIndex has over 440 Python files. Without critical API guidance, it is not possible to analyze and extract call graphs for individual files. In the end, PyCG only extracts 13 call chains, while \tool{} extracts 51 call chains.
+
+\begin{table*}[!htbp]
+\caption{Comparison of extraction time ($T$) and number of extracted call chains (\#Chain) in 11 frameworks among PyCG and \tool{}. ``-'' represents timeout (> 1 hour).}
+\label{tab:compare}
+\centering
+\scriptsize
+\vspace{-10pt}
+\begin{tabular}{cc|c|c|c|c|c|c|c|c|c|c|c|c}
+\toprule
+\multicolumn{2}{c|}{}                                                     & \textbf{LangChain} & \textbf{LlamaIndex} & \textbf{Pandas-ai} & \textbf{Langflow} & \textbf{Pandas-llm} & \textbf{Auto-GPT} & \textbf{Griptape} & \textbf{Lagent} & \textbf{MetaGPT} & \textbf{vanna} & \textbf{langroid} & \textbf{Total} \\ 
+\midrule
+\multicolumn{1}{c|}{\multirow{2}{*}{\textbf{PyCG}}}                     & T(s)     & -         & -          & 1.693        & 30.959       & 0.195         & 0.364       & 41.729       & 0.596     & -      & 1.615    & -       & -    \\ %\cline{2-2} 
+\multicolumn{1}{c|}{}                                          & \# Chain & 0         & 0          & 2        & 5       & 0         & 0       & 3       & 2     & 0      & 1    & 0       & 13    \\ 
+\midrule
+\multicolumn{1}{c|}{\multirow{2}{*}{\textbf{\tool{}}}} & T(s)     & 4.407        & 1.743         & 1.385        & 4.641       & 0.696         & 0.358       & 1.817       & 1.551     & 23.435      & 2.335    & 2.084       & 44.452    \\ %\cline{2-14} 
+\multicolumn{1}{c|}{}                                          & \# Chain & 15        & 3         & 5        & 11       & 2         & 2       & 3       & 3     & 4      & 1    & 2       & 51    \\ 
+\bottomrule
+\end{tabular}
+\end{table*}
+
+
+\begin{table*}%[!htbp]
+	\caption{Detailed call chain measurements in 11 frameworks. ($l_{chain}$ represents the length of a call chain, $\#file/chain$ represents the number of files involved per chain)}
+    \vspace{-10pt}
+	\label{tab:call_chain_measure}
+	\centering
+	\scriptsize
+	\begin{tabular}{cc|c|c|c|c|c|c|c|c|c|c|c}
+		\toprule
+		&                      & \textbf{LangChain} & \textbf{LlamaIndex} & \textbf{Pandas-ai} & \textbf{Langflow} & \textbf{Pandas-llm} & \textbf{Auto-GPT} & \textbf{Griptape} & \textbf{Lagent} & \textbf{MetaGPT} & \textbf{vanna} & \textbf{langroid}
+  \\ \midrule
+		$l_{chain}$   & \textbf{Sum / Max / Avg} & \textbf{64} / 6 / 4.3           & 7 / 3 / 2.3               & 20 / 5 / 4.0           & 60 / \textbf{12} / \textbf{5.5}         & 6 / 1 / 3.0             & 5 / 3 / 2.5 & 9 / 3 / 3.0 & 12 / 6 / 4.0     & 17 / 6 / 4.3  & 3 / 3 / 3.0 & 4 / 2 / 2.0      
+  \\ \midrule
+		$\#file/chain$ & \textbf{Sum / Max / Avg} & \textbf{30} / 3 / 2.0           & 3 / 1 / 1.0               & 5 / 1 / 1.0            & \textbf{30} / \textbf{5} / \textbf{2.7}          & 2 / 1 / 1.0             & 2 / 1 / 1.0 & 5 / 2 / 1.7  & 5 / 3 / 1.7  
+        & 5 / 2 / 1.3 & 1 / 1 / 1.0 & 2 / 1 / 1.0     
+  \\ \bottomrule
+	\end{tabular}
+\end{table*}
+
+As known, call chain is one of the important characterizations of vulnerabilities. Many essential aspects of vulnerabilities can be deduced from the characteristics of vulnerability call chains. So we measure the call chains from the perspectives of call chain length and the number of files involved in a call chain as shown in Table \ref{tab:call_chain_measure}. It can be observed that across these 11 frameworks, the maximum length of extracted exploitable call chains reaches 12 and the average length of call chains falls within the range of 2 to 6. Within a single call chain, the maximum number of files involved per chain is 5, while the average number of files involved per chain is 2.7. These maximum values attest to the accuracy and efficiency of \tool{} in handling lengthy and cross-file call chains. Meanwhile, these average values indicate that the triggering logic for code execution vulnerability in most frameworks is quite straightforward. This observation indirectly underscores a significant characteristic of these vulnerabilities: their triggering conditions and exploitation methods tend not to be excessively complex.
+
+\subsection{Statistics of Collected Apps (RQ2)} \label{sec:eval:2} 
+\noindent\textbf{White-box App.} In this part, we choose GitHub, the biggest code repository hosting platform, as our target platform. We search GitHub with GitHub API using 6 typical vulnerable user-level APIs capable of triggering remote RCE via prompts as keywords, obtaining 453 repositories.
+Without involving our URL filter, \tool{} extracts 2398 URLs by analyzing their ReadMe files and descriptions. We randomly choose 100 URLs and manually verify that 4 of them are app hosting URLs (representing 4.0\% of the total), which is unacceptable. After involving the URL filter, \tool{} reduces the number of URLs from 2398 to 157.
+We verify that 65 of them are app hosting URLs (representing 41.4\% of the total), increasing the accuracy by an order of magnitude. 
+Finally, a manual examination is performed to discard apps that 1) are dysfunctional, 2) require beta qualification, or 3) contain no vulnerable API. As a result, 24 white-box apps are collected as testing candidates.
+
+Consider the fact that the more popular the framework is, the more users it should have. So, we select 6 typical vulnerable APIs from well-known frameworks (LangChain, LlamaIndex and PandasAI) : \texttt{create\_csv\_agent}, \texttt{create\_pandas\_dataframe\_agent}, \texttt{PALChain}, \texttt{PandasAI}, \texttt{create\_spark\_dataframe\_agent}, \texttt{\seqsplit{PandasQueryEngine}}.
+
+\noindent\textbf{Black-box App.} Keywords are selected under the help of gpt-3.5-turbo and human efforts (See Appendix~\ref{sec:appendix:C}). 136 apps are collected by leveraging these keywords. Due to the fact that some apps 1) require beta qualification; 2) need to be paid for usage; 3) need a complex registration; 4) web pages are not working, etc. We finally obtain a total of 27 black-box apps.
+Additionally, we successfully identify the Github repositories for 8 apps, so that they can be further confirmed with the white-box approach.
+
+\subsection{Effectiveness of Prompt Attacks (RQ3)} \label{sec:eval:4}
+
+We conduct prompt attacks on 51 collected apps (including 24 white-box apps and 27 black-box ones).
+Among these, 
+20 apps (39.2\%) pass the hallucinations test, indicating their potential code execution ability; 
+16 apps (31.4\%) pass the network access test, illustrating their ability of accessing arbitrary external networks; 
+16 apps (31.4\%) are vulnerable to remote code execution. 
+Among the 16 apps with RCE vulnerabilities, 7 apps do not require the escape technique to trigger, whereas 9 require escape for participation (2 via code escape and 7 via LLM escape),
+unveiling its significance in real-world attacks.
+14 apps (27.5\%) allow an attacker to use reverse shell techniques to gain the full control of the remote server, 
+and 4 apps allow an attacker to escalate privileges from regular user to root by using SUID after reversing a shell (accounting for 7.8\% of the total). 
+Simultaneously, 34 apps (66.7\%) are not exploitable, which is explained in Section \ref{sec:Measure:class}. 

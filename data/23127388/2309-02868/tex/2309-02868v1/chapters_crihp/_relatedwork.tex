@@ -1,0 +1,27 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Related Work
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Background}
+\label{sec:related_work}
+
+\begin{figure*}[htp]
+\centering
+\includegraphics[width=0.9\textwidth]{images_crihp/framework.pdf}\par
+\vspace{-2mm}
+\caption{Our framework for asynchronous time series forecasting, Contrastive Relational Inference-based Hawkes Process (CRIHP).}
+\vspace{-2mm}
+
+\label{fig:framework}
+\end{figure*}
+
+
+\subsection{Generative Modeling of Event Sequences}
+Following the notations in \cite{48:conf/iclr/MeiYE22,51:qu-2022-rltpp}, given a time interval $[0, T]$, we assume $n$ events are observed, composing an asynchronous time event sequence  $s_{[0:T]} = [e_1@t_1, \cdots, e_n@t_n]$ within the time interval. Each event is denoted mnemonically $e_i@t_i$, where, $e_i  \in \{1, ....E \}$ is the discrete event type, and $t_i$ represents the timestamp at which the event occurs, satisfying $0 < t_1 < \cdots < t_n < T$. TPPs model the probability of the next event occurrence by defining a conditional intensity function $\lambda (t)$ and build $\lambda _e$ for each event type $e$, with the objective function defined as follows: 
+\begin{equation}
+L_{ll} = \sum_{i=1}^{N} log \lambda _{e_i} (t_i | s_{[0,t_i)}) -  \int_{t=0}^{T} \sum_{e=1}^{E} \lambda _e (t | s_{[0,t)]})dt,
+\end{equation}
+the first term can be regarded as the log-likelihood of observed events, while the second term represents the log-likelihood of non-events. Neural TPP does not involve pre-defined parameterized conditional intensity functions, instead, it utilizes neural networks to learn.
+
+
+\subsection{Neural Point Processes with GNN}
+GNNs provide a direct way to model the dynamics of event sequences. Since the edges in the graph can represent the dependencies between nodes during message passing, GNN-based models naturally realize the relational inference in the event sequence. Existing GNN-based TPPs are mainly divided into two types based on the different node types: including relational graph models based on marks \cite{23:conf/ijcnn/XueSHMZWW21, 27:conf/www/ZhangLY21} and complete events \cite{21:wu2020modeling, 24:conf/kdd/LiLKP21, 26:journals/corr/abs-1909-10367}. The first type of method only constructs relation connections between marks and assumes that events with the same mark information in different historical sequences have the same relationships. This type of method cannot handle the problem of dynamic changes in relationships over time. The second type of method builds relationships based on complete event information. Due to the consideration of dynamic changes in influence relationships, this type of method can construct more realistic relation structures. Similar to the second type of method, our method proposes a generative model for dynamic inference.

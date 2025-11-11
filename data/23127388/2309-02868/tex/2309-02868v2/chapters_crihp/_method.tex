@@ -1,0 +1,74 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Methodology
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Methodology}
+\label{sec:method}
+
+In this section, we present the proposed Contrastive Relational Inference-based Hawkes Process (CRIHP) framework. As illustrated in Figure \ref{fig:framework}, similar to variational inference models, CRIHP consists of an encoder and decoder. The encoder performs contrastive relational inference on the input event sequence to generate a relation graph capturing the structure of the events. This inferred relation graph is then utilized by the decoder to forecast future events in a hierarchical manner.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 3.1
+%%%%%%%%
+\subsection{CRIHP Framework}
+\label{ssec:3-1}
+TPPs aim to model the mechanisms that give rise to the dynamics of the recurrence of events. Due to the inherent difficulty in directly observing the interactions between events, in this paper, we dynamically model the interactions within the framework of variational inference. The proposed CRIHP models the relation graph between different events in the historical sequence in the encoder, providing reliable event structures for the decoder. Since the complexity of the relationships between events, it is difficult to achieve effective inference by direct inference. Therefore, we propose a CRI architecture that constrains the generated relation graph in the latent space. Following the curriculum learning, we construct a simpler Front Graph before performing inference,  which allows the model to reason the relation graph in increasing complexity. Specifically, we introduce a temporal similarity graph \cite{24:conf/kdd/LiLKP21} as the Front Graph. For any two events $e_i@t_i$ and $e_j@t_j$ in the historical sequence $s_{[0,T)}$, we calculate the interval time between them and encode it with a kernel function.  We employ the Gaussian kernel function for construction :
+
+\begin{equation}
+K\left(t_{i}, t_{j}\right)=\exp (-\frac{\left\|t_{i}-t_{j}\right\|^{2}}{2 \sigma^{2}} ).
+\end{equation}
+
+On the basis of a front graph $\Phi^{fro}$, we utilize Graph Convolutional Network to learn the feature embedding of events $H^{fro}$ by $C$, which is the original feature of event sequence obtained by the embedding layer. Then, CRIHP uses the $H^{fro}$ and $\Phi^{fro}$ to further infer the relation graph. The inference process consists of two steps: edge embedding and contrasting relationship inference. In the first step, we merge the embeddings of two adjacent nodes in the front graph and then encode for the connecting edges: 
+
+\begin{equation}
+\begin{aligned}
+\text{HNd}_{i} &=\operatorname{Rea}_{\text{eg} \rightarrow \text{nd}} (\sum_{i \neq j} \text{HEg}_{(i, j)} ), \\
+\text{HEg}_{(i, j)} &=\operatorname{Rea}_{nd \rightarrow eg}\left(\left[\text{HNd}_{i}, \text{HNd}_{j}\right]\right),
+\end{aligned}
+\end{equation}
+$\text{HNd}_i$ represents the embedding of the i-th event, $\text{HEg}_{(i,j)}$ represents the embedding of the connected edge between the i-th and the j-th events. We perform two rounds of node-to-edge and edge-to-node passing processes to aggregate information from multi-hop nodes. Based on this, we obtain the inference results:
+
+
+\begin{equation}
+q_{\phi}\left(\Phi^{rel} \mid \Phi^{fro} \right)= \operatorname{softmax} (CRI \left( \text{HEg})\right),
+\end{equation}
+where $\Phi^{rel} $ is the relation graph.
+
+In the decoding stage, CRIHP utilizes $\Phi^{rel}$ and $C$ to realize the message passing on the relation graph through GNN and make predictions. To demonstrate the effectiveness of the inferred relation graph,  we employ a two-layer GCN \cite{39:welling2016semi}. During the prediction stage, the Intensity Layer generates the conditional probability distribution for future events.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 3.2
+%%%%%%%%
+\subsection{Contrastive Relational Inference}
+\label{ssec:3-2}
+
+In the encoding stage,  CRI architecture infers the relation graph $\Phi^{rel}$ based on the front graph. To ensure the reliability of the inferred relation graph, we make the relational consistency assumption. Specifically, we posit that event sequences with similar dynamic patterns exhibit similarity not only in the core events that reflect these patterns but also in the relationship distributions among them. Building upon this assumption, we construct a contrastive learning paradigm in the latent space. As the original event sequences reflect implicit and noisy intention signals, they may not sufficiently capture the actual dynamic patterns of the system. Therefore, the CRI leverages intensity-based learning to search for prototype events in the original sequence and describe the dynamic patterns of the event sequence using the prototype path. The CRI consists of two steps: prototype search and contrasting relationship constraints.
+
+In the prototype search stage, we train an intensity-based TPP as the prototype model to generate the intensity distribution of observed events in sequence. Since the intensity function reflects the probability of an event to a certain extent, we select historical events with higher intensity scores as prototype events $\hat{e_i @ t_i}$ by intensity threshold $\gamma_{I}$, and use these prototype events to construct the prototype path $ PT = \{\hat{e_1 @ t_1}, \ldots, \hat{e_{n_{PT}} @ t_{n_{PT}}} \}$. Based on the prototype path for describing dynamic patterns, we introduce the Optimal Transport Distance (OTD) \cite{46:conf/icml/MeiQE19} to measure the similarity of dynamic patterns between different event sequences, denoted as $d^{otd}_{i,j} = OTD(PT_i, PT_j)$. We sample positive samples for the input sequence $s_{input}$ by $d^{otd}$.
+
+After sampling, we apply contrastive relationship constraints in the latent space. The positive samples $s^{+}$ and negative samples $s^{-}$ are encoded to obtain relation graphs and event embedding, denoted as $z_i = \{\Phi^{rel}_i, C_i\}$. We introduce the normalized temperature-scaled cross-entropy loss (NT-Xent) \cite{47:journals/corr/abs-1807-03748} as the contrastive loss function :
+
+\begin{equation}
+\mathcal{L}_{CRI} = -log \frac{exp(sim(z_{i},z^{+})/ \tau)}{\sum^{K}_{j=0}exp(sim(z_{i},z_j^{-})/ \tau)},
+\end{equation}
+$sim(\cdot)$ represents the cosine similarity function:
+\begin{equation}
+Sim(z_i, z_j) = z^{\top}_i z_j / || z_i || || z_j ||,
+\end{equation}
+and $\tau$ denotes the temperature parameter. The contrastive loss is computed in the minibatch.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 3.3
+%%%%%%%%
+\subsection{Model Learning}
+\label{ssec:3-3}
+
+Since our proposed CRIHP model is based on the framework of variational inference, its objective function follows the evidence lower bound:
+
+\begin{equation}
+\begin{aligned}
+\mathcal{L} =\mathcal{L}_{ll}+\operatorname{KL}\left[q_{\phi}\left(\Phi^{rel} \mid \Phi^{fro} \right)|| p_{\theta}\left(\Phi^{rel}\right)\right] + \mathcal{L}_{CRI},
+\end{aligned}
+\end{equation}
+which consists of three parts. The first part is the reconstruction error, defined as the log-likelihood of the TPP. The second part is the KL divergence, which can be regarded as a regularization for the base posterior distribution, and we consider a uniform distribution \cite{zhou2023ptse}. If the discrete distribution is sampled, the derivatives can not be backpropagated, so we use the Gumbel Reparametrization \cite{41:conf/iclr/JangGP17} to train the model normally.
